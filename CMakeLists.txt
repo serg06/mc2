@@ -22,3 +22,7 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 # add the executable
 add_executable(Test src/test.cpp)
 
+# specify include directories
+include_directories(include)
+include_directories(extern/glfw-3.0.4/include)
+
