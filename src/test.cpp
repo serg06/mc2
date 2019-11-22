@@ -21,6 +21,8 @@ int main();
 
 // TODO: Make everything more object-oriented.
 // That way, I can define functions without having to declare them first, and shit.
+// And more good shit comes of it too.
+// Then from WinMain(), just call MyApp a = new MyApp, a.run(); !!
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {

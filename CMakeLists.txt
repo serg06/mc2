@@ -1,8 +1,12 @@
 # idk if it works for <3.14.7
 cmake_minimum_required(VERSION 3.14.7)
 
+# vars
+set(SOLUTION_NAME mc2)
+set(PROJECT_NAME game)
+
 # set the project name
-project(mc2)
+project(${SOLUTION_NAME})
 
 # set libraries dir
 link_directories( ${CMAKE_SOURCE_DIR}/lib )
@@ -24,12 +28,16 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 add_library(gl3w src/gl3w.c)
 
 # add the executable
-add_executable(Test WIN32 src/test.cpp)
+add_executable(${PROJECT_NAME} WIN32 src/test.cpp)
 
 # link executable to libraries
-set_property(TARGET Test PROPERTY DEBUG_POSTFIX _d) # dab on 'em
-target_link_libraries(Test gl3w optimized glfw debug glfw3_d)
+set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # dab on 'em
+target_link_libraries(${PROJECT_NAME} gl3w optimized glfw debug glfw3_d)
 
 # specify include directories
 include_directories(include)
 include_directories(extern/glfw-3.3/include)
+
+# set VS startup project
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+
