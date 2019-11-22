@@ -20,5 +20,5 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 # set(RUN_DIR ${PROJECT_SOURCE_DIR}/bin)  # dunno what this is, might come in handy
 
 # add the executable
-add_executable(Test test.cpp)
+add_executable(Test src/test.cpp)
 
