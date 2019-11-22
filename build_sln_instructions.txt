@@ -1,0 +1,18 @@
+# Software requirements
+- CMake (version >= 3.14.7)
+- Visual Studio 2017 (VS 15)
+
+# Compile GLFW
+- info: extern/glfw-3.3 is the source code for glfw 3.3, unedited, straight from their website
+- create `lib` directory
+- `cd extern/glfw-3.3`
+- `cmake -G "Visual Studio 15" .`
+- open `GLFW.sln` in Visual Studio
+- build Debug and Release configurations (just hit big green ▷ button up-top)
+- copy `glfw-3.3/src/Debug/glfw3.lib`   into `lib` and rename it to `glfw3_d.lib`
+- copy `glfw-3.3/src/Release/glfw3.lib` into `lib`
+
+# Build Solution
+- create `build` directory
+- `cd build`
+- `cmake ..`
