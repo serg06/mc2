@@ -4,12 +4,15 @@ cmake_minimum_required(VERSION 3.14.7)
 # set the project name
 project(mc2)
 
-# set CMake's archive/build/library directories (archive dir = CMake artifacts dir?)
+# set libraries dir
+link_directories( ${CMAKE_SOURCE_DIR}/lib )
+
+# set CMake's build directories (archive dir = CMake artifacts dir?)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-# set archive/build/library directories for each of VS's build types (Debug, Release, etc.)
+# set build directories for each of VS's build types (Debug, Release, etc.)
 foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
     string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
     set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_SOURCE_DIR}/lib )
@@ -17,10 +20,19 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
     set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_SOURCE_DIR}/bin )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
-# set(RUN_DIR ${PROJECT_SOURCE_DIR}/bin)  # dunno what this is, might come in handy
+# include gl3w in compilation
+add_library(gl3w src/gl3w.c)
 
 # add the executable
 add_executable(Test src/test.cpp)
+
+# link executable to libraries
+set_property(TARGET Test PROPERTY DEBUG_POSTFIX _d)
+target_link_libraries(Test gl3w glfw3_d)
+
+#if(MSVC)
+#	configure_file(${PROJECT_SOURCE_DIR}/build/templates/vs2013.vcxproj.user.in ${CMAKE_CURRENT_BINARY_DIR}/Test.vcxproj.user @ONLY)
+#endif(MSVC)
 
 # specify include directories
 include_directories(include)
