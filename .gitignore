@@ -1,2 +1,12 @@
 # CMake'd Visual Studio solution is stored here
 build/
+
+# VS BS from preparing glew libraries
+*.vcxproj
+*.vcxproj.filters
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+extern/glfw-3.3/GLFW.sln
+extern/glfw-3.3/src/glfw3.pc
+extern/glfw-3.3/src/glfw_config.h
