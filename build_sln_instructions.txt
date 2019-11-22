@@ -8,9 +8,14 @@
 - `cd extern/glfw-3.3`
 - `cmake -G "Visual Studio 15" .`
 - open `GLFW.sln` in Visual Studio
-- build Debug and Release configurations (just hit big green ▷ button up-top)
+- build Debug and Release configurations
+  - in Solution Explorer, right click "Solution 'GLFW'" and click Build
+  - go to "Build" menu -> "Configuration Manager", and change "Active solution configuration" to "Release".
+  - in Solution Explorer, right click "Solution 'GLFW'" and click Build
 - copy `glfw-3.3/src/Debug/glfw3.lib`   into `lib` and rename it to `glfw3_d.lib`
 - copy `glfw-3.3/src/Release/glfw3.lib` into `lib`
+- (optional) close solution in Visual Studio
+- (optional) go back to base directory and run `git clean -fd` to remove all the Visual Studio bs. (Don't worry, the lib/ folder is ignored!)
 
 # Build Solution
 - create `build` directory
