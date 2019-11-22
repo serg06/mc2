@@ -27,14 +27,9 @@ add_library(gl3w src/gl3w.c)
 add_executable(Test src/test.cpp)
 
 # link executable to libraries
-set_property(TARGET Test PROPERTY DEBUG_POSTFIX _d)
-target_link_libraries(Test gl3w glfw3_d)
-
-#if(MSVC)
-#	configure_file(${PROJECT_SOURCE_DIR}/build/templates/vs2013.vcxproj.user.in ${CMAKE_CURRENT_BINARY_DIR}/Test.vcxproj.user @ONLY)
-#endif(MSVC)
+set_property(TARGET Test PROPERTY DEBUG_POSTFIX _d) # dab on 'em
+target_link_libraries(Test gl3w optimized glfw debug glfw3_d)
 
 # specify include directories
 include_directories(include)
 include_directories(extern/glfw-3.3/include)
-
