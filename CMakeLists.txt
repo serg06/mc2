@@ -24,5 +24,5 @@ add_executable(Test src/test.cpp)
 
 # specify include directories
 include_directories(include)
-include_directories(extern/glfw-3.0.4/include)
+include_directories(extern/glfw-3.3/include)
 

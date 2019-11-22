@@ -1,5 +1,8 @@
-# CMake'd Visual Studio solution is stored here
+# Project solution is generated into here
 build/
+
+# Project builds into here
+bin/
 
 # Libraries which we compile ourselves
 lib/
