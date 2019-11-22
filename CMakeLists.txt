@@ -24,7 +24,7 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 add_library(gl3w src/gl3w.c)
 
 # add the executable
-add_executable(Test src/test.cpp)
+add_executable(Test WIN32 src/test.cpp)
 
 # link executable to libraries
 set_property(TARGET Test PROPERTY DEBUG_POSTFIX _d) # dab on 'em
