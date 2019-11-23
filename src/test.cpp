@@ -18,7 +18,9 @@ void startup();
 void render(double);
 void shutdown();
 int main();
+int main();
 GLuint compile_shaders();
+static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 // TODO: Make everything more object-oriented.
 // That way, I can define functions without having to declare them first, and shit.
@@ -34,6 +36,8 @@ GLuint rendering_program;
 GLuint vao;
 GLuint trans_buf;
 GLuint vert_buf;
+vmath::vec3 char_position;
+vmath::vec3 char_rotation; // rotation around x axis, y axis, and z axis (z stays 0 I think)
 
 int main() {
 	static GLFWwindow *window;
@@ -80,7 +84,7 @@ int main() {
 
 	//// TODO: set callbacks
 	//glfwSetWindowSizeCallback(window, glfw_onResize);
-	//glfwSetKeyCallback(window, glfw_onKey);
+	glfwSetKeyCallback(window, glfw_onKey);
 	//glfwSetMouseButtonCallback(window, glfw_onMouseButton);
 	//glfwSetCursorPosCallback(window, glfw_onMouseMove);
 	//glfwSetScrollCallback(window, glfw_onMouseWheel);
@@ -176,6 +180,10 @@ void startup() {
 		-0.25f, 0.25f, -0.25f
 	};
 
+	// set global vars
+	char_position = vmath::vec3(0.0f, 0.0f, 0.0f);
+	char_rotation = vmath::vec3(0.0f, 0.0f, 0.0f); // rotation around x axis, y axis, and z axis (z stays 0 I think)
+
 	// placeholder
 	glCreateVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -189,6 +197,7 @@ void startup() {
 	*/
 
 	// Simple projection matrix
+	// TODO: Get width/height automatically
 	vmath::mat4 proj_matrix = vmath::perspective(
 		40.0f, // 59.0 vfov = 90.0 hfov
 		800.0f / 600.0f,  // aspect ratio - not sure if right
@@ -209,15 +218,15 @@ void startup() {
 	glBindBuffer(GL_ARRAY_BUFFER, vert_buf); // why?
 	glVertexArrayAttribBinding(vao, attrib_idx, vert_binding_idx); // connect vert -> position variable
 
-																   // allocate
+	// allocate
 	glNamedBufferStorage(trans_buf, 2 * sizeof(vmath::mat4), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 	glNamedBufferStorage(vert_buf, sizeof(vertex_positions), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
 
-																							// insert data (skip model-view matrix; we'll update it in render())
+	// insert data (skip model-view matrix; we'll update it in render())
 	glNamedBufferSubData(trans_buf, sizeof(vmath::mat4), sizeof(vmath::mat4), proj_matrix); // proj matrix
 	glNamedBufferSubData(vert_buf, 0, sizeof(vertex_positions), vertex_positions); // vertex positions
 
-																				   // enable auto-filling of position
+	// enable auto-filling of position
 	glVertexArrayVertexBuffer(vao, vert_binding_idx, vert_buf, 0, sizeof(vmath::vec3));
 	glVertexArrayAttribFormat(vao, attrib_idx, 3, GL_FLOAT, GL_FALSE, 0);
 	glEnableVertexAttribArray(attrib_idx);
@@ -263,16 +272,29 @@ void render(double time) {
 	glClearBufferfv(GL_COLOR, 0, color);
 	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // used for depth test somehow
 
-												   // MOVEMENT CALCULATION
+	// MOVEMENT CALCULATION
 
 	float f = (float)time * (float)M_PI * 0.1f;
-	vmath::mat4 model_view_matrix =
+	vmath::mat4 model_world_matrix =
 		vmath::translate(0.0f, 0.0f, -4.0f) *
 		vmath::translate(sinf(2.1f * f) * 0.5f,
 			cosf(1.7f * f) * 0.5f,
 			sinf(1.3f * f) * cosf(1.5f * f) * 2.0f) *
 		vmath::rotate((float)time * 45.0f, 0.0f, 1.0f, 0.0f) *
 		vmath::rotate((float)time * 81.0f, 1.0f, 0.0f, 0.0f);
+
+
+	// WORLD->VIEW MATRIX:
+	//   - move it relative to you (e.g. if you're at (3,3), subtract (3,3) from world coordinates)
+	//       - now it's relative to you positionally, but need to rotate it to the angle you're looking
+	//   - rotate it around you
+	vmath::mat4 world_view_matrix =
+		vmath::rotate(-char_rotation[1], 0.0f, 1.0f, 0.0f) * // look right/left (rotate around y)
+		vmath::rotate(-char_rotation[0], 1.0f, 0.0f, 0.0f) * // look    up/down (rotate around x)
+		vmath::translate(-char_position) * // move relative to you
+		vmath::mat4::identity();
+
+	vmath::mat4 model_view_matrix = world_view_matrix * model_world_matrix;
 
 	// Update transformation buffer with mv matrix
 	glNamedBufferSubData(trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
@@ -406,4 +428,51 @@ void print_arr(const GLfloat *arr, int size, int row_size) {
 	}
 
 	OutputDebugString("\nDONE\n");
+}
+
+// on key press
+static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	// ?
+	if (!action) {
+		return;
+	}
+
+
+	switch (key) {
+	case GLFW_KEY_W:
+		char_position += vmath::vec3(0.0f, 0.0f, -1.0f);
+		break;
+	case GLFW_KEY_S:
+		char_position += vmath::vec3(0.0f, 0.0f, 1.0f);
+		break;
+	case GLFW_KEY_A:
+		char_position += vmath::vec3(-1.0f, 0.0f, 0.0f);
+		break;
+	case GLFW_KEY_D:
+		char_position += vmath::vec3(1.0f, 0.0f, 0.0f);
+		break;
+	case GLFW_KEY_SPACE:
+		char_position += vmath::vec3(0.0f, 1.0f, 0.0f);
+		break;
+	case GLFW_KEY_LEFT_SHIFT:
+		char_position += vmath::vec3(0.0f, -1.0f, 0.0f);
+		break;
+	case GLFW_KEY_UP:
+		char_rotation += vmath::vec3(5.0f, 0.0f, 0.0f);
+		break;
+	case GLFW_KEY_DOWN:
+		char_rotation += vmath::vec3(-5.0f, 0.0f, 0.0f);
+		break;
+	case GLFW_KEY_LEFT:
+		char_rotation += vmath::vec3(0.0f, 5.0f, 0.0f);
+		break;
+	case GLFW_KEY_RIGHT:
+		char_rotation += vmath::vec3(0.0f, -5.0f, 0.0f);
+		break;
+	}
+
+	char buf[256];
+	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nRotation: (%.1f, %.1f, %.1f)\n\n", char_position[0], char_position[1], char_position[2], char_rotation[0], char_rotation[1], char_rotation[2]);
+	OutputDebugString(buf);
 }
