@@ -5,15 +5,17 @@
 #include <string>
 #include <fstream>
 #include <streambuf>
-#include <list> 
-#include <vector> 
-#include <iterator> 
-#include <tuple> 
+#include <list>
+#include <vector>
+#include <iterator>
+#include <tuple>
 
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 
 #include <math.h>
 #include <cmath>
+
+#include "util.h"
 
 //#define MAX_VELOCITY 0.1f
 //#define FORCE 1.0f
@@ -26,9 +28,9 @@ void render(double);
 void shutdown();
 int main();
 int main();
-GLuint compile_shaders();
 static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
+
 
 // TODO: Make everything more object-oriented.
 // That way, I can define functions without having to declare them first, and shit.
@@ -54,9 +56,6 @@ vmath::vec4 char_velocity = vmath::vec4(0.0f);
 float char_pitch = 0.0f; //   up/down  angle;    capped to [-90.0, 90.0]
 float char_yaw = 0.0f;   // left/right angle; un-capped
 
-template <typename T> int sgn(T val) {
-	return (T(0) < val) - (val < T(0));
-}
 
 int main() {
 	static GLFWwindow *window;
@@ -216,8 +215,16 @@ void startup() {
 	glCreateVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	// compile shaders
-	rendering_program = compile_shaders();
+	// list of shaders to create program with
+	std::vector <std::tuple<std::string, GLenum>> shader_fnames;
+	shader_fnames.push_back(std::make_tuple("../src/simple.vs.glsl", GL_VERTEX_SHADER));
+	//shader_fnames.push_back(std::make_tuple("../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER));
+	//shader_fnames.push_back(std::make_tuple("../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER));
+	//shader_fnames.push_back(std::make_tuple("../src/simple.gs.glsl", GL_GEOMETRY_SHADER));
+	shader_fnames.push_back(std::make_tuple("../src/simple.fs.glsl", GL_FRAGMENT_SHADER));
+
+	// create program
+	rendering_program = compile_shaders(shader_fnames);
 
 
 	/*
@@ -294,6 +301,7 @@ void startup() {
 
 void render(double time) {
 	/* PLAYER MOVEMENT */
+	char buf[256];
 
 	// change in time
 	const double dt = time - last_render_time;
@@ -310,22 +318,22 @@ void render(double time) {
 
 	// calculate acceleration
 	if (held_keys[GLFW_KEY_W]) {
-		acceleration = dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+		acceleration += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_S]) {
-		acceleration = dir_rotation * vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+		acceleration += dir_rotation * vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_A]) {
-		acceleration = dir_rotation * vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+		acceleration += dir_rotation * vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_D]) {
-		acceleration = dir_rotation * vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+		acceleration += dir_rotation * vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_SPACE]) {
-		acceleration = vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		acceleration += vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_LEFT_SHIFT]) {
-		acceleration = dir_rotation * vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+		acceleration += dir_rotation * vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
 	}
 
 	// TODO: Tweak velocity falloff values?
@@ -346,11 +354,10 @@ void render(double time) {
 	if (length(char_velocity) > 10.0f) {
 		char_velocity = 10.0f * vmath::normalize(char_velocity);
 	}
-	char_velocity[0] = 0.0f; // Just in case
+	char_velocity[3] = 0.0f; // Just in case
 
 	// Update player position
 	char_position += char_velocity * dt;
-	char buf[256];
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nVelocity:(%.2f, %.2f, %.2f)\n\n", char_position[0], char_position[1], char_position[2], char_velocity[0], char_velocity[1], char_velocity[2]);
 	OutputDebugString(buf);
 
@@ -398,127 +405,9 @@ void shutdown() {
 	// TODO: Maybe some day.
 }
 
-GLuint compile_shaders() {
-	GLuint program;
-	std::list <std::tuple<std::string, GLenum>> shader_fnames;
-	std::list <GLuint> shaders; // store compiled shaders
 
-								// list of shader names to include in program
-	shader_fnames.push_back(std::make_tuple("../src/simple.vs.glsl", GL_VERTEX_SHADER));
-	//shader_fnames.push_back(std::make_tuple("../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER));
-	//shader_fnames.push_back(std::make_tuple("../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER));
-	//shader_fnames.push_back(std::make_tuple("../src/simple.gs.glsl", GL_GEOMETRY_SHADER));
-	shader_fnames.push_back(std::make_tuple("../src/simple.fs.glsl", GL_FRAGMENT_SHADER));
 
-	// for each input shader
-	for (const std::tuple <std::string, GLenum> &shader_fname : shader_fnames)
-	{
-		// extract shader info
-		const std::string fname = std::get<0>(shader_fname);
-		const GLenum shadertype = std::get<1>(shader_fname);
 
-		// load shader src
-		std::ifstream shader_file(fname);
-
-		if (!shader_file.is_open()) {
-			OutputDebugString("could not open shader file: ");
-			OutputDebugString(fname.c_str());
-			OutputDebugString("\n");
-			exit(1);
-		}
-
-		const std::string shader_src((std::istreambuf_iterator<char>(shader_file)), std::istreambuf_iterator<char>());
-		const GLchar * shader_src_ptr = shader_src.c_str();
-
-		// Create and compile shader
-		const GLuint shader = glCreateShader(shadertype); // create empty shader
-		glShaderSource(shader, 1, &shader_src_ptr, NULL); // set shader source code
-		glCompileShader(shader); // compile shader
-
-								 // CHECK IF COMPILATION SUCCESSFUL
-		GLint status = GL_TRUE;
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-		if (status == GL_FALSE)
-		{
-			GLint logLen;
-			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
-			std::vector <char> log(logLen);
-			GLsizei written;
-			glGetShaderInfoLog(shader, logLen, &written, log.data());
-
-			OutputDebugString("compilation error with shader ");
-			OutputDebugString(fname.c_str());
-			OutputDebugString(":\n\n");
-			OutputDebugString(log.data());
-			OutputDebugString("\n");
-			exit(1);
-		}
-
-		// Close file, save shader for later
-		shader_file.close();
-		shaders.push_back(shader);
-	}
-
-	// Create program, attach shaders to it, and link it
-	program = glCreateProgram(); // create (empty?) program
-
-								 // attach shaders
-	for (const GLuint &shader : shaders) {
-		glAttachShader(program, shader);
-	}
-
-	glLinkProgram(program); // link together all attached shaders
-
-							// CHECK IF LINKING SUCCESSFUL
-	GLint status = GL_TRUE;
-	glGetProgramiv(program, GL_LINK_STATUS, &status);
-	if (status == GL_FALSE)
-	{
-		GLint logLen;
-		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
-		std::vector <char> log(logLen);
-		GLsizei written;
-		glGetProgramInfoLog(program, logLen, &written, log.data());
-
-		OutputDebugString("linking error with program:\n\n");
-		OutputDebugString(log.data());
-		OutputDebugString("\n");
-		exit(1);
-	}
-
-	// Delete the shaders as the program has them now
-	for (const GLuint &shader : shaders) {
-		glDeleteShader(shader);
-	}
-
-	return program;
-}
-
-// Don't need this yet, but gonna add it to utils.
-// TODO: Move to utils.
-void print_arr(const GLfloat *arr, int size, int row_size) {
-	char str[64];
-
-	OutputDebugString("\nPRINTING ARR:\n");
-
-	for (int i = 0; i < size; i++) {
-		memset(str, '\0', 64);
-		if (arr[i] >= 0) {
-			str[0] = ' ';
-			sprintf(str + 1, "%.2f ", arr[i]);
-		}
-		else {
-			sprintf(str, "%.2f ", arr[i]);
-		}
-		OutputDebugString(str);
-
-		if (((i + 1) % row_size) == 0) {
-			OutputDebugString("\n");
-		}
-	}
-
-	OutputDebugString("\nDONE\n");
-}
 
 // on key press
 static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
