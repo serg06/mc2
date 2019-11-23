@@ -9,7 +9,9 @@
 #include <vector> 
 #include <iterator> 
 #include <tuple> 
+
 #include <vmath.h> // TODO: Upgrade version, or use better library?
+
 #include <math.h>
 
 using namespace std;
@@ -37,8 +39,12 @@ GLuint rendering_program;
 GLuint vao;
 GLuint trans_buf;
 GLuint vert_buf;
-vmath::vec3 char_position;
-vmath::vec3 char_rotation; // rotation around x axis, y axis, and z axis (z stays 0 I think)
+static double last_mouse_x = 0.0;
+static double last_mouse_y = 0.0;
+
+vmath::vec4 char_position;
+float char_pitch = 0.0f; //   up/down  angle;    capped to [-90.0, 90.0]
+float char_yaw = 0.0f;   // left/right angle; un-capped
 
 int main() {
 	static GLFWwindow *window;
@@ -111,6 +117,8 @@ int main() {
 	//}
 
 	startup();
+	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
+
 
 	// run until user presses ESC or tries to close window
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
@@ -186,8 +194,9 @@ void startup() {
 	};
 
 	// set global vars
-	char_position = vmath::vec3(0.0f, 0.0f, 0.0f);
-	char_rotation = vmath::vec3(0.0f, 0.0f, 0.0f); // rotation around x axis, y axis, and z axis (z stays 0 I think)
+	char_position = vmath::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	char_pitch = 0;
+	char_yaw = 0;
 
 	// placeholder
 	glCreateVertexArrays(1, &vao);
@@ -204,7 +213,7 @@ void startup() {
 	// Simple projection matrix
 	// TODO: Get width/height automatically
 	vmath::mat4 proj_matrix = vmath::perspective(
-		40.0f, // 59.0 vfov = 90.0 hfov
+		59.0f, // 59.0 vfov = 90.0 hfov
 		800.0f / 600.0f,  // aspect ratio - not sure if right
 		0.1f,  // can't see behind 0.0 anyways
 		-1000.0f // our object will be closer than 100.0
@@ -257,7 +266,7 @@ void startup() {
 	/*
 	* ETC
 	*/
-
+	
 	glPointSize(5.0f);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glEnable(GL_CULL_FACE);
@@ -288,16 +297,14 @@ void render(double time) {
 		vmath::rotate((float)time * 45.0f, 0.0f, 1.0f, 0.0f) *
 		vmath::rotate((float)time * 81.0f, 1.0f, 0.0f, 0.0f);
 
-
 	// WORLD->VIEW MATRIX:
 	//   - move it relative to you (e.g. if you're at (3,3), subtract (3,3) from world coordinates)
 	//       - now it's relative to you positionally, but need to rotate it to the angle you're looking
 	//   - rotate it around you
 	vmath::mat4 world_view_matrix =
-		vmath::rotate(-char_rotation[1], 0.0f, 1.0f, 0.0f) * // look right/left (rotate around y)
-		vmath::rotate(-char_rotation[0], 1.0f, 0.0f, 0.0f) * // look    up/down (rotate around x)
-		vmath::translate(-char_position) * // move relative to you
-		vmath::mat4::identity();
+		vmath::rotate(char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) *          // rotate pitch around X (TODO: Try rotating pitch first?)
+		vmath::rotate(char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f)) *            // rotate yaw around Y
+		vmath::translate(-char_position[0], -char_position[1], -char_position[2]); // move relative to you
 
 	vmath::mat4 model_view_matrix = world_view_matrix * model_world_matrix;
 
@@ -443,68 +450,83 @@ static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, in
 		return;
 	}
 
-	// TODO: Implement
 	// make rotation matrix for rotating direction vector relative to player's rotation
 	// i.e.: make w go straight
 	vmath::mat4 dir_rotation =
-		vmath::rotate(-char_rotation[1], 0.0f, 1.0f, 0.0f) * // look right/left (rotate around y)
-		vmath::rotate(-char_rotation[0], 1.0f, 0.0f, 0.0f);  // look    up/down (rotate around x)
+		vmath::rotate(char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
+		vmath::rotate(char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
 
-	// TODO: Don't move towards Z with W; instead, move *forwards* (depends on rotation)
 	switch (key) {
 	case GLFW_KEY_W:
-		char_position += vmath::vec3(0.0f, 0.0f, -1.0f);
+		char_position += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 		break;
 	case GLFW_KEY_S:
-		char_position += vmath::vec3(0.0f, 0.0f, 1.0f);
+		char_position += dir_rotation * vmath::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 		break;
 	case GLFW_KEY_A:
-		char_position += vmath::vec3(-1.0f, 0.0f, 0.0f);
+		char_position += dir_rotation * vmath::vec4(-1.0f, 0.0f, 0.0f, 1.0f);
 		break;
 	case GLFW_KEY_D:
-		char_position += vmath::vec3(1.0f, 0.0f, 0.0f);
+		char_position += dir_rotation * vmath::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 		break;
 	case GLFW_KEY_SPACE:
-		char_position += vmath::vec3(0.0f, 1.0f, 0.0f);
+		char_position += vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 		break;
 	case GLFW_KEY_LEFT_SHIFT:
-		char_position += vmath::vec3(0.0f, -1.0f, 0.0f);
+		char_position += vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
 		break;
 	case GLFW_KEY_UP:
-		char_rotation += vmath::vec3(5.0f, 0.0f, 0.0f);
+		char_pitch += 0.1;
 		break;
 	case GLFW_KEY_DOWN:
-		char_rotation += vmath::vec3(-5.0f, 0.0f, 0.0f);
+		char_pitch -= 0.1;
 		break;
 	case GLFW_KEY_LEFT:
-		char_rotation += vmath::vec3(0.0f, 5.0f, 0.0f);
+		char_yaw -= 0.1;
 		break;
 	case GLFW_KEY_RIGHT:
-		char_rotation += vmath::vec3(0.0f, -5.0f, 0.0f);
+		char_yaw += 0.1;
 		break;
 	}
 
 	char buf[256];
-	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nRotation: (%.1f, %.1f, %.1f)\n\n", char_position[0], char_position[1], char_position[2], char_rotation[0], char_rotation[1], char_rotation[2]);
+	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nPitch & yaw: : (%.1f, %.1f)\n\n", char_position[0], char_position[1], char_position[2], char_pitch, char_yaw);
 	OutputDebugString(buf);
 }
 
 // on mouse movement
 static void glfw_onMouseMove(GLFWwindow* window, double x, double y)
 {
-	//// disallow doing backflips and frontflips
-	//if (y > 900.0) {
-	//	glfwSetCursorPos(window, x, 900.0);
-	//	return;
-	//}
-	//if (y < -900.0) {
-	//	glfwSetCursorPos(window, x, -900.0);
-	//	return;
-	//}
+	static const float mouseX_Sensitivity = 0.25f;
+	static const float mouseY_Sensitivity = 0.25f;
+
+	// bonus of using deltas for yaw/pitch:
+	// - can cap easily -- if we cap without deltas, and we move 3000x past the cap, we'll have to move 3000x back before mouse moves!
+	// - easy to do mouse sensitivity
+	double delta_x = x - last_mouse_x;
+	double delta_y = y - last_mouse_y;
+
+	// TODO: convert to radians? (or is that already done?)
+	char_yaw += mouseX_Sensitivity * delta_x;
+	char_pitch += mouseY_Sensitivity * delta_y;
+
+	// cap
+	char_pitch = fmax(fmin(char_pitch, 90.0f), -90.0f);
+
+	// update old values
+	last_mouse_x = x;
+	last_mouse_y = y;
+
+	// debug messages
+	vmath::mat4 dir_rotation =
+		vmath::rotate(char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
+		vmath::rotate(char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
 
 	char buf[256];
-	sprintf(buf, "Mouse position: (%.1f, %.1f)\n", x, y);
+	sprintf(buf, "Mouse position: (%.1f, %.1f)\nPitch/yaw: (%.1f, %.1f)\n", x, y, char_pitch, char_yaw);
+	OutputDebugString(buf);
+	vmath::vec4 direction = dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+	sprintf(buf, "Look direction: (%.1f, %.1f, %.1f)\n\n", direction[0], direction[1], direction[2]);
 	OutputDebugString(buf);
 
-	char_rotation = vmath::vec3(-y*0.1f, -x*0.1f, 0.0f);
 }
