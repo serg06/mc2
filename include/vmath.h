@@ -808,6 +808,16 @@ public:
         return *this;
     }
 
+	inline vector_type operator*(const vector_type& that) const
+	{
+		vector_type result;
+		int m;
+		for (m = 0; m < h; m++) {
+			result[m] = dot(data[m], that);
+		}
+		return result;
+	}
+
     // Matrix multiply.
     // TODO: This only works for square matrices. Need more template skill to make a non-square version.
     inline my_type operator*(const my_type& that) const
