@@ -13,6 +13,11 @@
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 
 #include <math.h>
+#include <cmath>
+
+//#define MAX_VELOCITY 0.1f
+//#define FORCE 1.0f
+//#define MASS 1.0f
 
 using namespace std;
 
@@ -41,10 +46,17 @@ GLuint trans_buf;
 GLuint vert_buf;
 static double last_mouse_x = 0.0;
 static double last_mouse_y = 0.0;
+static double last_render_time;
+static bool held_keys[GLFW_KEY_LAST + 1];
 
 vmath::vec4 char_position;
+vmath::vec4 char_velocity = vmath::vec4(0.0f);
 float char_pitch = 0.0f; //   up/down  angle;    capped to [-90.0, 90.0]
 float char_yaw = 0.0f;   // left/right angle; un-capped
+
+template <typename T> int sgn(T val) {
+	return (T(0) < val) - (val < T(0));
+}
 
 int main() {
 	static GLFWwindow *window;
@@ -118,6 +130,7 @@ int main() {
 
 	startup();
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
+	last_render_time = glfwGetTime();
 
 
 	// run until user presses ESC or tries to close window
@@ -197,6 +210,7 @@ void startup() {
 	char_position = vmath::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	char_pitch = 0;
 	char_yaw = 0;
+	memset(held_keys, false, sizeof(held_keys));
 
 	// placeholder
 	glCreateVertexArrays(1, &vao);
@@ -266,7 +280,7 @@ void startup() {
 	/*
 	* ETC
 	*/
-	
+
 	glPointSize(5.0f);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glEnable(GL_CULL_FACE);
@@ -279,6 +293,70 @@ void startup() {
 }
 
 void render(double time) {
+	/* PLAYER MOVEMENT */
+
+	// change in time
+	const double dt = time - last_render_time;
+	last_render_time = time;
+	// character's rotation
+	vmath::mat4 dir_rotation =
+		vmath::rotate(char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
+		vmath::rotate(char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
+
+	// Update player velocity
+	//char_velocity += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
+
+	vmath::vec4 acceleration = vmath::vec4(0.0f);
+
+	// calculate acceleration
+	if (held_keys[GLFW_KEY_W]) {
+		acceleration = dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+	}
+	if (held_keys[GLFW_KEY_S]) {
+		acceleration = dir_rotation * vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+	}
+	if (held_keys[GLFW_KEY_A]) {
+		acceleration = dir_rotation * vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+	}
+	if (held_keys[GLFW_KEY_D]) {
+		acceleration = dir_rotation * vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+	}
+	if (held_keys[GLFW_KEY_SPACE]) {
+		acceleration = vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+	}
+	if (held_keys[GLFW_KEY_LEFT_SHIFT]) {
+		acceleration = dir_rotation * vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+	}
+
+	// TODO: Tweak velocity falloff values?
+
+	// Velocity falloff (TODO: For blocks and shit too. Maybe based on friction.)
+	char_velocity *= pow(0.5, dt);
+	for (int i = 0; i < 4; i++) {
+		if (char_velocity[i] > 0.0f) {
+			char_velocity[i] = fmax(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+		}
+		else if (char_velocity[i] < 0.0f) {
+			char_velocity[i] = fmin(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+		}
+	}
+
+	// Velocity change (via acceleration)
+	char_velocity += acceleration * dt * 50.0f;
+	if (length(char_velocity) > 10.0f) {
+		char_velocity = 10.0f * vmath::normalize(char_velocity);
+	}
+	char_velocity[0] = 0.0f; // Just in case
+
+	// Update player position
+	char_position += char_velocity * dt;
+	char buf[256];
+	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nVelocity:(%.2f, %.2f, %.2f)\n\n", char_position[0], char_position[1], char_position[2], char_velocity[0], char_velocity[1], char_velocity[2]);
+	OutputDebugString(buf);
+
+
+	/* DRAWING */
+
 	// BACKGROUND COLOUR
 
 	//const GLfloat color[] = { (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
@@ -445,9 +523,14 @@ void print_arr(const GLfloat *arr, int size, int row_size) {
 // on key press
 static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	// ?
-	if (!action) {
+	// ignore unknown keys
+	if (key == GLFW_KEY_UNKNOWN) {
 		return;
+	}
+
+	// handle key releases
+	if (action == GLFW_RELEASE) {
+		held_keys[key] = false;
 	}
 
 	// make rotation matrix for rotating direction vector relative to player's rotation
@@ -456,37 +539,9 @@ static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, in
 		vmath::rotate(char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
 		vmath::rotate(char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
 
-	switch (key) {
-	case GLFW_KEY_W:
-		char_position += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
-		break;
-	case GLFW_KEY_S:
-		char_position += dir_rotation * vmath::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-		break;
-	case GLFW_KEY_A:
-		char_position += dir_rotation * vmath::vec4(-1.0f, 0.0f, 0.0f, 1.0f);
-		break;
-	case GLFW_KEY_D:
-		char_position += dir_rotation * vmath::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-		break;
-	case GLFW_KEY_SPACE:
-		char_position += vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-		break;
-	case GLFW_KEY_LEFT_SHIFT:
-		char_position += vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-		break;
-	case GLFW_KEY_UP:
-		char_pitch += 0.1;
-		break;
-	case GLFW_KEY_DOWN:
-		char_pitch -= 0.1;
-		break;
-	case GLFW_KEY_LEFT:
-		char_yaw -= 0.1;
-		break;
-	case GLFW_KEY_RIGHT:
-		char_yaw += 0.1;
-		break;
+	// handle key presses
+	if (action == GLFW_PRESS) {
+		held_keys[key] = true;
 	}
 
 	char buf[256];
