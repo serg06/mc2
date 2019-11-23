@@ -21,6 +21,7 @@ int main();
 int main();
 GLuint compile_shaders();
 static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
+static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
 
 // TODO: Make everything more object-oriented.
 // That way, I can define functions without having to declare them first, and shit.
@@ -82,11 +83,15 @@ int main() {
 	// set this window as current window
 	glfwMakeContextCurrent(window);
 
+	// lock mouse into screen, for camera controls
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+
 	//// TODO: set callbacks
 	//glfwSetWindowSizeCallback(window, glfw_onResize);
 	glfwSetKeyCallback(window, glfw_onKey);
 	//glfwSetMouseButtonCallback(window, glfw_onMouseButton);
-	//glfwSetCursorPosCallback(window, glfw_onMouseMove);
+	glfwSetCursorPosCallback(window, glfw_onMouseMove);
 	//glfwSetScrollCallback(window, glfw_onMouseWheel);
 
 
@@ -438,7 +443,14 @@ static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, in
 		return;
 	}
 
+	// TODO: Implement
+	// make rotation matrix for rotating direction vector relative to player's rotation
+	// i.e.: make w go straight
+	vmath::mat4 dir_rotation =
+		vmath::rotate(-char_rotation[1], 0.0f, 1.0f, 0.0f) * // look right/left (rotate around y)
+		vmath::rotate(-char_rotation[0], 1.0f, 0.0f, 0.0f);  // look    up/down (rotate around x)
 
+	// TODO: Don't move towards Z with W; instead, move *forwards* (depends on rotation)
 	switch (key) {
 	case GLFW_KEY_W:
 		char_position += vmath::vec3(0.0f, 0.0f, -1.0f);
@@ -475,4 +487,24 @@ static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, in
 	char buf[256];
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nRotation: (%.1f, %.1f, %.1f)\n\n", char_position[0], char_position[1], char_position[2], char_rotation[0], char_rotation[1], char_rotation[2]);
 	OutputDebugString(buf);
+}
+
+// on mouse movement
+static void glfw_onMouseMove(GLFWwindow* window, double x, double y)
+{
+	//// disallow doing backflips and frontflips
+	//if (y > 900.0) {
+	//	glfwSetCursorPos(window, x, 900.0);
+	//	return;
+	//}
+	//if (y < -900.0) {
+	//	glfwSetCursorPos(window, x, -900.0);
+	//	return;
+	//}
+
+	char buf[256];
+	sprintf(buf, "Mouse position: (%.1f, %.1f)\n", x, y);
+	OutputDebugString(buf);
+
+	char_rotation = vmath::vec3(-y*0.1f, -x*0.1f, 0.0f);
 }
