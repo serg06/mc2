@@ -21,6 +21,14 @@
 //#define FORCE 1.0f
 //#define MASS 1.0f
 
+// 1. TODO: Apply C++11 features
+// 2. TODO: Apply C++14 features
+// 3. TODO: Apply C++17 features
+// 4. TODO: Make everything more object-oriented.
+//		That way, I can define functions without having to declare them first, and shit.
+//		And more good shit comes of it too.
+//		Then from WinMain(), just call MyApp a = new MyApp, a.run(); !!
+
 using namespace std;
 
 void startup();
@@ -32,10 +40,6 @@ static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, in
 static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
 
 
-// TODO: Make everything more object-oriented.
-// That way, I can define functions without having to declare them first, and shit.
-// And more good shit comes of it too.
-// Then from WinMain(), just call MyApp a = new MyApp, a.run(); !!
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
