@@ -27,7 +27,7 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 # include gl3w in compilation
 add_library(gl3w src/gl3w.c)
 
-# add the executable
+# add source files
 add_executable(${PROJECT_NAME} WIN32 src/game.cpp src/util.h src/util.cpp)
 
 # link executable to libraries
@@ -40,4 +40,7 @@ include_directories(extern/glfw-3.3/include)
 
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+
+# set to C++ 17 (we doin this hardcore)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
