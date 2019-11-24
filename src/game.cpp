@@ -220,12 +220,13 @@ void startup() {
 	glBindVertexArray(vao);
 
 	// list of shaders to create program with
-	std::vector <std::tuple<std::string, GLenum>> shader_fnames;
-	shader_fnames.push_back(std::make_tuple("../src/simple.vs.glsl", GL_VERTEX_SHADER));
-	//shader_fnames.push_back(std::make_tuple("../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER));
-	//shader_fnames.push_back(std::make_tuple("../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER));
-	//shader_fnames.push_back(std::make_tuple("../src/simple.gs.glsl", GL_GEOMETRY_SHADER));
-	shader_fnames.push_back(std::make_tuple("../src/simple.fs.glsl", GL_FRAGMENT_SHADER));
+	std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+		{"../src/simple.vs.glsl", GL_VERTEX_SHADER},
+		//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
+		//{"../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER },
+		//{"../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
+		{"../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
+	};
 
 	// create program
 	rendering_program = compile_shaders(shader_fnames);

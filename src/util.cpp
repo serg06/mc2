@@ -41,7 +41,7 @@ GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnam
 	std::vector <GLuint> shaders; // store compiled shaders
 
 	// for each input shader
-	for (const auto& [fname, shadertype] : shader_fnames)
+	for (const auto&[fname, shadertype] : shader_fnames)
 	{
 		// load shader src
 		std::ifstream shader_file(fname);
