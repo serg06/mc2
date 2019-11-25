@@ -19,10 +19,6 @@
 #include "util.h"
 #include "shapes.h"
 
-//#define MAX_VELOCITY 0.1f
-//#define FORCE 1.0f
-//#define MASS 1.0f
-
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
 // 3. TODO: Apply C++17 features
@@ -338,3 +334,4 @@ void App::glfw_onMouseMove(GLFWwindow* window, double x, double y)
 	App::app->last_mouse_x = x;
 	App::app->last_mouse_y = y;
 }
+

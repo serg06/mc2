@@ -56,24 +56,22 @@ public:
 
 	}
 
-	void run();
-	void startup();
-	void render(double);
-
 	void shutdown() {
 		// TODO: Maybe some day.
 	}
 
-	//// callback functions must be static
+	void run();
+	void startup();
+	void render(double);
+	
+	// glfw callback functions must be static
 	static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
 	//static void gl_onDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
 
 	static App* app;
 };
-App* App::app;
-//static App* app2;
-
-
+// define/declare/de-whatever App's static variables
+App* App::app; 
 
 #endif /* __GAME_H__ */
