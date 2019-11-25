@@ -20,6 +20,9 @@
 #include "shapes.h"
 #include "chunks.h"
 
+#include <windows.h>
+
+
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
 // 3. TODO: Apply C++17 features
@@ -30,15 +33,24 @@
 
 using namespace std;
 
+void glfw_onError(int error, const char* description)
+{
+	MessageBox(NULL, description, "GLFW error", MB_OK);
+}
+
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	glfwSetErrorCallback(glfw_onError);
 	App::app = new App();
 	App::app->run();
 }
 
 void App::run() {
-	assert(glfwInit() && "Failed to initialize GLFW.");
+	if (!glfwInit()) {
+		MessageBox(NULL, "Failed to initialize GLFW.", "GLFW error", MB_OK);
+		return;
+	}
 
 	// OpenGL 4.5
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -59,7 +71,10 @@ void App::run() {
 	// create window
 	window = glfwCreateWindow(info.width, info.height, info.title.c_str(), nullptr, nullptr);
 
-	assert(window && "Failed to open window.");
+	if (!window) {
+		MessageBox(NULL, "Failed to create window.", "GLFW error", MB_OK);
+		return;
+	}
 
 	// set this window as current window
 	glfwMakeContextCurrent(window);
@@ -75,9 +90,11 @@ void App::run() {
 	glfwSetCursorPosCallback(window, glfw_onMouseMove);
 	//glfwSetScrollCallback(window, glfw_onMouseWheel);
 
-
 	// finally init gl3w
-	assert(!gl3wInit() && "Failed to initialize OpenGL.");
+	if (gl3wInit()) {
+		MessageBox(NULL, "Failed to initialize OpenGL.", "gl3w error", MB_OK);
+		return;
+	}
 
 	//// TODO: set debug message callback
 	//if (info.flags.debug) {
