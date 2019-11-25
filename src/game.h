@@ -31,7 +31,6 @@ struct appInfo {
 
 class App {
 protected:
-	//static App* app;
 public:
 	// the one and only copy of this app
 
@@ -52,7 +51,10 @@ public:
 	float char_pitch = 0.0f; //   up/down  angle;    capped to [-90.0, 90.0]
 	float char_yaw = 0.0f;   // left/right angle; un-capped
 
-	App();
+	App() {
+
+	}
+
 	void run();
 	void startup();
 	void render(double);
@@ -62,7 +64,10 @@ public:
 	//static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	//static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
 	//static void gl_onDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
+
+	static App* app;
 };
+App* App::app;
 //App* App::app;
 //static App* app2;
 

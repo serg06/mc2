@@ -33,30 +33,14 @@
 
 using namespace std;
 
-void startup();
-void render(double);
-void shutdown();
-int main();
 static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
-App* app;
-
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	app = new App();
-	app->run();
-	//return main();
+	App::app = new App();
+	App::app->run();
 }
-
-//GLuint rendering_program;
-//GLuint vao;
-//GLuint trans_buf;
-//GLuint vert_buf;
-//double last_mouse_x = 0.0;
-//double last_mouse_y = 0.0;
-//double last_render_time;
-//bool held_keys[GLFW_KEY_LAST + 1];
 
 // on key press
 static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -68,22 +52,22 @@ static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, in
 
 	// handle key releases
 	if (action == GLFW_RELEASE) {
-		app->held_keys[key] = false;
+		App::app->held_keys[key] = false;
 	}
 
 	// make rotation matrix for rotating direction vector relative to player's rotation
 	// i.e.: make w go straight
 	vmath::mat4 dir_rotation =
-		vmath::rotate(app->char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
-		vmath::rotate(app->char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
+		vmath::rotate(App::app->char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
+		vmath::rotate(App::app->char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
 
 	// handle key presses
 	if (action == GLFW_PRESS) {
-		app->held_keys[key] = true;
+		App::app->held_keys[key] = true;
 	}
 
 	char buf[256];
-	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nPitch & yaw: : (%.1f, %.1f)\n\n", app->char_position[0], app->char_position[1], app->char_position[2], app->char_pitch, app->char_yaw);
+	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nPitch & yaw: : (%.1f, %.1f)\n\n", App::app->char_position[0], App::app->char_position[1], App::app->char_position[2], App::app->char_pitch, App::app->char_yaw);
 	OutputDebugString(buf);
 }
 
@@ -96,38 +80,32 @@ static void glfw_onMouseMove(GLFWwindow* window, double x, double y)
 	// bonus of using deltas for yaw/pitch:
 	// - can cap easily -- if we cap without deltas, and we move 3000x past the cap, we'll have to move 3000x back before mouse moves!
 	// - easy to do mouse sensitivity
-	double delta_x = x - app->last_mouse_x;
-	double delta_y = y - app->last_mouse_y;
+	double delta_x = x - App::app->last_mouse_x;
+	double delta_y = y - App::app->last_mouse_y;
 
 	// TODO: convert to radians? (or is that already done?)
-	app->char_yaw += mouseX_Sensitivity * delta_x;
-	app->char_pitch += mouseY_Sensitivity * delta_y;
+	App::app->char_yaw += mouseX_Sensitivity * delta_x;
+	App::app->char_pitch += mouseY_Sensitivity * delta_y;
 
 	// cap
-	app->char_pitch = fmax(fmin(app->char_pitch, 90.0f), -90.0f);
+	App::app->char_pitch = fmax(fmin(App::app->char_pitch, 90.0f), -90.0f);
 
 	// update old values
-	app->last_mouse_x = x;
-	app->last_mouse_y = y;
+	App::app->last_mouse_x = x;
+	App::app->last_mouse_y = y;
 
 	// debug messages
 	vmath::mat4 dir_rotation =
-		vmath::rotate(app->char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
-		vmath::rotate(app->char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
+		vmath::rotate(App::app->char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
+		vmath::rotate(App::app->char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
 
 	char buf[256];
-	sprintf(buf, "Mouse position: (%.1f, %.1f)\nPitch/yaw: (%.1f, %.1f)\n", x, y, app->char_pitch, app->char_yaw);
+	sprintf(buf, "Mouse position: (%.1f, %.1f)\nPitch/yaw: (%.1f, %.1f)\n", x, y, App::app->char_pitch, App::app->char_yaw);
 	OutputDebugString(buf);
 	vmath::vec4 direction = dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f);
 	sprintf(buf, "Look direction: (%.1f, %.1f, %.1f)\n\n", direction[0], direction[1], direction[2]);
 	OutputDebugString(buf);
 
-}
-
-
-/* NEW SHIT */
-
-App::App() {
 }
 
 void App::run() {
@@ -363,9 +341,8 @@ void App::render(double time) {
 		vmath::rotate(char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
 		vmath::rotate(char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
 
-																   // Update player velocity
-																   //char_velocity += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
-
+	// Update player velocity
+	//char_velocity += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
 	vmath::vec4 acceleration = vmath::vec4(0.0f);
 
 	// calculate acceleration
@@ -408,7 +385,7 @@ void App::render(double time) {
 	}
 	char_velocity[3] = 0.0f; // Just in case
 
-							 // Update player position
+	// Update player position
 	char_position += char_velocity * dt;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nVelocity:(%.2f, %.2f, %.2f)\n\n", char_position[0], char_position[1], char_position[2], char_velocity[0], char_velocity[1], char_velocity[2]);
 	OutputDebugString(buf);
