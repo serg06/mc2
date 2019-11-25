@@ -1,9 +1,10 @@
 #include "chunks.h"
-#include "GL/gl3w.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <cstdlib>
 
+#include "GL/gl3w.h"
+
+#include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
 
 
 // generate us a nice lil chunk

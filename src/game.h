@@ -1,24 +1,13 @@
 #ifndef __GAME_H__
 #define __GAME_H__
 
-#include <iostream>
+#include "chunks.h"
+
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
 #include <string>
-#include <fstream>
-#include <streambuf>
-#include <list>
-#include <vector>
-#include <iterator>
-#include <tuple>
-
-#include <vmath.h> // TODO: Upgrade version, or use better library?
-
-#include "chunks.h"
-
-#include <math.h>
-#include <cmath>
+#include <vmath.h>
 
 using namespace std;
 

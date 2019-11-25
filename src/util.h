@@ -5,12 +5,10 @@
 // for types
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
-#include <vector> 
-#include <list> 
-#include <iterator> 
-#include <tuple> 
 
-#include <fstream>
+#include <tuple>
+#include <vector>
+#include <vmath.h>
 
 // math sign function
 template <typename T>

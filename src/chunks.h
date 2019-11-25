@@ -29,8 +29,8 @@ static inline void chunk_set(Block* chunk, uint8_t x, uint8_t y, uint8_t z, Bloc
 	chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
 }
 
-static inline Block chunk_get(uint8_t* chunk, uint8_t x, uint8_t y, uint8_t z) {
-	chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
+static inline Block chunk_get(Block* chunk, uint8_t x, uint8_t y, uint8_t z) {
+	return chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
 }
 
 Block* gen_chunk();

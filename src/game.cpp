@@ -1,25 +1,17 @@
-#include <iostream>
+#include "game.h"
+
+#include "chunks.h"
+#include "shapes.h"
+#include "util.h"
+
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
-#include <string>
-#include <fstream>
-#include <streambuf>
-#include <list>
-#include <vector>
-#include <iterator>
-#include <tuple>
-#include <vmath.h> // TODO: Upgrade version, or use better library?
-#include <math.h>
+#include <algorithm> // howbig?
 #include <cmath>
-#include <assert.h>
-#include <algorithm>
-
-#include "game.h"
-#include "util.h"
-#include "shapes.h"
-#include "chunks.h"
-
+#include <math.h>
+#include <string>
+#include <vmath.h> // TODO: Upgrade version, or use better library?
 #include <windows.h>
 
 
@@ -234,10 +226,10 @@ void App::render(double time) {
 	char_velocity *= (float)pow(0.5, dt);
 	for (int i = 0; i < 4; i++) {
 		if (char_velocity[i] > 0.0f) {
-			char_velocity[i] = (float) fmax(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+			char_velocity[i] = (float)fmax(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
 		}
 		else if (char_velocity[i] < 0.0f) {
-			char_velocity[i] = (float) fmin(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+			char_velocity[i] = (float)fmin(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
 		}
 	}
 
@@ -250,7 +242,7 @@ void App::render(double time) {
 
 	// Update player position
 	char_position += char_velocity * dt;
-	
+
 	/* DRAWING */
 
 	// BACKGROUND COLOUR

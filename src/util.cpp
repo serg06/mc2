@@ -1,16 +1,15 @@
-// UTIL class filled with useful static functions
+#include "util.h"
 
-// for types
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
-#include <vector> 
-#include <iterator> 
-#include <tuple> 
 
 #include <fstream>
+#include <iterator> 
+#include <tuple> 
+#include <vector> 
 #include <vmath.h>
 
-#include "util.h"
+
 
 void print_arr(const GLfloat *arr, int size, int row_size) {
 	char str[64];
