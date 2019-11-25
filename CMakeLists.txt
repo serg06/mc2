@@ -28,7 +28,7 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 add_library(gl3w src/gl3w.c)
 
 # add source files
-add_executable(${PROJECT_NAME} WIN32 src/game.cpp src/util.h src/util.cpp)
+add_executable(${PROJECT_NAME} WIN32 src/game.h src/game.cpp src/util.h src/util.cpp)
 
 # link executable to libraries
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # dab on 'em

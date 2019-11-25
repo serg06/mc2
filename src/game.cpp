@@ -16,6 +16,8 @@
 #include <cmath>
 
 #include "util.h"
+#include "game.h"
+#include <assert.h>
 
 //#define MAX_VELOCITY 0.1f
 //#define FORCE 1.0f
@@ -35,10 +37,8 @@ void startup();
 void render(double);
 void shutdown();
 int main();
-int main();
 static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
-
 
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -50,10 +50,10 @@ GLuint rendering_program;
 GLuint vao;
 GLuint trans_buf;
 GLuint vert_buf;
-static double last_mouse_x = 0.0;
-static double last_mouse_y = 0.0;
-static double last_render_time;
-static bool held_keys[GLFW_KEY_LAST + 1];
+double last_mouse_x = 0.0;
+double last_mouse_y = 0.0;
+double last_render_time;
+bool held_keys[GLFW_KEY_LAST + 1];
 
 vmath::vec4 char_position;
 vmath::vec4 char_velocity = vmath::vec4(0.0f);
@@ -62,20 +62,10 @@ float char_yaw = 0.0f;   // left/right angle; un-capped
 
 
 int main() {
-	static GLFWwindow *window;
-	static const struct appInfo {
-		const string title = "OpenGL";
-		const bool debug = GL_TRUE;
-		const bool msaa = GL_FALSE;
-		const int width = 800;
-		const int height = 600;
-	} info;
+	GLFWwindow *window;
+	const struct appInfo info;
 
-
-	if (!glfwInit()) {
-		printf("failed to initialize GLFW.\n");
-		return -1;
-	}
+	assert(glfwInit() && "Failed to initialize GLFW.");
 
 	// OpenGL 4.5
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -95,11 +85,8 @@ int main() {
 
 	// create window
 	window = glfwCreateWindow(info.width, info.height, info.title.c_str(), nullptr, nullptr);
-	if (!window)
-	{
-		fprintf(stderr, "Failed to open window\n");
-		return -1;
-	}
+
+	assert(window, "Failed to open window.");
 
 	// set this window as current window
 	glfwMakeContextCurrent(window);
@@ -117,10 +104,8 @@ int main() {
 
 
 	// finally init gl3w
-	if (gl3wInit()) {
-		printf("failed to initialize OpenGL\n");
-		return -1;
-	}
+	
+	assert(!gl3wInit() && "Failed to initialize OpenGL.");
 
 	//// TODO: set debug message callback
 	//if (info.flags.debug) {
@@ -158,7 +143,7 @@ int main() {
 
 void startup() {
 	// Cube at origin
-	static const GLfloat vertex_positions[] =
+	const GLfloat vertex_positions[] =
 	{
 		-0.25f, 0.25f, -0.25f,
 		-0.25f, -0.25f, -0.25f,
@@ -410,10 +395,6 @@ void shutdown() {
 	// TODO: Maybe some day.
 }
 
-
-
-
-
 // on key press
 static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -446,8 +427,8 @@ static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, in
 // on mouse movement
 static void glfw_onMouseMove(GLFWwindow* window, double x, double y)
 {
-	static const float mouseX_Sensitivity = 0.25f;
-	static const float mouseY_Sensitivity = 0.25f;
+	const float mouseX_Sensitivity = 0.25f;
+	const float mouseY_Sensitivity = 0.25f;
 
 	// bonus of using deltas for yaw/pitch:
 	// - can cap easily -- if we cap without deltas, and we move 3000x past the cap, we'll have to move 3000x back before mouse moves!
@@ -479,3 +460,7 @@ static void glfw_onMouseMove(GLFWwindow* window, double x, double y)
 	OutputDebugString(buf);
 
 }
+
+
+/* NEW SHIT */
+
