@@ -15,6 +15,8 @@
 
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 
+#include "chunks.h"
+
 #include <math.h>
 #include <cmath>
 
@@ -26,6 +28,7 @@ struct AppInfo {
 	bool msaa = GL_FALSE;
 	int width = 800;
 	int height = 600;
+	float vfov = 59.0f; // vertical fov -- 59.0 vfov = 90.0 hfov
 	float mouseX_Sensitivity = 0.25f;
 	float mouseY_Sensitivity = 0.25f;
 };
@@ -47,10 +50,14 @@ public:
 	double last_render_time;
 	bool held_keys[GLFW_KEY_LAST + 1];
 
-	vmath::vec4 char_position;
-	vmath::vec4 char_velocity = vmath::vec4(0.0f);
+	vmath::vec4 char_position = vmath::vec4(8.0f, 66.0f, 8.0f, 1.0f);
+	vmath::vec4 char_velocity = vmath::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 	float char_pitch = 0.0f; //   up/down  angle;    capped to [-90.0, 90.0]
-	float char_yaw = 0.0f;   // left/right angle; un-capped
+	float char_yaw = 0.0f;   // left/right angle; un-capped (TODO: Reset it if it gets too high?)
+	
+	// store our chunk info in here for now
+	Block* chunks[1024];
+	int* chunk_coords[1024];
 
 	App() {
 
@@ -63,10 +70,15 @@ public:
 	void run();
 	void startup();
 	void render(double);
+
+	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
+	void onMouseMove(GLFWwindow* window, double x, double y);
+	void onResize(GLFWwindow* window, int width, int height);
 	
-	// glfw callback functions must be static
+	// glfw static functions which passthrough to real handle functions
 	static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
+	static void glfw_onResize(GLFWwindow* window, int width, int height);
 	//static void gl_onDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
 
 	static App* app;
