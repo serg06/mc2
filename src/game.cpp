@@ -174,8 +174,7 @@ void App::startup() {
 	glUseProgram(rendering_program);
 
 	// generate a chunk
-	Block* chunk = gen_chunk();
-	chunks[0] = chunk;
+	chunks[0] = gen_chunk();
 	chunk_coords[0] = { 1.0f, 2.0f };
 }
 
@@ -275,10 +274,15 @@ void App::render(double time) {
 	glNamedBufferSubData(trans_buf, sizeof(vmath::mat4), sizeof(vmath::mat4), proj_matrix); // proj matrix
 
 
+
+
 	// DRAWING
 
-	// Draw our cube
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	//// Draw our cube
+	//glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	// Draw our chunks!
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 }
 
 void App::glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {

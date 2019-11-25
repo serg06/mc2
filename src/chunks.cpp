@@ -2,6 +2,7 @@
 #include "GL/gl3w.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <cstdlib>
 
 
 
@@ -23,7 +24,14 @@ Block* gen_chunk() {
 					chunk_set(result, x, y, z, Block::Grass);
 				}
 
-				// 65 and higher = air
+				// 65 = maybe grass
+				else if (y <= 65) {
+					if (rand() % 2) {
+						chunk_set(result, x, y, z, Block::Grass);
+					}
+				}
+
+				// 66 and higher = air
 				else {
 					chunk_set(result, x, y, z, Block::Air);
 				}
