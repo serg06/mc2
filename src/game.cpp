@@ -144,7 +144,7 @@ void App::startup() {
 	// TODO: Get width/height automatically
 	vmath::mat4 proj_matrix = vmath::perspective(
 		59.0f, // 59.0 vfov = 90.0 hfov
-		info.width / info.height,  // aspect ratio - not sure if right
+		(float)info.width / (float)info.height,  // aspect ratio - not sure if right
 		0.1f,  // can't see behind 0.0 anyways
 		-1000.0f // our object will be closer than 100.0
 	);
@@ -209,7 +209,6 @@ void App::startup() {
 
 void App::render(double time) {
 	/* PLAYER MOVEMENT */
-	char buf[256];
 
 	// change in time
 	const double dt = time - last_render_time;
@@ -244,13 +243,13 @@ void App::render(double time) {
 	// TODO: Tweak velocity falloff values?
 
 	// Velocity falloff (TODO: For blocks and shit too. Maybe based on friction.)
-	char_velocity *= pow(0.5, dt);
+	char_velocity *= (float)pow(0.5, dt);
 	for (int i = 0; i < 4; i++) {
 		if (char_velocity[i] > 0.0f) {
-			char_velocity[i] = fmax(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+			char_velocity[i] = (float) fmax(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
 		}
 		else if (char_velocity[i] < 0.0f) {
-			char_velocity[i] = fmin(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+			char_velocity[i] = (float) fmin(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
 		}
 	}
 
@@ -263,7 +262,7 @@ void App::render(double time) {
 
 	// Update player position
 	char_position += char_velocity * dt;
-
+	
 	/* DRAWING */
 
 	// BACKGROUND COLOUR
@@ -329,8 +328,8 @@ void App::glfw_onMouseMove(GLFWwindow* window, double x, double y)
 	double delta_y = y - App::app->last_mouse_y;
 
 	// update pitch/yaw
-	App::app->char_yaw += App::app->info.mouseX_Sensitivity * delta_x;
-	App::app->char_pitch += App::app->info.mouseY_Sensitivity * delta_y;
+	App::app->char_yaw += (float)(App::app->info.mouseX_Sensitivity * delta_x);
+	App::app->char_pitch += (float)(App::app->info.mouseY_Sensitivity * delta_y);
 
 	// cap pitch
 	App::app->char_pitch = clamp(App::app->char_pitch, -90.0f, 90.0f);

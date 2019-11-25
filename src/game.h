@@ -24,8 +24,8 @@ struct AppInfo {
 	string title = "OpenGL";
 	bool debug = GL_TRUE;
 	bool msaa = GL_FALSE;
-	float width = 800.0f;
-	float height = 600.0f;
+	int width = 800;
+	int height = 600;
 	float mouseX_Sensitivity = 0.25f;
 	float mouseY_Sensitivity = 0.25f;
 };
