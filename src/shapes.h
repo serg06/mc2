@@ -1,8 +1,11 @@
+#ifndef __SHAPES_H__
+#define __SHAPES_H__
+
 #include "GL/gl3w.h"
 
 namespace shapes {
 	// Cube at origin
-	const GLfloat cube[108] =
+	static const GLfloat cube[108] =
 	{
 		-0.25f, 0.25f, -0.25f,
 		-0.25f, -0.25f, -0.25f,
@@ -53,3 +56,5 @@ namespace shapes {
 		-0.25f, 0.25f, -0.25f
 	};
 }
+
+#endif /* __SHAPES_H__ */
