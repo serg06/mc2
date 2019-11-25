@@ -9,16 +9,15 @@
 #include <vector>
 #include <iterator>
 #include <tuple>
-
 #include <vmath.h> // TODO: Upgrade version, or use better library?
-
 #include <math.h>
 #include <cmath>
+#include <assert.h>
+#include <algorithm>
 
 #include "game.h"
 #include "util.h"
 #include "shapes.h"
-#include <assert.h>
 
 //#define MAX_VELOCITY 0.1f
 //#define FORCE 1.0f
@@ -34,84 +33,14 @@
 
 using namespace std;
 
-static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
-static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
-
+// Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	App::app = new App();
 	App::app->run();
 }
 
-// on key press
-static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	// ignore unknown keys
-	if (key == GLFW_KEY_UNKNOWN) {
-		return;
-	}
-
-	// handle key releases
-	if (action == GLFW_RELEASE) {
-		App::app->held_keys[key] = false;
-	}
-
-	// make rotation matrix for rotating direction vector relative to player's rotation
-	// i.e.: make w go straight
-	vmath::mat4 dir_rotation =
-		vmath::rotate(App::app->char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
-		vmath::rotate(App::app->char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
-
-	// handle key presses
-	if (action == GLFW_PRESS) {
-		App::app->held_keys[key] = true;
-	}
-
-	char buf[256];
-	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nPitch & yaw: : (%.1f, %.1f)\n\n", App::app->char_position[0], App::app->char_position[1], App::app->char_position[2], App::app->char_pitch, App::app->char_yaw);
-	OutputDebugString(buf);
-}
-
-// on mouse movement
-static void glfw_onMouseMove(GLFWwindow* window, double x, double y)
-{
-	const float mouseX_Sensitivity = 0.25f;
-	const float mouseY_Sensitivity = 0.25f;
-
-	// bonus of using deltas for yaw/pitch:
-	// - can cap easily -- if we cap without deltas, and we move 3000x past the cap, we'll have to move 3000x back before mouse moves!
-	// - easy to do mouse sensitivity
-	double delta_x = x - App::app->last_mouse_x;
-	double delta_y = y - App::app->last_mouse_y;
-
-	// TODO: convert to radians? (or is that already done?)
-	App::app->char_yaw += mouseX_Sensitivity * delta_x;
-	App::app->char_pitch += mouseY_Sensitivity * delta_y;
-
-	// cap
-	App::app->char_pitch = fmax(fmin(App::app->char_pitch, 90.0f), -90.0f);
-
-	// update old values
-	App::app->last_mouse_x = x;
-	App::app->last_mouse_y = y;
-
-	// debug messages
-	vmath::mat4 dir_rotation =
-		vmath::rotate(App::app->char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X (TODO: Try rotating pitch first?)
-		vmath::rotate(App::app->char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
-
-	char buf[256];
-	sprintf(buf, "Mouse position: (%.1f, %.1f)\nPitch/yaw: (%.1f, %.1f)\n", x, y, App::app->char_pitch, App::app->char_yaw);
-	OutputDebugString(buf);
-	vmath::vec4 direction = dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f);
-	sprintf(buf, "Look direction: (%.1f, %.1f, %.1f)\n\n", direction[0], direction[1], direction[2]);
-	OutputDebugString(buf);
-
-}
-
 void App::run() {
-	const struct appInfo info;
-
 	assert(glfwInit() && "Failed to initialize GLFW.");
 
 	// OpenGL 4.5
@@ -131,7 +60,7 @@ void App::run() {
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, info.debug);
 
 	// create window
-	app->window = glfwCreateWindow(info.width, info.height, info.title.c_str(), nullptr, nullptr);
+	window = glfwCreateWindow(info.width, info.height, info.title.c_str(), nullptr, nullptr);
 
 	assert(window && "Failed to open window.");
 
@@ -151,7 +80,6 @@ void App::run() {
 
 
 	// finally init gl3w
-
 	assert(!gl3wInit() && "Failed to initialize OpenGL.");
 
 	//// TODO: set debug message callback
@@ -163,12 +91,12 @@ void App::run() {
 	//	}
 	//}
 
+	// Start up app
 	startup();
-	glfwGetCursorPos(window, &app->last_mouse_x, &app->last_mouse_y); // reset mouse position
-	app->last_render_time = glfwGetTime();
 
 	// run until user presses ESC or tries to close window
-	while ((glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
+	last_render_time = glfwGetTime();
+	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
 		// run rendering function
 		render(glfwGetTime());
 
@@ -185,11 +113,12 @@ void App::run() {
 void App::startup() {
 	const GLfloat(&cube)[108] = shapes::cube;
 
-	// set global vars
+	// set vars
 	char_position = vmath::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	char_pitch = 0;
-	char_yaw = 0;
+	char_pitch = 0.0f;
+	char_yaw = 0.0f;
 	memset(held_keys, false, sizeof(held_keys));
+	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 
 	// placeholder
 	glCreateVertexArrays(1, &vao);
@@ -201,12 +130,11 @@ void App::startup() {
 		//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
 		//{"../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER },
 		//{"../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
-	{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
+		{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
 	};
 
 	// create program
 	rendering_program = compile_shaders(shader_fnames);
-
 
 	/*
 	* CUBE MOVEMENT
@@ -216,7 +144,7 @@ void App::startup() {
 	// TODO: Get width/height automatically
 	vmath::mat4 proj_matrix = vmath::perspective(
 		59.0f, // 59.0 vfov = 90.0 hfov
-		800.0f / 600.0f,  // aspect ratio - not sure if right
+		info.width / info.height,  // aspect ratio - not sure if right
 		0.1f,  // can't see behind 0.0 anyways
 		-1000.0f // our object will be closer than 100.0
 	);
@@ -230,8 +158,7 @@ void App::startup() {
 	glCreateBuffers(1, &vert_buf);
 
 	// bind them
-	glBindBufferBase(GL_UNIFORM_BUFFER, uni_binding_idx, trans_buf); // bind trans buf to uniform buffer binding point
-	glBindBuffer(GL_ARRAY_BUFFER, vert_buf); // why?
+	glBindBufferBase(GL_UNIFORM_BUFFER, uni_binding_idx, trans_buf); // bind transformation buffer to uniform buffer binding point
 	glVertexArrayAttribBinding(vao, attrib_idx, vert_binding_idx); // connect vert -> position variable
 
 	// allocate
@@ -288,9 +215,7 @@ void App::render(double time) {
 	const double dt = time - last_render_time;
 	last_render_time = time;
 	// character's rotation
-	vmath::mat4 dir_rotation =
-		vmath::rotate(char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
-		vmath::rotate(char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw around Y
+	vmath::mat4 dir_rotation = rotate_pitch_yaw(char_pitch, char_yaw);
 
 	// Update player velocity
 	//char_velocity += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
@@ -338,9 +263,6 @@ void App::render(double time) {
 
 	// Update player position
 	char_position += char_velocity * dt;
-	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\nVelocity:(%.2f, %.2f, %.2f)\n\n", char_position[0], char_position[1], char_position[2], char_velocity[0], char_velocity[1], char_velocity[2]);
-	OutputDebugString(buf);
-
 
 	/* DRAWING */
 
@@ -351,26 +273,22 @@ void App::render(double time) {
 	glClearBufferfv(GL_COLOR, 0, color);
 	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // used for depth test somehow
 
-												   // MOVEMENT CALCULATION
+	// MOVEMENT CALCULATION
 
+	// Create Model->World matrix, including our crazy cube movement
 	float f = (float)time * (float)M_PI * 0.1f;
 	vmath::mat4 model_world_matrix =
-		vmath::translate(0.0f, 0.0f, -4.0f) *
-		vmath::translate(sinf(2.1f * f) * 0.5f,
-			cosf(1.7f * f) * 0.5f,
-			sinf(1.3f * f) * cosf(1.5f * f) * 2.0f) *
-		vmath::rotate((float)time * 45.0f, 0.0f, 1.0f, 0.0f) *
-		vmath::rotate((float)time * 81.0f, 1.0f, 0.0f, 0.0f);
+		vmath::translate(0.0f, 0.0f, -4.0f) * // move cube in front of us
+		vmath::translate(sinf(2.1f * f) * 0.5f, cosf(1.7f * f) * 0.5f, sinf(1.3f * f) * cosf(1.5f * f) * 2.0f) * // cube movement: translations 1
+		vmath::rotate((float)time * 45.0f, 0.0f, 1.0f, 0.0f) * // cube movement: rotations 2
+		vmath::rotate((float)time * 81.0f, 1.0f, 0.0f, 0.0f);  // cube movement: rotations 1
 
-	// WORLD->VIEW MATRIX:
-	//   - move it relative to you (e.g. if you're at (3,3), subtract (3,3) from world coordinates)
-	//       - now it's relative to you positionally, but need to rotate it to the angle you're looking
-	//   - rotate it around you
+	// Create World->View matrix
 	vmath::mat4 world_view_matrix =
-		vmath::rotate(char_pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) *          // rotate pitch around X (TODO: Try rotating pitch first?)
-		vmath::rotate(char_yaw, vmath::vec3(0.0f, 1.0f, 0.0f)) *            // rotate yaw around Y
+		rotate_pitch_yaw(char_pitch, char_yaw) *
 		vmath::translate(-char_position[0], -char_position[1], -char_position[2]); // move relative to you
 
+	// Combine them into Model->View matrix
 	vmath::mat4 model_view_matrix = world_view_matrix * model_world_matrix;
 
 	// Update transformation buffer with mv matrix
@@ -378,9 +296,46 @@ void App::render(double time) {
 
 	// DRAWING
 
-	glDrawArrays(GL_TRIANGLES, 0, 36); // draw triangle using 3 VAOs, starting at the 0th one (our only one!)
+	// Draw our cube
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
-void App::shutdown() {
-	// TODO: Maybe some day.
+// on key press
+void App::glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	// ignore unknown keys
+	if (key == GLFW_KEY_UNKNOWN) {
+		return;
+	}
+
+	// handle key presses
+	if (action == GLFW_PRESS) {
+		App::app->held_keys[key] = true;
+	}
+
+	// handle key releases
+	if (action == GLFW_RELEASE) {
+		App::app->held_keys[key] = false;
+	}
+}
+
+// on mouse movement
+void App::glfw_onMouseMove(GLFWwindow* window, double x, double y)
+{
+	// bonus of using deltas for yaw/pitch:
+	// - can cap easily -- if we cap without deltas, and we move 3000x past the cap, we'll have to move 3000x back before mouse moves!
+	// - easy to do mouse sensitivity
+	double delta_x = x - App::app->last_mouse_x;
+	double delta_y = y - App::app->last_mouse_y;
+
+	// update pitch/yaw
+	App::app->char_yaw += App::app->info.mouseX_Sensitivity * delta_x;
+	App::app->char_pitch += App::app->info.mouseY_Sensitivity * delta_y;
+
+	// cap pitch
+	App::app->char_pitch = clamp(App::app->char_pitch, -90.0f, 90.0f);
+
+	// update old values
+	App::app->last_mouse_x = x;
+	App::app->last_mouse_y = y;
 }

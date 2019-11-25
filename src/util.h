@@ -20,5 +20,6 @@ constexpr int sgn(T val) {
 
 void print_arr(const GLfloat*, int, int);
 GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>>);
+vmath::mat4 rotate_pitch_yaw(float pitch, float yaw);
 
 #endif // __UTIL_H__

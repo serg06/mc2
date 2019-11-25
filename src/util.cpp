@@ -119,3 +119,10 @@ GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnam
 
 	return program;
 }
+
+// Create rotation matrix given pitch and yaw
+vmath::mat4 rotate_pitch_yaw(float pitch, float yaw) {
+	return
+		vmath::rotate(pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
+		vmath::rotate(yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw   around Y
+}

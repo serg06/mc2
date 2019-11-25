@@ -20,12 +20,14 @@
 
 using namespace std;
 
-struct appInfo {
-	const string title = "OpenGL";
-	const bool debug = GL_TRUE;
-	const bool msaa = GL_FALSE;
-	const int width = 800;
-	const int height = 600;
+struct AppInfo {
+	string title = "OpenGL";
+	bool debug = GL_TRUE;
+	bool msaa = GL_FALSE;
+	float width = 800.0f;
+	float height = 600.0f;
+	float mouseX_Sensitivity = 0.25f;
+	float mouseY_Sensitivity = 0.25f;
 };
 
 
@@ -33,8 +35,7 @@ class App {
 protected:
 public:
 	// the one and only copy of this app
-
-	const appInfo info;
+	AppInfo info;
 	GLFWwindow *window;
 
 	GLuint rendering_program;
@@ -58,17 +59,19 @@ public:
 	void run();
 	void startup();
 	void render(double);
-	void shutdown();
+
+	void shutdown() {
+		// TODO: Maybe some day.
+	}
 
 	//// callback functions must be static
-	//static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
-	//static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
+	static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
+	static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
 	//static void gl_onDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
 
 	static App* app;
 };
 App* App::app;
-//App* App::app;
 //static App* app2;
 
 
