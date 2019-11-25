@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <vmath.h>
 
 // generate us a nice lil chunk
 Block* gen_chunk() {
@@ -42,3 +42,8 @@ Block* gen_chunk() {
 
 	return result;
 };
+
+// transform chunk coordinate to world coordinate
+vmath::vec4 chunk_to_world(Block* chunk, float x, float y, float z) {
+	return vmath::vec4();
+}

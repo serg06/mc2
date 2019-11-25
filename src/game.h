@@ -46,7 +46,7 @@ public:
 	
 	// store our chunk info in here for now
 	Block* chunks[1024];
-	vmath::vec2 chunk_coords[1024];
+	vmath::vec4 chunk_coords[1024];
 
 	App() {
 

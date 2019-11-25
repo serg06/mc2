@@ -117,7 +117,7 @@ void App::run() {
 }
 
 void App::startup() {
-	const GLfloat(&cube)[108] = shapes::cube;
+	const GLfloat(&cube)[108] = shapes::cube_full;
 
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
@@ -184,7 +184,7 @@ void App::startup() {
 
 	// generate a chunk
 	chunks[0] = gen_chunk();
-	chunk_coords[0] = { 1.0f, 2.0f };
+	chunk_coords[0] = { 1.0f, 2.0f, 0.0f, 1.0f };
 }
 
 void App::render(double time) {
@@ -293,6 +293,8 @@ void App::render(double time) {
 	// Draw our chunks!
 	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 }
+
+
 
 void App::glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	App::app->onKey(window, key, scancode, action, mods);
