@@ -1,13 +1,18 @@
 #include "chunks.h"
+#include "GL/gl3w.h"
 #include <stdlib.h>
+#include <stdio.h>
+
+
 
 // generate us a nice lil chunk
-static Block* gen_chunk() {
+Block* gen_chunk() {
 	Block* result = (Block*)calloc(sizeof(uint8_t) * CHUNK_SIZE, sizeof(uint8_t));
+	char buf[256];
 
-	for (uint8_t y = 0; y < CHUNK_HEIGHT; y++) {
-		for (uint8_t x = 0; x < CHUNK_WIDTH; x++) {
-			for (uint8_t z = 0; z < CHUNK_DEPTH; z++) {
+	for (int y = 0; y < CHUNK_HEIGHT; y++) {
+		for (int x = 0; x < CHUNK_WIDTH; x++) {
+			for (int z = 0; z < CHUNK_DEPTH; z++) {
 				// 62 or lower = stone
 				if (y <= 62) {
 					chunk_set(result, x, y, z, Block::Stone);
@@ -25,4 +30,6 @@ static Block* gen_chunk() {
 			}
 		}
 	}
+
+	return result;
 };

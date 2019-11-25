@@ -18,6 +18,7 @@
 #include "game.h"
 #include "util.h"
 #include "shapes.h"
+#include "chunks.h"
 
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
@@ -171,6 +172,11 @@ void App::startup() {
 
 	// use our program object for rendering
 	glUseProgram(rendering_program);
+
+	// generate a chunk
+	Block* chunk = gen_chunk();
+	chunks[0] = chunk;
+	chunk_coords[0] = { 1.0f, 2.0f };
 }
 
 void App::render(double time) {
@@ -184,7 +190,7 @@ void App::render(double time) {
 
 	// Update player velocity
 	//char_velocity += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
-	vmath::vec4 acceleration = vmath::vec4(0.0f);
+	vmath::vec4 acceleration = { 0.0f };
 
 	// calculate acceleration
 	if (held_keys[GLFW_KEY_W]) {
