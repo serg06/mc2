@@ -464,3 +464,225 @@ static void glfw_onMouseMove(GLFWwindow* window, double x, double y)
 
 /* NEW SHIT */
 
+App::App() {
+	GLFWwindow *window;
+	const struct appInfo info;
+
+	assert(glfwInit() && "Failed to initialize GLFW.");
+
+	// OpenGL 4.5
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+
+	// using OpenGL core profile
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	// remove deprecated functionality (might as well, 'cause I'm using gl3w)
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+	// disable MSAA
+	glfwWindowHint(GLFW_SAMPLES, info.msaa);
+
+	// debug mode
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, info.debug);
+
+	// create window
+	window = glfwCreateWindow(info.width, info.height, info.title.c_str(), nullptr, nullptr);
+
+	assert(window, "Failed to open window.");
+
+	// set this window as current window
+	glfwMakeContextCurrent(window);
+
+	// lock mouse into screen, for camera controls
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+
+	//// TODO: set callbacks
+	//glfwSetWindowSizeCallback(window, glfw_onResize);
+	glfwSetKeyCallback(window, glfw_onKey);
+	//glfwSetMouseButtonCallback(window, glfw_onMouseButton);
+	glfwSetCursorPosCallback(window, glfw_onMouseMove);
+	//glfwSetScrollCallback(window, glfw_onMouseWheel);
+
+
+	// finally init gl3w
+
+	assert(!gl3wInit() && "Failed to initialize OpenGL.");
+
+	//// TODO: set debug message callback
+	//if (info.flags.debug) {
+	//	if (gl3wIsSupported(4, 3))
+	//	{
+	//		glDebugMessageCallback((GLDEBUGPROC)debug_callback, this);
+	//		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+	//	}
+	//}
+
+	startup();
+	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
+	last_render_time = glfwGetTime();
+
+
+	// run until user presses ESC or tries to close window
+	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
+		// run rendering function
+		render(glfwGetTime());
+
+		// display drawing buffer on screen
+		glfwSwapBuffers(window);
+
+		// poll window system for events
+		glfwPollEvents();
+	}
+
+	shutdown();
+}
+
+void App::startup() {
+	// Cube at origin
+	const GLfloat vertex_positions[] =
+	{
+		-0.25f, 0.25f, -0.25f,
+		-0.25f, -0.25f, -0.25f,
+		0.25f, -0.25f, -0.25f,
+
+		0.25f, -0.25f, -0.25f,
+		0.25f, 0.25f, -0.25f,
+		-0.25f, 0.25f, -0.25f,
+
+		0.25f, -0.25f, -0.25f,
+		0.25f, -0.25f, 0.25f,
+		0.25f, 0.25f, -0.25f,
+
+		0.25f, -0.25f, 0.25f,
+		0.25f, 0.25f, 0.25f,
+		0.25f, 0.25f, -0.25f,
+
+		0.25f, -0.25f, 0.25f,
+		-0.25f, -0.25f, 0.25f,
+		0.25f, 0.25f, 0.25f,
+
+		-0.25f, -0.25f, 0.25f,
+		-0.25f, 0.25f, 0.25f,
+		0.25f, 0.25f, 0.25f,
+
+		-0.25f, -0.25f, 0.25f,
+		-0.25f, -0.25f, -0.25f,
+		-0.25f, 0.25f, 0.25f,
+
+		-0.25f, -0.25f, -0.25f,
+		-0.25f, 0.25f, -0.25f,
+		-0.25f, 0.25f, 0.25f,
+
+		-0.25f, -0.25f, 0.25f,
+		0.25f, -0.25f, 0.25f,
+		0.25f, -0.25f, -0.25f,
+
+		0.25f, -0.25f, -0.25f,
+		-0.25f, -0.25f, -0.25f,
+		-0.25f, -0.25f, 0.25f,
+
+		-0.25f, 0.25f, -0.25f,
+		0.25f, 0.25f, -0.25f,
+		0.25f, 0.25f, 0.25f,
+
+		0.25f, 0.25f, 0.25f,
+		-0.25f, 0.25f, 0.25f,
+		-0.25f, 0.25f, -0.25f
+	};
+
+	// set global vars
+	char_position = vmath::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	char_pitch = 0;
+	char_yaw = 0;
+	memset(held_keys, false, sizeof(held_keys));
+
+	// placeholder
+	glCreateVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	// list of shaders to create program with
+	std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+		{ "../src/simple.vs.glsl", GL_VERTEX_SHADER },
+		//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
+		//{"../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER },
+		//{"../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
+	{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
+	};
+
+	// create program
+	rendering_program = compile_shaders(shader_fnames);
+
+
+	/*
+	* CUBE MOVEMENT
+	*/
+
+	// Simple projection matrix
+	// TODO: Get width/height automatically
+	vmath::mat4 proj_matrix = vmath::perspective(
+		59.0f, // 59.0 vfov = 90.0 hfov
+		800.0f / 600.0f,  // aspect ratio - not sure if right
+		0.1f,  // can't see behind 0.0 anyways
+		-1000.0f // our object will be closer than 100.0
+	);
+
+	const GLuint uni_binding_idx = 0;
+	const GLuint attrib_idx = 0;
+	const GLuint vert_binding_idx = 0;
+
+	// create buffers
+	glCreateBuffers(1, &trans_buf);
+	glCreateBuffers(1, &vert_buf);
+
+	// bind them
+	glBindBufferBase(GL_UNIFORM_BUFFER, uni_binding_idx, trans_buf); // bind trans buf to uniform buffer binding point
+	glBindBuffer(GL_ARRAY_BUFFER, vert_buf); // why?
+	glVertexArrayAttribBinding(vao, attrib_idx, vert_binding_idx); // connect vert -> position variable
+
+																   // allocate
+	glNamedBufferStorage(trans_buf, 2 * sizeof(vmath::mat4), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+	glNamedBufferStorage(vert_buf, sizeof(vertex_positions), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+
+																							// insert data (skip model-view matrix; we'll update it in render())
+	glNamedBufferSubData(trans_buf, sizeof(vmath::mat4), sizeof(vmath::mat4), proj_matrix); // proj matrix
+	glNamedBufferSubData(vert_buf, 0, sizeof(vertex_positions), vertex_positions); // vertex positions
+
+																				   // enable auto-filling of position
+	glVertexArrayVertexBuffer(vao, vert_binding_idx, vert_buf, 0, sizeof(vmath::vec3));
+	glVertexArrayAttribFormat(vao, attrib_idx, 3, GL_FLOAT, GL_FALSE, 0);
+	glEnableVertexAttribArray(attrib_idx);
+
+
+	/*
+	* MINECRAFT TEXTURE
+	*/
+
+	// TODO, maybe - looks kinda hard tbh
+
+	//// create texture
+	//GLuint texGrass;
+	//glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &texGrass);
+
+	//// allocate 6 sides
+	//glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA32F, 16, 16);
+
+	//// bind them
+	//glBindTexture(GL_TEXTURE_CUBE_MAP, texGrass);
+
+
+	/*
+	* ETC
+	*/
+
+	glPointSize(5.0f);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CW);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+
+	// use our program object for rendering
+	glUseProgram(rendering_program);
+}
