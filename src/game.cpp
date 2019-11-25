@@ -15,8 +15,9 @@
 #include <math.h>
 #include <cmath>
 
-#include "util.h"
 #include "game.h"
+#include "util.h"
+#include "shapes.h"
 #include <assert.h>
 
 //#define MAX_VELOCITY 0.1f
@@ -182,57 +183,7 @@ void App::run() {
 }
 
 void App::startup() {
-	// Cube at origin
-	const GLfloat vertex_positions[] =
-	{
-		-0.25f, 0.25f, -0.25f,
-		-0.25f, -0.25f, -0.25f,
-		0.25f, -0.25f, -0.25f,
-
-		0.25f, -0.25f, -0.25f,
-		0.25f, 0.25f, -0.25f,
-		-0.25f, 0.25f, -0.25f,
-
-		0.25f, -0.25f, -0.25f,
-		0.25f, -0.25f, 0.25f,
-		0.25f, 0.25f, -0.25f,
-
-		0.25f, -0.25f, 0.25f,
-		0.25f, 0.25f, 0.25f,
-		0.25f, 0.25f, -0.25f,
-
-		0.25f, -0.25f, 0.25f,
-		-0.25f, -0.25f, 0.25f,
-		0.25f, 0.25f, 0.25f,
-
-		-0.25f, -0.25f, 0.25f,
-		-0.25f, 0.25f, 0.25f,
-		0.25f, 0.25f, 0.25f,
-
-		-0.25f, -0.25f, 0.25f,
-		-0.25f, -0.25f, -0.25f,
-		-0.25f, 0.25f, 0.25f,
-
-		-0.25f, -0.25f, -0.25f,
-		-0.25f, 0.25f, -0.25f,
-		-0.25f, 0.25f, 0.25f,
-
-		-0.25f, -0.25f, 0.25f,
-		0.25f, -0.25f, 0.25f,
-		0.25f, -0.25f, -0.25f,
-
-		0.25f, -0.25f, -0.25f,
-		-0.25f, -0.25f, -0.25f,
-		-0.25f, -0.25f, 0.25f,
-
-		-0.25f, 0.25f, -0.25f,
-		0.25f, 0.25f, -0.25f,
-		0.25f, 0.25f, 0.25f,
-
-		0.25f, 0.25f, 0.25f,
-		-0.25f, 0.25f, 0.25f,
-		-0.25f, 0.25f, -0.25f
-	};
+	const GLfloat(&cube)[108] = shapes::cube;
 
 	// set global vars
 	char_position = vmath::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -283,15 +234,15 @@ void App::startup() {
 	glBindBuffer(GL_ARRAY_BUFFER, vert_buf); // why?
 	glVertexArrayAttribBinding(vao, attrib_idx, vert_binding_idx); // connect vert -> position variable
 
-																   // allocate
+	// allocate
 	glNamedBufferStorage(trans_buf, 2 * sizeof(vmath::mat4), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-	glNamedBufferStorage(vert_buf, sizeof(vertex_positions), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
 
-																							// insert data (skip model-view matrix; we'll update it in render())
+	// insert data (skip model-view matrix; we'll update it in render())
 	glNamedBufferSubData(trans_buf, sizeof(vmath::mat4), sizeof(vmath::mat4), proj_matrix); // proj matrix
-	glNamedBufferSubData(vert_buf, 0, sizeof(vertex_positions), vertex_positions); // vertex positions
+	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
 
-																				   // enable auto-filling of position
+	// enable auto-filling of position
 	glVertexArrayVertexBuffer(vao, vert_binding_idx, vert_buf, 0, sizeof(vmath::vec3));
 	glVertexArrayAttribFormat(vao, attrib_idx, 3, GL_FLOAT, GL_FALSE, 0);
 	glEnableVertexAttribArray(attrib_idx);
