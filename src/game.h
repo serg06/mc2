@@ -32,7 +32,7 @@ public:
 	GLFWwindow *window;
 
 	GLuint rendering_program;
-	GLuint vao, vao2;
+	GLuint vao_cube, vao2;
 
 	// buffers
 	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.

@@ -175,6 +175,31 @@ void main(void)
 	}
 }
 
+GLuint link_program(GLuint program) {
+	// link program w/ error-checking
+
+	glLinkProgram(program); // link together all attached shaders
+
+	// CHECK IF LINKING SUCCESSFUL
+	GLint status = GL_TRUE;
+	glGetProgramiv(program, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE)
+	{
+		GLint logLen;
+		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
+		std::vector <char> log(logLen);
+		GLsizei written;
+		glGetProgramInfoLog(program, logLen, &written, log.data());
+
+		OutputDebugString("linking error with program:\n\n");
+		OutputDebugString(log.data());
+		OutputDebugString("\n");
+		exit(1);
+	}
+
+	return program;
+}
+
 GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnames) {
 	//return compile_shaders_hardcoded(shader_fnames);
 
@@ -202,7 +227,7 @@ GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnam
 		glShaderSource(shader, 1, &shader_src_ptr, NULL); // set shader source code
 		glCompileShader(shader); // compile shader
 
-								 // CHECK IF COMPILATION SUCCESSFUL
+	// CHECK IF COMPILATION SUCCESSFUL
 		GLint status = GL_TRUE;
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 		if (status == GL_FALSE)
@@ -234,24 +259,8 @@ GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnam
 		glAttachShader(program, shader);
 	}
 
-	glLinkProgram(program); // link together all attached shaders
-
-	// CHECK IF LINKING SUCCESSFUL
-	GLint status = GL_TRUE;
-	glGetProgramiv(program, GL_LINK_STATUS, &status);
-	if (status == GL_FALSE)
-	{
-		GLint logLen;
-		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
-		std::vector <char> log(logLen);
-		GLsizei written;
-		glGetProgramInfoLog(program, logLen, &written, log.data());
-
-		OutputDebugString("linking error with program:\n\n");
-		OutputDebugString(log.data());
-		OutputDebugString("\n");
-		exit(1);
-	}
+	// link program
+	program = link_program(program);
 
 	// Delete the shaders as the program has them now
 	for (const GLuint &shader : shaders) {

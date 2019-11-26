@@ -140,12 +140,6 @@ void App::startup() {
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 
-	// placeholder
-	glCreateVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	//glCreateVertexArrays(1, &vao2);
-	//glBindVertexArray(vao2);
-
 	// list of shaders to create program with
 	// TODO: Embed these into binary somehow - maybe generate header file with cmake.
 	std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
@@ -163,41 +157,55 @@ void App::startup() {
 	* CUBE MOVEMENT
 	*/
 
+	// Set up our binding indices
+
 	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
 	const GLuint chunk_types_bidx = 1; // chunk types buffer's binding-point index
 	const GLuint chunk_types_attr_idx = 1; // index of 'chunk_type' attribute
 
+	/* HANDLE CUBES FIRST */
+
+	// create VAO for cube[s], so we can tell OpenGL how to use it when it's bound
+	glCreateVertexArrays(1, &vao_cube);
+
+	// buffers: create
+	glCreateBuffers(1, &vert_buf);
+	glCreateBuffers(1, &chunk_types_buf);
+
+	// buffers: allocate space
+	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+	glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE*sizeof(uint8_t), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+
+	// buffers: insert static data
+	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
+
+	// vao: enable all cube's attributes, 1 at a time
+	glEnableVertexArrayAttrib(vao_cube, position_attr_idx);
+
+	// vao: set up formats for cube's attributes, 1 at a time
+	glVertexArrayAttribFormat(vao_cube, position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
+
+	// vao: set binding points for all attributes, 1 at a time
+	//      - 1 buffer per binding point; for clarity, to keep it clear, I should only bind 1 attr per binding point
+	glVertexArrayAttribBinding(vao_cube, position_attr_idx, vert_buf_bidx);
+
+	// vao: bind buffers to their binding points, 1 at a time
+	glVertexArrayVertexBuffer(vao_cube, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
+
+
+	/* HANDLE UNIFORM NOW */
+
 	// create buffers
 	glCreateBuffers(1, &trans_buf);
-	glCreateBuffers(1, &vert_buf);
-	//glCreateBuffers(1, &chunk_types_buf);
 
 	// bind them
 	glBindBufferBase(GL_UNIFORM_BUFFER, trans_buf_uni_bidx, trans_buf); // bind transformation buffer to uniform buffer binding point
-	//glVertexArrayAttribBinding(vao2, chunk_types_attr_idx, chunk_types_bidx); // connect vert -> position variable
-	glVertexArrayAttribBinding(vao, position_attr_idx, vert_buf_bidx); // connect vert -> position variable
 
 	// allocate
 	glNamedBufferStorage(trans_buf, sizeof(mat4) * 2, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
-	glNamedBufferStorage(chunk_types_buf, sizeof(uint8_t) * CHUNK_SIZE, NULL, NULL); // allocate enough for one chunk
 
-	// insert static data
-	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
-
-	// enable auto-filling of position
-	glVertexArrayVertexBuffer(vao, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
-	glVertexArrayAttribFormat(vao, position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
-	glEnableVertexAttribArray(position_attr_idx);
-
-	// enable auto-filling of chunk type
-	//glVertexArrayVertexBuffer(vao2, chunk_types_bidx, vert_buf, 0, sizeof(vec3));
-	//glVertexArrayAttribIFormat(vao2, chunk_types_attr_idx, 1, GL_BYTE, 0);
-	//glEnableVertexAttribArray(chunk_types_attr_idx);
-
-	//glVertexAttribDivisor(chunk_types_attr_idx, 1); // update one per instance
 
 	/*
 	* ETC
@@ -247,8 +255,6 @@ void App::render(double time) {
 		-1000.0f // our object will be closer than 100.0
 	);
 
-
-
 	// Draw background color
 	const GLfloat color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	glClearBufferfv(GL_COLOR, 0, color);
@@ -261,10 +267,9 @@ void App::render(double time) {
 	// Update chunk types buffer with chunk types!
 	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
 
-	OutputDebugString("TRYING TO DRAW...\n");
 	// Draw our chunks!
+	glBindVertexArray(vao_cube);
 	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
-	OutputDebugString("SUCCESS!\n");
 }
 
 void App::update_player_movement(const double dt) {
@@ -274,12 +279,13 @@ void App::update_player_movement(const double dt) {
 	//   TODO: Handle walking on blocks, in water, etc. Maybe do it based on friction.
 	//   TODO: Tweak values.
 	char_velocity *= (float)pow(0.5, dt);
+	vec4 norm = normalize(char_velocity);
 	for (int i = 0; i < 4; i++) {
 		if (char_velocity[i] > 0.0f) {
-			char_velocity[i] = (float)fmax(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+			char_velocity[i] = (float)fmax(0.0f, char_velocity[i] - (10.0f * norm[i] * dt));
 		}
 		else if (char_velocity[i] < 0.0f) {
-			char_velocity[i] = (float)fmin(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+			char_velocity[i] = (float)fmin(0.0f, char_velocity[i] - (10.0f * norm[i] * dt));
 		}
 	}
 
