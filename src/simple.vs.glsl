@@ -9,36 +9,13 @@ layout (location = 0) in vec4 position;
 layout (location = 1) in uint block_type; // fed in via instance array!
 
 out vec4 vs_color;
+out uint vs_block_type;
 
 layout (std140, binding = 0) uniform UNI_IN
 {
-    mat4 mv_matrix; // takes up 16 bytes
-    mat4 proj_matrix; // takes up 16 bytes
+	mat4 mv_matrix; // takes up 16 bytes
+	mat4 proj_matrix; // takes up 16 bytes
 } uni;
-
-
-vec4 get_color() {
-	if (gl_VertexID < 6) {
-		vs_color = vec4(1.0, 0.0, 0.0, 1.0);
-	}
-	else if (gl_VertexID < 12) {
-		vs_color = vec4(0.0, 1.0, 0.0, 1.0);
-	}
-	else if (gl_VertexID < 18) {
-		vs_color = vec4(0.0, 0.0, 1.0, 1.0);
-	}
-	else if (gl_VertexID < 24) {
-		vs_color = vec4(0.5, 0.5, 0.0, 1.0);
-	}
-	else if (gl_VertexID < 30) {
-		vs_color = vec4(0.0, 0.5, 0.5, 1.0);
-	}
-	else if (gl_VertexID < 36) {
-		vs_color = vec4(0.5, 0.0, 0.5, 1.0);
-	}
-
-	return vs_color;
-}
 
 float rand(float seed) {
 	return fract(1.610612741 * seed);
@@ -47,18 +24,14 @@ float rand(float seed) {
 // shader starts executing here
 void main(void)
 {
+	vs_block_type = block_type;
+
 	// TODO: Add chunk offset
 
-	/* EXTRACT X, Y, Z */
-
-	// int chunk_idx = x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH;
-	// have gl_InstanceID
+	// Given gl_InstanceID, calculate 3D coordinate relative to chunk origin
 	int remainder = gl_InstanceID;
-	// -> gl_InstanceID / CHUNK_HEIGHT = height index
 	int y = remainder / CHUNK_HEIGHT;
-	// ---> subtract y * CHUNK_WIDTH * CHUNK_DEPTH to get x+z*CHUNK_WIDTH
 	remainder -= y * CHUNK_WIDTH * CHUNK_DEPTH;
-	// -> remainder / CHUNK_DEPTH = depth index
 	int z = remainder / CHUNK_DEPTH;
 	remainder -= z * CHUNK_WIDTH;
 	int x = remainder;
@@ -75,8 +48,8 @@ void main(void)
 
 	int seed = gl_VertexID * gl_InstanceID;
 	switch(block_type) {
-		case 0: // air
-			vs_color = vec4(0.0, 0.0, 0.0, 0.0); // invisible
+		case 0: // air (just has a color for debugging purposes)
+			vs_color = vec4(0.7, 0.7, 0.7, 1.0);
 			break;
 		case 1: // grass
 			vs_color = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // green
@@ -89,6 +62,9 @@ void main(void)
 			break;
 	}
 
-
+	// if top corner, make it darker!
+	if (position.y > 0) {
+		vs_color /= 2;
+	}
 
 }

@@ -134,7 +134,7 @@ void App::run() {
 }
 
 void App::startup() {
-	const GLfloat(&cube)[108] = shapes::cube_centered_half;
+	const GLfloat(&cube)[108] = shapes::cube_full;
 
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
@@ -146,7 +146,7 @@ void App::startup() {
 		{ "../src/simple.vs.glsl", GL_VERTEX_SHADER },
 		//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
 		//{"../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER },
-		//{"../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
+		{"../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
 		{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
 	};
 
@@ -203,11 +203,7 @@ void App::startup() {
 	glVertexAttribDivisor(chunk_types_attr_idx, 1);
 	glBindVertexArray(0);
 
-	glEnable(GL_BLEND); //Enable blending.
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //Set blending function.
-
-
-
+	
 	/* HANDLE UNIFORM NOW */
 
 	// create buffers
