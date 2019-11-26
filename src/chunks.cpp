@@ -62,6 +62,9 @@ initializer_list<ivec2> surrounding_chunks(ivec2 chunk_coord) {
 }
 
 // given player's coordinate, find all surrounding blocks (for collision detection) (TODO: Switch to array and add player_coord to each element. Or do for loop.)
+// TODO: Do velocity-based checking.
+//       - E.g.: Moving north-east = check all blocks on that side
+//       -> Removes half the checking, just makes logic a little messier maybe?
 initializer_list<vec4> surrounding_blocks(vec4 player_coord) {
 	return {
 		// North
