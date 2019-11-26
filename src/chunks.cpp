@@ -67,55 +67,83 @@ initializer_list<ivec2> surrounding_chunks(ivec2 chunk_coord) {
 //       -> Removes half the checking, just makes logic a little messier maybe?
 initializer_list<vec4> surrounding_blocks(vec4 player_coord) {
 	return {
-		// North
-		player_coord + NORTH_0 + DOWN_0,
-		player_coord + NORTH_0,
-		player_coord + NORTH_0 + UP_0,
-		player_coord + NORTH_0 + UP_0*2,
+	// North
+	player_coord + NORTH_0 + DOWN_0,
+	player_coord + NORTH_0,
+	player_coord + NORTH_0 + UP_0,
+	player_coord + NORTH_0 + UP_0 * 2,
 
-		// South
-		player_coord + SOUTH_0 + DOWN_0,
-		player_coord + SOUTH_0,
-		player_coord + SOUTH_0 + UP_0,
-		player_coord + SOUTH_0 + UP_0 * 2,
+	// South
+	player_coord + SOUTH_0 + DOWN_0,
+	player_coord + SOUTH_0,
+	player_coord + SOUTH_0 + UP_0,
+	player_coord + SOUTH_0 + UP_0 * 2,
 
-		// East
-		player_coord + EAST_0 + DOWN_0,
-		player_coord + EAST_0,
-		player_coord + EAST_0 + UP_0,
-		player_coord + EAST_0 + UP_0 * 2,
+	// East
+	player_coord + EAST_0 + DOWN_0,
+	player_coord + EAST_0,
+	player_coord + EAST_0 + UP_0,
+	player_coord + EAST_0 + UP_0 * 2,
 
-		// West
-		player_coord + WEST_0 + DOWN_0,
-		player_coord + WEST_0,
-		player_coord + WEST_0 + UP_0,
-		player_coord + WEST_0 + UP_0 * 2,
+	// West
+	player_coord + WEST_0 + DOWN_0,
+	player_coord + WEST_0,
+	player_coord + WEST_0 + UP_0,
+	player_coord + WEST_0 + UP_0 * 2,
 
-		// Up/Down
-		player_coord + UP_0*2,
-		player_coord + DOWN_0,
+	// Up/Down
+	player_coord + UP_0 * 2,
+	player_coord + DOWN_0,
 
-		// Corners
-		player_coord + NORTH_0 + EAST_0 + DOWN_0,
-		player_coord + NORTH_0 + EAST_0,
-		player_coord + NORTH_0 + EAST_0 + UP_0,
-		player_coord + NORTH_0 + EAST_0 + UP_0 * 2,
+	// Corners
+	player_coord + NORTH_0 + EAST_0 + DOWN_0,
+	player_coord + NORTH_0 + EAST_0,
+	player_coord + NORTH_0 + EAST_0 + UP_0,
+	player_coord + NORTH_0 + EAST_0 + UP_0 * 2,
 
-		player_coord + NORTH_0 + WEST_0 + DOWN_0,
-		player_coord + NORTH_0 + WEST_0,
-		player_coord + NORTH_0 + WEST_0 + UP_0,
-		player_coord + NORTH_0 + WEST_0 + UP_0 * 2,
+	player_coord + NORTH_0 + WEST_0 + DOWN_0,
+	player_coord + NORTH_0 + WEST_0,
+	player_coord + NORTH_0 + WEST_0 + UP_0,
+	player_coord + NORTH_0 + WEST_0 + UP_0 * 2,
 
-		player_coord + SOUTH_0 + EAST_0 + DOWN_0,
-		player_coord + SOUTH_0 + EAST_0,
-		player_coord + SOUTH_0 + EAST_0 + UP_0,
-		player_coord + SOUTH_0 + EAST_0 + UP_0 * 2,
+	player_coord + SOUTH_0 + EAST_0 + DOWN_0,
+	player_coord + SOUTH_0 + EAST_0,
+	player_coord + SOUTH_0 + EAST_0 + UP_0,
+	player_coord + SOUTH_0 + EAST_0 + UP_0 * 2,
 
-		player_coord + SOUTH_0 + WEST_0 + DOWN_0,
-		player_coord + SOUTH_0 + WEST_0,
-		player_coord + SOUTH_0 + WEST_0 + UP_0,
-		player_coord + SOUTH_0 + WEST_0 + UP_0 * 2,
+	player_coord + SOUTH_0 + WEST_0 + DOWN_0,
+	player_coord + SOUTH_0 + WEST_0,
+	player_coord + SOUTH_0 + WEST_0 + UP_0,
+	player_coord + SOUTH_0 + WEST_0 + UP_0 * 2,
 	};
+}
+
+// CURRENT (stupid-feeling) IDEA:
+// - Have function to return north blocks, south blocks, east blocks, west blocks, up blocks, and down blocks.
+// - Then for each corner:
+// - If ((corner.north % 1) > (player_position.north % 1))) // if player's corner is north of current block
+//   - For each north block:
+//     - if (corner.north > ...
+// - Check if ((position > north) || (position < (south + NORTH_0)))
+// - Check if ((position > north) || (position < (south + NORTH_0)))
+
+// BETTER IDEA:
+// - Calculate all corners
+// - Calculate all blocks that contain your corners (just calculate ((vec4<int>) corners))
+// - Calculate all north, south, east, west, up, and down blocks
+// - If that block is in list of north/south blocks:
+//   - Kill north/south velocity
+// - TODO: Return it as an array?
+// - TODO 2:
+//   - Return ALL BLOCKS surrounding you (north/south/etc) as a 3D array (including ones you're standing in)
+//   - Index into that array using your 8 corners!
+// - Then if inside hard block (like stone/grass), kill relevant velocities.
+
+// ANOTHER IDEA:
+// - Every corner only has 8 possible blocks it could be intersecting
+// - If we do it like that, it cuts down checks from corners*blocks (8*34 = 272) to corners*8 (8*8 = 64)
+initializer_list<vec4> north_blocks(vec4 player_coord) {
+	return {};
 }
 
 // transform a chunk's coords to real-world coords

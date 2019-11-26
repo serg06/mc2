@@ -342,9 +342,18 @@ void App::update_player_movement(const double dt) {
 	}
 	char_velocity[3] = 0.0f; // Just in case
 
-							 // Update player position
+	// Check for collision and remove necessary velocity
+	velocity_prevent_collisions(dt);
+	
+	// Update player position
 	char_position += char_velocity * dt;
 }
+
+void App::velocity_prevent_collisions(const double dt) {
+	// Update character's velocity so it doesn't cause any collisions in the next dt time
+	vec4 tmp_position = char_position + char_velocity * dt;
+}
+
 
 void App::glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	App::app->onKey(window, key, scancode, action, mods);

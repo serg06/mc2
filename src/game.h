@@ -65,6 +65,7 @@ public:
 	void startup();
 	void render(double);
 	void update_player_movement(const double);
+	void velocity_prevent_collisions(const double);
 
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void onMouseMove(GLFWwindow* window, double x, double y);
