@@ -197,7 +197,7 @@ void App::render(double time) {
 	const double dt = time - last_render_time;
 	last_render_time = time;
 	// character's rotation
-	mat4 dir_rotation = rotate_pitch_yaw(char_pitch, char_yaw);
+	mat4 dir_rotation = rotate_pitch_yaw(0.0f, char_yaw);
 
 	// Update player velocity
 	//char_velocity += dir_rotation * vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
@@ -260,10 +260,7 @@ void App::render(double time) {
 	// Create Model->World matrix, including our crazy cube movement
 	float f = (float)time * (float)M_PI * 0.1f;
 	mat4 model_world_matrix =
-		translate(0.0f, 0.0f, -4.0f) * // move cube in front of us
-		translate(sinf(2.1f * f) * 0.5f, cosf(1.7f * f) * 0.5f, sinf(1.3f * f) * cosf(1.5f * f) * 2.0f) * // cube movement: translations 1
-		rotate((float)time * 45.0f, 0.0f, 1.0f, 0.0f) * // cube movement: rotations 2
-		rotate((float)time * 81.0f, 1.0f, 0.0f, 0.0f);  // cube movement: rotations 1
+		translate(0.0f, 0.0f, 0.0f);
 
 	// Create World->View matrix
 	mat4 world_view_matrix =

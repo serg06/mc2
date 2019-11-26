@@ -37,6 +37,12 @@ constexpr int sgn(T val) {
 
 void print_arr(const GLfloat*, int, int);
 GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>>);
-mat4 rotate_pitch_yaw(float pitch, float yaw);
+
+// Create rotation matrix given pitch and yaw
+inline mat4 rotate_pitch_yaw(float pitch, float yaw) {
+	return
+		rotate(pitch, vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
+		rotate(yaw, vec3(0.0f, 1.0f, 0.0f));    // rotate yaw   around Y
+}
 
 #endif // __UTIL_H__
