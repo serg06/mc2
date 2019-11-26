@@ -229,14 +229,14 @@ GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnam
 	// Create program, attach shaders to it, and link it
 	program = glCreateProgram(); // create (empty?) program
 
-								 // attach shaders
+	// attach shaders
 	for (const GLuint &shader : shaders) {
 		glAttachShader(program, shader);
 	}
 
 	glLinkProgram(program); // link together all attached shaders
 
-							// CHECK IF LINKING SUCCESSFUL
+	// CHECK IF LINKING SUCCESSFUL
 	GLint status = GL_TRUE;
 	glGetProgramiv(program, GL_LINK_STATUS, &status);
 	if (status == GL_FALSE)
