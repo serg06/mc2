@@ -6,7 +6,7 @@
 #define CHUNK_SIZE (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
 
 layout (location = 0) in vec4 position;
-//layout (location = 1) in uint block_type; // fed in via instance array!
+layout (location = 1) in uint block_type; // fed in via instance array!
 
 out vec4 vs_color;
 
@@ -40,6 +40,10 @@ vec4 get_color() {
 	return vs_color;
 }
 
+float rand(float seed) {
+	return fract(1.610612741 * seed);
+}
+
 // shader starts executing here
 void main(void)
 {
@@ -69,19 +73,22 @@ void main(void)
 	gl_Position = uni.proj_matrix * uni.mv_matrix * (position + instance_offset);
 	vs_color = position * 2.0 + vec4(0.5, 0.5, 0.5, 1.0);
 
-//	switch(block_type) {
-//		case 0: // air
-//			vs_color = vec4(0.0, 0.0, 0.0, 0.0); // invisible
-//			break;
-//		case 1: // grass
-//			vs_color = vec4(0.2, 0.8, 0.0, 1.0); // green
-//			break;
-//		case 2: // stone
-//			vs_color = vec4(0.4, 0.4, 0.4, 1.0); // grey
-//			break;
-//		default:
-//			vs_color = vec4(1.0, 0.0, 1.0, 1.0); // SUPER NOTICEABLE (for debugging)
-//			break;
-//	}
+	int seed = gl_VertexID * gl_InstanceID;
+	switch(block_type) {
+		case 0: // air
+			vs_color = vec4(0.0, 0.0, 0.0, 0.0); // invisible
+			break;
+		case 1: // grass
+			vs_color = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // green
+			break;
+		case 2: // stone
+			vs_color = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // grey
+			break;
+		default:
+			vs_color = vec4(1.0, 0.0, 1.0, 1.0); // SUPER NOTICEABLE (for debugging)
+			break;
+	}
+
+
 
 }

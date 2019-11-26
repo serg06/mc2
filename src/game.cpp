@@ -134,7 +134,7 @@ void App::run() {
 }
 
 void App::startup() {
-	const GLfloat(&cube)[108] = shapes::cube_full;
+	const GLfloat(&cube)[108] = shapes::cube_centered_half;
 
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
@@ -167,7 +167,7 @@ void App::startup() {
 
 	/* HANDLE CUBES FIRST */
 
-	// create VAO for cube[s], so we can tell OpenGL how to use it when it's bound
+	// vao: create VAO for cube[s], so we can tell OpenGL how to use it when it's bound
 	glCreateVertexArrays(1, &vao_cube);
 
 	// buffers: create
@@ -183,16 +183,29 @@ void App::startup() {
 
 	// vao: enable all cube's attributes, 1 at a time
 	glEnableVertexArrayAttrib(vao_cube, position_attr_idx);
+	glEnableVertexArrayAttrib(vao_cube, chunk_types_attr_idx);
 
 	// vao: set up formats for cube's attributes, 1 at a time
 	glVertexArrayAttribFormat(vao_cube, position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
+	glVertexArrayAttribIFormat(vao_cube, chunk_types_attr_idx, 1, GL_BYTE, 0);
 
 	// vao: set binding points for all attributes, 1 at a time
 	//      - 1 buffer per binding point; for clarity, to keep it clear, I should only bind 1 attr per binding point
 	glVertexArrayAttribBinding(vao_cube, position_attr_idx, vert_buf_bidx);
+	glVertexArrayAttribBinding(vao_cube, chunk_types_attr_idx, chunk_types_bidx);
 
 	// vao: bind buffers to their binding points, 1 at a time
 	glVertexArrayVertexBuffer(vao_cube, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
+	glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf, 0, sizeof(uint8_t));
+
+	// vao: extra properties
+	glBindVertexArray(vao_cube);
+	glVertexAttribDivisor(chunk_types_attr_idx, 1);
+	glBindVertexArray(0);
+
+	glEnable(GL_BLEND); //Enable blending.
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //Set blending function.
+
 
 
 	/* HANDLE UNIFORM NOW */
@@ -223,7 +236,12 @@ void App::startup() {
 
 	// generate a chunk
 	chunks[0] = gen_chunk();
+	chunks[0][1] = Block::Grass;
 	chunk_coords[0] = { 0, 0 };
+
+	// load into memory pog
+	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
+
 }
 
 void App::render(double time) {
@@ -265,7 +283,13 @@ void App::render(double time) {
 	glNamedBufferSubData(trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 
 	// Update chunk types buffer with chunk types!
-	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
+	//glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
+
+	char buf[256];
+	sprintf(buf, "Drawing (took %d ms)\n", (int)(dt * 1000));
+	OutputDebugString(buf);
+	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2]);
+	OutputDebugString(buf);
 
 	// Draw our chunks!
 	glBindVertexArray(vao_cube);

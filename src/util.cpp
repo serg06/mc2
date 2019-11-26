@@ -166,6 +166,7 @@ void main(void)
 			exit(1);
 		}
 
+
 		// Delete the shaders as the program has them now
 		for (const GLuint &shader : shaders) {
 			glDeleteShader(shader);

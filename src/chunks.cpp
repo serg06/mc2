@@ -61,19 +61,57 @@ initializer_list<ivec2> surrounding_chunks(ivec2 chunk_coord) {
 	};
 }
 
-// given player's coordinate, find all surrounding blocks (for collision detection)
+// given player's coordinate, find all surrounding blocks (for collision detection) (TODO: Switch to array and add player_coord to each element. Or do for loop.)
 initializer_list<vec4> surrounding_blocks(vec4 player_coord) {
 	return {
+		// North
+		player_coord + NORTH_0 + DOWN_0,
 		player_coord + NORTH_0,
 		player_coord + NORTH_0 + UP_0,
+		player_coord + NORTH_0 + UP_0*2,
+
+		// South
+		player_coord + SOUTH_0 + DOWN_0,
 		player_coord + SOUTH_0,
 		player_coord + SOUTH_0 + UP_0,
+		player_coord + SOUTH_0 + UP_0 * 2,
+
+		// East
+		player_coord + EAST_0 + DOWN_0,
 		player_coord + EAST_0,
 		player_coord + EAST_0 + UP_0,
+		player_coord + EAST_0 + UP_0 * 2,
+
+		// West
+		player_coord + WEST_0 + DOWN_0,
 		player_coord + WEST_0,
 		player_coord + WEST_0 + UP_0,
+		player_coord + WEST_0 + UP_0 * 2,
+
+		// Up/Down
 		player_coord + UP_0*2,
 		player_coord + DOWN_0,
+
+		// Corners
+		player_coord + NORTH_0 + EAST_0 + DOWN_0,
+		player_coord + NORTH_0 + EAST_0,
+		player_coord + NORTH_0 + EAST_0 + UP_0,
+		player_coord + NORTH_0 + EAST_0 + UP_0 * 2,
+
+		player_coord + NORTH_0 + WEST_0 + DOWN_0,
+		player_coord + NORTH_0 + WEST_0,
+		player_coord + NORTH_0 + WEST_0 + UP_0,
+		player_coord + NORTH_0 + WEST_0 + UP_0 * 2,
+
+		player_coord + SOUTH_0 + EAST_0 + DOWN_0,
+		player_coord + SOUTH_0 + EAST_0,
+		player_coord + SOUTH_0 + EAST_0 + UP_0,
+		player_coord + SOUTH_0 + EAST_0 + UP_0 * 2,
+
+		player_coord + SOUTH_0 + WEST_0 + DOWN_0,
+		player_coord + SOUTH_0 + WEST_0,
+		player_coord + SOUTH_0 + WEST_0 + UP_0,
+		player_coord + SOUTH_0 + WEST_0 + UP_0 * 2,
 	};
 }
 
