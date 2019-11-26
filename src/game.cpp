@@ -15,6 +15,7 @@
 #include <windows.h>
 
 
+
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
 // 3. TODO: Apply C++17 features
@@ -24,6 +25,7 @@
 //		Then from WinMain(), just call MyApp a = new MyApp, a.run(); !!
 
 using namespace std;
+using namespace vmath;
 
 void glfw_onError(int error, const char* description)
 {
@@ -156,14 +158,14 @@ void App::startup() {
 	glVertexArrayAttribBinding(vao, attrib_idx, vert_binding_idx); // connect vert -> position variable
 
 	// allocate
-	glNamedBufferStorage(trans_buf, 2 * sizeof(vmath::mat4), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+	glNamedBufferStorage(trans_buf, 2 * sizeof(mat4), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
 
 	// insert data (skip transformation matrices; we'll update thenm in render())
 	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
 
 	// enable auto-filling of position
-	glVertexArrayVertexBuffer(vao, vert_binding_idx, vert_buf, 0, sizeof(vmath::vec3));
+	glVertexArrayVertexBuffer(vao, vert_binding_idx, vert_buf, 0, sizeof(vec3));
 	glVertexArrayAttribFormat(vao, attrib_idx, 3, GL_FLOAT, GL_FALSE, 0);
 	glEnableVertexAttribArray(attrib_idx);
 
@@ -184,7 +186,7 @@ void App::startup() {
 
 	// generate a chunk
 	chunks[0] = gen_chunk();
-	chunk_coords[0] = { 1.0f, 2.0f, 0.0f, 1.0f };
+	chunk_coords[0] = { 0, 0 };
 }
 
 void App::render(double time) {
@@ -194,30 +196,30 @@ void App::render(double time) {
 	const double dt = time - last_render_time;
 	last_render_time = time;
 	// character's rotation
-	vmath::mat4 dir_rotation = rotate_pitch_yaw(char_pitch, char_yaw);
+	mat4 dir_rotation = rotate_pitch_yaw(char_pitch, char_yaw);
 
 	// Update player velocity
-	//char_velocity += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
-	vmath::vec4 acceleration = { 0.0f };
+	//char_velocity += dir_rotation * vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
+	vec4 acceleration = { 0.0f };
 
 	// calculate acceleration
 	if (held_keys[GLFW_KEY_W]) {
-		acceleration += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+		acceleration += dir_rotation * vec4(0.0f, 0.0f, -1.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_S]) {
-		acceleration += dir_rotation * vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+		acceleration += dir_rotation * vec4(0.0f, 0.0f, 1.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_A]) {
-		acceleration += dir_rotation * vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+		acceleration += dir_rotation * vec4(-1.0f, 0.0f, 0.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_D]) {
-		acceleration += dir_rotation * vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+		acceleration += dir_rotation * vec4(1.0f, 0.0f, 0.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_SPACE]) {
-		acceleration += vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		acceleration += vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	}
 	if (held_keys[GLFW_KEY_LEFT_SHIFT]) {
-		acceleration += dir_rotation * vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+		acceleration += dir_rotation * vec4(0.0f, -1.0f, 0.0f, 0.0f);
 	}
 
 	// TODO: Tweak velocity falloff values?
@@ -236,7 +238,7 @@ void App::render(double time) {
 	// Velocity change (via acceleration)
 	char_velocity += acceleration * dt * 50.0f;
 	if (length(char_velocity) > 10.0f) {
-		char_velocity = 10.0f * vmath::normalize(char_velocity);
+		char_velocity = 10.0f * normalize(char_velocity);
 	}
 	char_velocity[3] = 0.0f; // Just in case
 
@@ -256,31 +258,31 @@ void App::render(double time) {
 
 	// Create Model->World matrix, including our crazy cube movement
 	float f = (float)time * (float)M_PI * 0.1f;
-	vmath::mat4 model_world_matrix =
-		vmath::translate(0.0f, 0.0f, -4.0f) * // move cube in front of us
-		vmath::translate(sinf(2.1f * f) * 0.5f, cosf(1.7f * f) * 0.5f, sinf(1.3f * f) * cosf(1.5f * f) * 2.0f) * // cube movement: translations 1
-		vmath::rotate((float)time * 45.0f, 0.0f, 1.0f, 0.0f) * // cube movement: rotations 2
-		vmath::rotate((float)time * 81.0f, 1.0f, 0.0f, 0.0f);  // cube movement: rotations 1
+	mat4 model_world_matrix =
+		translate(0.0f, 0.0f, -4.0f) * // move cube in front of us
+		translate(sinf(2.1f * f) * 0.5f, cosf(1.7f * f) * 0.5f, sinf(1.3f * f) * cosf(1.5f * f) * 2.0f) * // cube movement: translations 1
+		rotate((float)time * 45.0f, 0.0f, 1.0f, 0.0f) * // cube movement: rotations 2
+		rotate((float)time * 81.0f, 1.0f, 0.0f, 0.0f);  // cube movement: rotations 1
 
 	// Create World->View matrix
-	vmath::mat4 world_view_matrix =
+	mat4 world_view_matrix =
 		rotate_pitch_yaw(char_pitch, char_yaw) *
-		vmath::translate(-char_position[0], -char_position[1], -char_position[2]); // move relative to you
+		translate(-char_position[0], -char_position[1], -char_position[2]); // move relative to you
 
 	// Combine them into Model->View matrix
-	vmath::mat4 model_view_matrix = world_view_matrix * model_world_matrix;
+	mat4 model_view_matrix = world_view_matrix * model_world_matrix;
 
 	// Update transformation buffer with mv matrix
 	glNamedBufferSubData(trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
 
 	// Update projection matrix too, in case if width/height changed
-	vmath::mat4 proj_matrix = vmath::perspective(
+	mat4 proj_matrix = perspective(
 		(float)info.vfov, // virtual fov
 		(float)info.width / (float)info.height, // aspect ratio
 		0.1f,  // can't see behind 0.0 anyways
 		-1000.0f // our object will be closer than 100.0
 	);
-	glNamedBufferSubData(trans_buf, sizeof(vmath::mat4), sizeof(vmath::mat4), proj_matrix); // proj matrix
+	glNamedBufferSubData(trans_buf, sizeof(mat4), sizeof(mat4), proj_matrix); // proj matrix
 
 
 

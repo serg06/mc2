@@ -1,11 +1,17 @@
 #include "chunks.h"
 
+#include "util.h"
+
 #include "GL/gl3w.h"
 
 #include <cstdlib>
+#include <initializer_list>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vmath.h>
+
+using namespace std;
+using namespace vmath;
 
 // generate us a nice lil chunk
 Block* gen_chunk() {
@@ -19,7 +25,7 @@ Block* gen_chunk() {
 				if (y <= 62) {
 					chunk_set(result, x, y, z, Block::Stone);
 				}
-				
+
 				// 63 to 64 = grass
 				else if (y <= 64) {
 					chunk_set(result, x, y, z, Block::Grass);
@@ -43,7 +49,41 @@ Block* gen_chunk() {
 	return result;
 };
 
-// transform chunk coordinate to world coordinate
-vmath::vec4 chunk_to_world(Block* chunk, float x, float y, float z) {
-	return vmath::vec4();
+initializer_list<ivec2> surrounding_chunks(ivec2 chunk_coord) {
+	return {
+		chunk_coord + ivec2(0,  0),
+		chunk_coord + ivec2(0,  1),
+		chunk_coord + ivec2(1,  0),
+		chunk_coord + ivec2(1,  1),
+		chunk_coord + ivec2(0,  0),
+		chunk_coord + ivec2(0, -1),
+		chunk_coord + ivec2(-1,  0),
+		chunk_coord + ivec2(-1, -1),
+	};
+}
+
+// given player's coordinate, find all surrounding blocks (for collision detection)
+initializer_list<vec4> surrounding_blocks(vec4 player_coord) {
+	return {
+		player_coord + NORTH_0,
+		player_coord + NORTH_0 + UP_0,
+		player_coord + SOUTH_0,
+		player_coord + SOUTH_0 + UP_0,
+		player_coord + EAST_0,
+		player_coord + EAST_0 + UP_0,
+		player_coord + WEST_0,
+		player_coord + WEST_0 + UP_0,
+		player_coord + UP_0*2,
+		player_coord + DOWN_0,
+	};
+}
+
+// transform a chunk's coords to real-world coords
+inline vec4 chunk_to_world(ivec2 chunk_coords) {
+	return vec4(chunk_coords[0] * 16.0f, chunk_coords[1] * 16.0f, 0.0f, 1.0f);
+}
+
+// transform world coordinates to chunk coordinates
+inline ivec2 world_to_chunk(vec4 world_coords) {
+	return ivec2(world_coords[0], world_coords[1]);
 }

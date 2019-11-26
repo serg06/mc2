@@ -10,6 +10,7 @@
 #include <vmath.h>
 
 using namespace std;
+using namespace vmath;
 
 struct AppInfo {
 	string title = "OpenGL";
@@ -39,14 +40,14 @@ public:
 	double last_render_time;
 	bool held_keys[GLFW_KEY_LAST + 1];
 
-	vmath::vec4 char_position = { 8.0f, 66.0f, 8.0f, 1.0f };
-	vmath::vec4 char_velocity = { 0.0f };
+	vec4 char_position = { 8.0f, 66.0f, 8.0f, 1.0f };
+	vec4 char_velocity = { 0.0f };
 	float char_pitch = 0.0f; //   up/down  angle;    capped to [-90.0, 90.0]
 	float char_yaw = 0.0f;   // left/right angle; un-capped (TODO: Reset it if it gets too high?)
 	
 	// store our chunk info in here for now
 	Block* chunks[1024];
-	vmath::vec4 chunk_coords[1024];
+	ivec2 chunk_coords[1024];
 
 	App() {
 

@@ -11,6 +11,9 @@
 *	- then  increase z coordinate
 *	- then  increase y coordinate
 *
+* IDEA:
+*   - chunk coordinate = 1/16th of actual coordinate
+*
 */
 
 // Chunk size
