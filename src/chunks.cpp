@@ -16,7 +16,6 @@ using namespace vmath;
 // generate us a nice lil chunk
 Block* gen_chunk() {
 	Block* result = (Block*)calloc(sizeof(uint8_t) * CHUNK_SIZE, sizeof(uint8_t));
-	char buf[256];
 
 	for (int y = 0; y < CHUNK_HEIGHT; y++) {
 		for (int x = 0; x < CHUNK_WIDTH; x++) {

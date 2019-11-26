@@ -130,6 +130,7 @@ void App::startup() {
 	glBindVertexArray(vao);
 
 	// list of shaders to create program with
+	// TODO: Embed these into binary somehow - maybe generate header file with cmake.
 	std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
 		{ "../src/simple.vs.glsl", GL_VERTEX_SHADER },
 		//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
@@ -283,9 +284,6 @@ void App::render(double time) {
 		-1000.0f // our object will be closer than 100.0
 	);
 	glNamedBufferSubData(trans_buf, sizeof(mat4), sizeof(mat4), proj_matrix); // proj matrix
-
-
-
 
 	// DRAWING
 
