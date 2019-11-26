@@ -6,6 +6,7 @@
 #define CHUNK_SIZE (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
 
 layout (location = 0) in vec4 position;
+//layout (location = 1) in uint block_type; // fed in via instance array!
 
 out vec4 vs_color;
 
@@ -14,6 +15,7 @@ layout (std140, binding = 0) uniform UNI_IN
     mat4 mv_matrix; // takes up 16 bytes
     mat4 proj_matrix; // takes up 16 bytes
 } uni;
+
 
 vec4 get_color() {
 	if (gl_VertexID < 6) {
@@ -66,5 +68,20 @@ void main(void)
 	//gl_Position = uni.proj_matrix * uni.mv_matrix * position;
 	gl_Position = uni.proj_matrix * uni.mv_matrix * (position + instance_offset);
 	vs_color = position * 2.0 + vec4(0.5, 0.5, 0.5, 1.0);
-	//vs_color = get_color();
+
+//	switch(block_type) {
+//		case 0: // air
+//			vs_color = vec4(0.0, 0.0, 0.0, 0.0); // invisible
+//			break;
+//		case 1: // grass
+//			vs_color = vec4(0.2, 0.8, 0.0, 1.0); // green
+//			break;
+//		case 2: // stone
+//			vs_color = vec4(0.4, 0.4, 0.4, 1.0); // grey
+//			break;
+//		default:
+//			vs_color = vec4(1.0, 0.0, 1.0, 1.0); // SUPER NOTICEABLE (for debugging)
+//			break;
+//	}
+
 }

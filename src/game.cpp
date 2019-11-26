@@ -99,6 +99,21 @@ void App::run() {
 	//	}
 	//}
 
+	char buf[256];
+	GLint tmpi;
+
+	auto props = {
+		GL_MAX_VERTEX_UNIFORM_COMPONENTS,
+		GL_MAX_UNIFORM_LOCATIONS
+	};
+
+
+	for (auto prop : props) {
+		glGetIntegerv(prop, &tmpi);
+		sprintf(buf, "%x:\t%d\n", prop, tmpi);
+		OutputDebugString(buf);
+	}
+
 	// Start up app
 	startup();
 
@@ -128,6 +143,8 @@ void App::startup() {
 	// placeholder
 	glCreateVertexArrays(1, &vao);
 	glBindVertexArray(vao);
+	//glCreateVertexArrays(1, &vao2);
+	//glBindVertexArray(vao2);
 
 	// list of shaders to create program with
 	// TODO: Embed these into binary somehow - maybe generate header file with cmake.
@@ -146,30 +163,41 @@ void App::startup() {
 	* CUBE MOVEMENT
 	*/
 
-	const GLuint uni_binding_idx = 0;
-	const GLuint attrib_idx = 0;
-	const GLuint vert_binding_idx = 0;
+	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
+	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
+	const GLuint position_attr_idx = 0; // index of 'position' attribute
+	const GLuint chunk_types_bidx = 1; // chunk types buffer's binding-point index
+	const GLuint chunk_types_attr_idx = 1; // index of 'chunk_type' attribute
 
 	// create buffers
 	glCreateBuffers(1, &trans_buf);
 	glCreateBuffers(1, &vert_buf);
+	//glCreateBuffers(1, &chunk_types_buf);
 
 	// bind them
-	glBindBufferBase(GL_UNIFORM_BUFFER, uni_binding_idx, trans_buf); // bind transformation buffer to uniform buffer binding point
-	glVertexArrayAttribBinding(vao, attrib_idx, vert_binding_idx); // connect vert -> position variable
+	glBindBufferBase(GL_UNIFORM_BUFFER, trans_buf_uni_bidx, trans_buf); // bind transformation buffer to uniform buffer binding point
+	//glVertexArrayAttribBinding(vao2, chunk_types_attr_idx, chunk_types_bidx); // connect vert -> position variable
+	glVertexArrayAttribBinding(vao, position_attr_idx, vert_buf_bidx); // connect vert -> position variable
 
 	// allocate
-	glNamedBufferStorage(trans_buf, 2 * sizeof(mat4), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+	glNamedBufferStorage(trans_buf, sizeof(mat4) * 2, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+	glNamedBufferStorage(chunk_types_buf, sizeof(uint8_t) * CHUNK_SIZE, NULL, NULL); // allocate enough for one chunk
 
-	// insert data (skip transformation matrices; we'll update thenm in render())
+	// insert static data
 	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
 
 	// enable auto-filling of position
-	glVertexArrayVertexBuffer(vao, vert_binding_idx, vert_buf, 0, sizeof(vec3));
-	glVertexArrayAttribFormat(vao, attrib_idx, 3, GL_FLOAT, GL_FALSE, 0);
-	glEnableVertexAttribArray(attrib_idx);
+	glVertexArrayVertexBuffer(vao, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
+	glVertexArrayAttribFormat(vao, position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
+	glEnableVertexAttribArray(position_attr_idx);
 
+	// enable auto-filling of chunk type
+	//glVertexArrayVertexBuffer(vao2, chunk_types_bidx, vert_buf, 0, sizeof(vec3));
+	//glVertexArrayAttribIFormat(vao2, chunk_types_attr_idx, 1, GL_BYTE, 0);
+	//glEnableVertexAttribArray(chunk_types_attr_idx);
+
+	//glVertexAttribDivisor(chunk_types_attr_idx, 1); // update one per instance
 
 	/*
 	* ETC
@@ -191,19 +219,77 @@ void App::startup() {
 }
 
 void App::render(double time) {
-	/* PLAYER MOVEMENT */
-
 	// change in time
 	const double dt = time - last_render_time;
 	last_render_time = time;
-	// character's rotation
+
+	// update player movement
+	App::update_player_movement(dt);
+
+	// Create Model->World matrix
+	float f = (float)time * (float)M_PI * 0.1f;
+	mat4 model_world_matrix =
+		translate(0.0f, 0.0f, 0.0f);
+
+	// Create World->View matrix
+	mat4 world_view_matrix =
+		rotate_pitch_yaw(char_pitch, char_yaw) *
+		translate(-char_position[0], -char_position[1], -char_position[2]); // move relative to you
+
+	// Combine them into Model->View matrix
+	mat4 model_view_matrix = world_view_matrix * model_world_matrix;
+
+	// Update projection matrix too, in case if width/height changed
+	mat4 proj_matrix = perspective(
+		(float)info.vfov, // virtual fov
+		(float)info.width / (float)info.height, // aspect ratio
+		0.1f,  // can't see behind 0.0 anyways
+		-1000.0f // our object will be closer than 100.0
+	);
+
+
+
+	// Draw background color
+	const GLfloat color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	glClearBufferfv(GL_COLOR, 0, color);
+	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // used for depth test somehow
+
+	// Update transformation buffer with matrices
+	glNamedBufferSubData(trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
+	glNamedBufferSubData(trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
+
+	// Update chunk types buffer with chunk types!
+	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
+
+	OutputDebugString("TRYING TO DRAW...\n");
+	// Draw our chunks!
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
+	OutputDebugString("SUCCESS!\n");
+}
+
+void App::update_player_movement(const double dt) {
+	// update player's movement based on how much time has passed since we last did it
+
+	// Velocity falloff
+	//   TODO: Handle walking on blocks, in water, etc. Maybe do it based on friction.
+	//   TODO: Tweak values.
+	char_velocity *= (float)pow(0.5, dt);
+	for (int i = 0; i < 4; i++) {
+		if (char_velocity[i] > 0.0f) {
+			char_velocity[i] = (float)fmax(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+		}
+		else if (char_velocity[i] < 0.0f) {
+			char_velocity[i] = (float)fmin(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
+		}
+	}
+
+
+	// Calculate char's yaw rotation direction
 	mat4 dir_rotation = rotate_pitch_yaw(0.0f, char_yaw);
 
-	// Update player velocity
-	//char_velocity += dir_rotation * vec4(0.0f, 0.0f, -1.0f, 0.0f) * dt * 0.1f * (held_keys[GLFW_KEY_W] ? 1.0f : -1.0f);
+	// calculate acceleration
 	vec4 acceleration = { 0.0f };
 
-	// calculate acceleration
 	if (held_keys[GLFW_KEY_W]) {
 		acceleration += dir_rotation * vec4(0.0f, 0.0f, -1.0f, 0.0f);
 	}
@@ -223,75 +309,16 @@ void App::render(double time) {
 		acceleration += dir_rotation * vec4(0.0f, -1.0f, 0.0f, 0.0f);
 	}
 
-	// TODO: Tweak velocity falloff values?
-
-	// Velocity falloff (TODO: For blocks and shit too. Maybe based on friction.)
-	char_velocity *= (float)pow(0.5, dt);
-	for (int i = 0; i < 4; i++) {
-		if (char_velocity[i] > 0.0f) {
-			char_velocity[i] = (float)fmax(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
-		}
-		else if (char_velocity[i] < 0.0f) {
-			char_velocity[i] = (float)fmin(0.0f, char_velocity[i] - (10.0f * sgn(char_velocity[i]) * dt));
-		}
-	}
-
-	// Velocity change (via acceleration)
+	// Velocity change via acceleration
 	char_velocity += acceleration * dt * 50.0f;
 	if (length(char_velocity) > 10.0f) {
 		char_velocity = 10.0f * normalize(char_velocity);
 	}
 	char_velocity[3] = 0.0f; // Just in case
 
-	// Update player position
+							 // Update player position
 	char_position += char_velocity * dt;
-
-	/* DRAWING */
-
-	// BACKGROUND COLOUR
-
-	//const GLfloat color[] = { (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
-	const GLfloat color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	glClearBufferfv(GL_COLOR, 0, color);
-	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // used for depth test somehow
-
-	// MOVEMENT CALCULATION
-
-	// Create Model->World matrix, including our crazy cube movement
-	float f = (float)time * (float)M_PI * 0.1f;
-	mat4 model_world_matrix =
-		translate(0.0f, 0.0f, 0.0f);
-
-	// Create World->View matrix
-	mat4 world_view_matrix =
-		rotate_pitch_yaw(char_pitch, char_yaw) *
-		translate(-char_position[0], -char_position[1], -char_position[2]); // move relative to you
-
-	// Combine them into Model->View matrix
-	mat4 model_view_matrix = world_view_matrix * model_world_matrix;
-
-	// Update transformation buffer with mv matrix
-	glNamedBufferSubData(trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
-
-	// Update projection matrix too, in case if width/height changed
-	mat4 proj_matrix = perspective(
-		(float)info.vfov, // virtual fov
-		(float)info.width / (float)info.height, // aspect ratio
-		0.1f,  // can't see behind 0.0 anyways
-		-1000.0f // our object will be closer than 100.0
-	);
-	glNamedBufferSubData(trans_buf, sizeof(mat4), sizeof(mat4), proj_matrix); // proj matrix
-
-	// DRAWING
-
-	//// Draw our cube
-	//glDrawArrays(GL_TRIANGLES, 0, 36);
-
-	// Draw our chunks!
-	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 }
-
-
 
 void App::glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	App::app->onKey(window, key, scancode, action, mods);

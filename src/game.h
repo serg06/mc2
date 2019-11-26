@@ -32,9 +32,13 @@ public:
 	GLFWwindow *window;
 
 	GLuint rendering_program;
-	GLuint vao;
-	GLuint trans_buf;
-	GLuint vert_buf;
+	GLuint vao, vao2;
+
+	// buffers
+	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
+	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
+	GLuint chunk_types_buf; // stores the block type for every block in the chunk
+
 	double last_mouse_x;
 	double last_mouse_y;
 	double last_render_time;
@@ -60,6 +64,7 @@ public:
 	void run();
 	void startup();
 	void render(double);
+	void update_player_movement(const double);
 
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void onMouseMove(GLFWwindow* window, double x, double y);
