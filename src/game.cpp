@@ -512,6 +512,16 @@ void App::velocity_prevent_collisions(const double dt) {
 			}
 		}
 	}
+
+	// SOLVED: HOW TO DO DIAGONAL COLLISION:
+	// - WHEN YOU HIT BLOCK
+	// - CHECK WHAT SIDE OF YOU THAT BLOCK IS ON
+	//   - right/left => remove X velocity
+	//   - north/south => remove Z velocity
+	//   - etc.
+	// - THEN
+	//   - north-east => if closer to north side of current player position, then remove east velocity, else vice versa!
+	// - ALSO TODO: When moving sideways, add extra collision point: right between all 4 corners.
 }
 
 
