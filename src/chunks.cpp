@@ -14,39 +14,42 @@ using namespace std;
 using namespace vmath;
 
 // generate us a nice lil chunk
-Block* gen_chunk() {
-	Block* result = (Block*)calloc(sizeof(uint8_t) * CHUNK_SIZE, sizeof(uint8_t));
+Chunk* gen_chunk() {
+	Chunk* result = new Chunk();
+	Block* data = result->data;
+
+	memset(data, 0, sizeof(Block) * CHUNK_SIZE);
 
 	for (int y = 0; y < CHUNK_HEIGHT; y++) {
 		for (int x = 0; x < CHUNK_WIDTH; x++) {
 			for (int z = 0; z < CHUNK_DEPTH; z++) {
 				// 62 or lower = stone
 				if (y <= 62) {
-					chunk_set(result, x, y, z, Block::Stone);
+					chunk_set(data, x, y, z, Block::Stone);
 				}
 
 				// 63 to 64 = grass
 				else if (y <= 64) {
-					chunk_set(result, x, y, z, Block::Grass);
+					chunk_set(data, x, y, z, Block::Grass);
 				}
 
 				// 65 = maybe grass
 				else if (y <= 65) {
 					if (rand() % 2) {
-						chunk_set(result, x, y, z, Block::Grass);
+						chunk_set(data, x, y, z, Block::Grass);
 					}
 				}
 
 				// add some floating blocks
 				else if (y == 68) {
 					if (rand() % 4 == 0) {
-						chunk_set(result, x, y, z, Block::Grass);
+						chunk_set(data, x, y, z, Block::Grass);
 					}
 				}
 
 				// else air
 				else {
-					chunk_set(result, x, y, z, Block::Air);
+					chunk_set(data, x, y, z, Block::Air);
 				}
 			}
 		}
@@ -164,3 +167,8 @@ inline vec4 chunk_to_world(ivec2 chunk_coords) {
 inline ivec2 world_to_chunk(vec4 world_coords) {
 	return ivec2(world_coords[0], world_coords[1]);
 }
+
+//// convert real coordinates to chunk coordinates
+//static inline vec4 coords_real_to_chunk(vec4 coords) {
+//	return vec4(((int)coords[0]) / 16, ((int)coords[0]) / 16, ((int)coords[0]) / 16)
+//}

@@ -243,6 +243,16 @@ public:
         return result;
     }
 
+	inline bool operator==(const vecN& that)
+	{
+		for (int i = 0; i < len; i++) {
+			if (data[i] != that[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 protected:
     T data[len];
 

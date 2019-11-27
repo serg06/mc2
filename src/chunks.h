@@ -36,10 +36,27 @@ static inline Block chunk_get(Block* chunk, uint8_t x, uint8_t y, uint8_t z) {
 	return chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
 }
 
-Block* gen_chunk();
+class Chunk {
+public:
+	Block data[16*16*256];
+	//vec4 coords; // coordinates in chunk format
 
+	//inline vec4 coords_real() {
+	//	return coords * 16;
+	//}
 
+	// get block at these coordinates
+	inline Block get_block(uint8_t x, uint8_t y, uint8_t z) {
+		return data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
+	}
 
+	// set block at these coordinates
+	inline void set_block(uint8_t x, uint8_t y, uint8_t z, Block val) {
+		data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
+	}
+};
+
+Chunk* gen_chunk();
 
 // TODO: This maybe?
 //#define EL_TYPE uint8_t

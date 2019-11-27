@@ -231,13 +231,13 @@ void App::startup() {
 	glUseProgram(rendering_program);
 
 	// generate a chunk
-	chunks[0] = gen_chunk();
-	chunks[0][1] = Block::Grass;
-	chunk_coords[0] = { 0, 0 };
+	Chunk* chunk = gen_chunk();
+	chunk->data[1] = Block::Grass;
+	add_chunk(0, 0, chunk);
 
 	// load into memory pog
-	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
-
+	//glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
+	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), get_chunk(0, 0)->data); // proj matrix
 }
 
 void App::render(double time) {
@@ -251,7 +251,7 @@ void App::render(double time) {
 	// Create Model->World matrix
 	float f = (float)time * (float)M_PI * 0.1f;
 	mat4 model_world_matrix =
-		translate(0.0f, -PLAYER_HEIGHT*0.9f, 0.0f);
+		translate(0.0f, -PLAYER_HEIGHT * 0.9f, 0.0f);
 
 	// Create World->View matrix
 	mat4 world_view_matrix =
@@ -343,7 +343,8 @@ void App::update_player_movement(const double dt) {
 	char_velocity[3] = 0.0f; // Just in case
 
 	// Check for collision and remove necessary velocity
-	velocity_prevent_collisions(dt);
+	//velocity_prevent_collisions(dt);
+	velocity_prevent_collisions2(dt);
 
 	// Update player position
 	char_position += char_velocity * dt;
@@ -522,7 +523,183 @@ void App::velocity_prevent_collisions(const double dt) {
 	// - THEN
 	//   - north-east => if closer to north side of current player position, then remove east velocity, else vice versa!
 	// - ALSO TODO: When moving sideways, add extra collision point: right between all 4 corners.
+
+
 }
+
+void App::velocity_prevent_collisions2(const double dt) {
+	char buf[256];
+	char *bufp = buf;
+
+	vec4 pos = char_position;
+	ivec4 ipos = vec2ivec(pos);
+
+	vec4 new_pos = char_position + char_velocity * dt;
+	ivec4 inew_pos = vec2ivec(new_pos);
+
+	vec4 corner_ned = new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0;
+	vec4 corner_neu = new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0;
+	vec4 corner_nwd = new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0;
+	vec4 corner_nwu = new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0;
+	vec4 corner_sed = new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0;
+	vec4 corner_seu = new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0;
+	vec4 corner_swd = new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0;
+	vec4 corner_swu = new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0;
+
+	// our corner locations
+	vec4 corners[8] = {
+		// 8 corners around us
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+
+		// 4 corners in our middle
+		//new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + (PLAYER_UP_0 / 2),
+		//new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + (PLAYER_UP_0 / 2),
+		//new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + (PLAYER_UP_0 / 2),
+		//new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + (PLAYER_UP_0 / 2),
+	};
+
+	// 1. Get all blocks we intersects with
+
+	// our corner locations, changed to coordinates
+	ivec4 icorners[8];
+	for (int i = 0; i < sizeof(corners) / sizeof(corners[0]); i++) {
+		icorners[i] = vec2ivec(corners[i]);
+	}
+
+	bufp += sprintf(bufp, "blocks: (");
+	for (auto &block : icorners) {
+		Block type = get_type(block[0], block[1], block[2]);
+		bufp += sprintf(bufp, "%d", (uint8_t)type);
+		if (block != icorners[7]) {
+			bufp += sprintf(bufp, ", ");
+		}
+	}
+	bufp += sprintf(bufp, ")\n");
+	OutputDebugString(buf);
+
+	// 2. Check blocks
+
+	// for every block that we're intersecting
+	bufp = buf;
+	for (auto block : icorners) {
+		Block type = get_type(block[0], block[1], block[2]);
+
+		// air => no collision
+		if (type == Block::Air) {
+			continue;
+		}
+
+		block[3] = ipos[3]; // just in case
+
+		// TODO: Combine NORTH/SOUTH/EAST/WEST into one loop, then multiply by 1-(itself) to set that component to zero
+		// TODO: Remove inner if.
+
+		//sprintf(buf, "block: (%d, %d, %d) | ipos + IEAST: (%d, %d, %d)\n", block[0], block[1], block[2], ipos[0], ipos[1], ipos[2]);
+		//OutputDebugString(buf);
+
+
+		// 2.1. If blocks in is n/e/s/w from us, easy
+
+		// East/West
+		if (block == ipos + IEAST_0 || block == ipos + IEAST_0 + IUP_0) {
+			bufp += sprintf(bufp, "EAST ");
+			char_velocity[0] = 0;
+		}
+
+		if (block == ipos + IWEST_0 || block == ipos + IWEST_0 + IUP_0) {
+			bufp += sprintf(bufp, "WEST ");
+			char_velocity[0] = 0;
+		}
+
+		// North/South
+		if (block == ipos + INORTH_0 || block == ipos + INORTH_0 + IUP_0) {
+			bufp += sprintf(bufp, "NORTH ");
+			char_velocity[2] = 0;
+		}
+
+		if (block == ipos + ISOUTH_0 || block == ipos + ISOUTH_0 + IUP_0) {
+			bufp += sprintf(bufp, "SOUTH ");
+			char_velocity[2] = 0;
+		}
+
+		// Up/Down
+		if (block == ipos + IUP_0 * 2) {
+			bufp += sprintf(bufp, "UP ");
+			char_velocity[1] = 0;
+		}
+
+		if (block == ipos + IDOWN_0) {
+			bufp += sprintf(bufp, "DOWN ");
+			char_velocity[1] = 0;
+		}
+
+		// 2.2. If block is ne/nw/any double-combination, doable
+
+		//float dist1, dist2, dist3; // distances to 3 sides of the block you're on
+		//float tmp;
+
+		//if (block == ipos + INORTH_0 + IEAST_0 || block == ipos + INORTH_0 + IEAST_0 + IUP_0) {
+		//	bufp += sprintf(bufp, "NORTH-EAST ");
+
+		//	dist1 = modf(-char_velocity[2], &tmp); // -z
+		//	dist2 = modf(char_velocity[0], &tmp); // +x
+
+		//	if ((dist1 - dist2) < 0.01f) {
+		//	}
+
+		//										  // if z wins, kill x
+		//	char_velocity[dist1 < dist2 ? 0 : 2] = 0;
+		//}
+
+		//if (block == ipos + INORTH_0 + IWEST_0 || block == ipos + INORTH_0 + IWEST_0 + IUP_0) {
+		//	bufp += sprintf(bufp, "NORTH-WEST ");
+
+		//	dist1 = modf(-char_velocity[2], &tmp); // -z
+		//	dist2 = modf(-char_velocity[0], &tmp); // -x
+
+		//										  // if z wins, kill x
+		//	char_velocity[dist1 < dist2 ? 0 : 2] = 0;
+		//}
+
+		//if (block == ipos + ISOUTH_0 + IEAST_0 || block == ipos + ISOUTH_0 + IEAST_0 + IUP_0) {
+		//	bufp += sprintf(bufp, "SOUTH-EAST ");
+
+		//	dist1 = modf(char_velocity[2], &tmp); // +z
+		//	dist2 = modf(char_velocity[0], &tmp); // +x
+
+		//										   // if z wins, kill x
+		//	char_velocity[dist1 < dist2 ? 0 : 2] = 0;
+		//}
+
+		//if (block == ipos + ISOUTH_0 + IWEST_0 || block == ipos + ISOUTH_0 + IWEST_0 + IUP_0) {
+		//	bufp += sprintf(bufp, "SOUTH-WEST ");
+
+		//	dist1 = modf(char_velocity[2], &tmp); // +z
+		//	dist2 = modf(-char_velocity[0], &tmp); // -x
+
+		//										   // if z wins, kill x
+		//	char_velocity[dist1 < dist2 ? 0 : 2] = 0;
+		//}
+	}
+	if (bufp > buf) {
+		bufp += sprintf(bufp, "\n");
+		OutputDebugString(buf);
+	}
+
+	// 2.3. If block is neu/etc, difficult!
+}
+
+//// TODO: Implement. Do it by having a hashtable which points (chunk coords (i.e. /16)) -> (chunk), then chunk_get(...)
+//Block App::get_type(int x, int y, int z) {
+//	return Block::Air;
+//}
 
 
 void App::glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {

@@ -20,6 +20,13 @@
 #define DOWN_0 vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f)
 #define DOWN_1 vmath::vec4(0.0f, -1.0f, 0.0f, 1.0f)
 
+#define INORTH_0 vmath::ivec4(0, 0, -1, 0)
+#define ISOUTH_0 vmath::ivec4(0, 0, 1, 0)
+#define IEAST_0 vmath::ivec4(1, 0, 0, 0)
+#define IWEST_0 vmath::ivec4(-1, 0, 0, 0)
+#define IUP_0 vmath::ivec4(0, 1, 0, 0)
+#define IDOWN_0 vmath::ivec4(0, -1, 0, 0)
+
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
@@ -45,5 +52,7 @@ inline mat4 rotate_pitch_yaw(float pitch, float yaw) {
 		rotate(pitch, vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
 		rotate(yaw, vec3(0.0f, 1.0f, 0.0f));    // rotate yaw   around Y
 }
+
+
 
 #endif // __UTIL_H__
