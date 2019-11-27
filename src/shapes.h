@@ -1,7 +1,26 @@
 #ifndef __SHAPES_H__
 #define __SHAPES_H__
 
+#include "util.h"
+
 #include "GL/gl3w.h"
+
+#include <vmath.h>
+
+// player dimensions
+#define PLAYER_WIDTH 0.625f
+#define PLAYER_DEPTH 0.625f
+#define PLAYER_HEIGHT 1.8125f
+
+// coordinates of player's bounding box w.r.t. player
+#define PLAYER_NORTH_0 (NORTH_0 * PLAYER_DEPTH / 2.0f)
+#define PLAYER_SOUTH_0 (SOUTH_0 * PLAYER_DEPTH / 2.0f)
+
+#define PLAYER_EAST_0 (EAST_0 * PLAYER_WIDTH / 2.0f)
+#define PLAYER_WEST_0 (WEST_0 * PLAYER_WIDTH / 2.0f)
+
+#define PLAYER_UP_0 (UP_0 * PLAYER_HEIGHT)
+#define PLAYER_DOWN_0 vec4(0.0f)
 
 namespace shapes {
 	// Cube at origin

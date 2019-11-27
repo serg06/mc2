@@ -176,7 +176,7 @@ void App::startup() {
 
 	// buffers: allocate space
 	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
-	glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE*sizeof(uint8_t), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+	glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE * sizeof(uint8_t), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
 
 	// buffers: insert static data
 	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
@@ -203,7 +203,7 @@ void App::startup() {
 	glVertexAttribDivisor(chunk_types_attr_idx, 1);
 	glBindVertexArray(0);
 
-	
+
 	/* HANDLE UNIFORM NOW */
 
 	// create buffers
@@ -251,7 +251,7 @@ void App::render(double time) {
 	// Create Model->World matrix
 	float f = (float)time * (float)M_PI * 0.1f;
 	mat4 model_world_matrix =
-		translate(0.0f, 0.0f, 0.0f);
+		translate(0.0f, -PLAYER_HEIGHT*0.9f, 0.0f);
 
 	// Create World->View matrix
 	mat4 world_view_matrix =
@@ -265,7 +265,7 @@ void App::render(double time) {
 	mat4 proj_matrix = perspective(
 		(float)info.vfov, // virtual fov
 		(float)info.width / (float)info.height, // aspect ratio
-		0.1f,  // can't see behind 0.0 anyways
+		0.0001f,  // can't see behind 0.0 anyways
 		-1000.0f // our object will be closer than 100.0
 	);
 
@@ -344,14 +344,174 @@ void App::update_player_movement(const double dt) {
 
 	// Check for collision and remove necessary velocity
 	velocity_prevent_collisions(dt);
-	
+
 	// Update player position
 	char_position += char_velocity * dt;
 }
 
+ivec4 vec2ivec(vec4 v) {
+	ivec4 result;
+	for (int i = 0; i < v.size(); i++) {
+		result[i] = (int)v[i];
+	}
+	return result;
+}
+
 void App::velocity_prevent_collisions(const double dt) {
 	// Update character's velocity so it doesn't cause any collisions in the next dt time
-	vec4 tmp_position = char_position + char_velocity * dt;
+	vec4 new_pos = char_position + char_velocity * dt;
+	ivec4 inew_pos = vec2ivec(new_pos);
+	Block* chunk = chunks[0];
+
+
+	// all possible corners of player's collision model
+	vec4 corners[8] = {
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+	};
+
+	// bottom corners of players collision model
+	vec4 bottom_corners[4] = {
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+	};
+	ivec4 ibottom_corners[4] = {
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0),
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0),
+	};
+
+	// ...
+	vec4 top_corners[4] = {
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+	};
+	ivec4 itop_corners[4] = {
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0),
+	};
+
+	vec4 east_corners[4] = {
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+	};
+	ivec4 ieast_corners[4] = {
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0),
+	};
+
+	vec4 west_corners[4] = {
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+	};
+	ivec4 iwest_corners[4] = {
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0),
+	};
+
+	vec4 north_corners[4] = {
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+	};
+	ivec4 inorth_corners[4] = {
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0),
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0),
+	};
+
+	vec4 south_corners[4] = {
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0,
+	};
+	ivec4 isouth_corners[4] = {
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0),
+		vec2ivec(new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0),
+	};
+
+	// STEP 1: If new bottom corners are below old position, and any intersect with a block, kill down velocity
+	if (bottom_corners[0][1] < char_position[1]) { // implies down velocity
+		for (ivec4 corner : ibottom_corners) {
+			if ((uint8_t)chunk_get(chunk, corner[0], corner[1], corner[2]) != 0) {
+				char_velocity[1] = 0;
+				break;
+			}
+		}
+	}
+
+	// STEP 2: If new top corners are below above position+UP_0, and any intersect with a block, kill up velocity
+	if (top_corners[0][1] > (char_position + UP_0)[1]) { // implies up velocity
+		for (ivec4 corner : itop_corners) {
+			if ((uint8_t)chunk_get(chunk, corner[0], corner[1], corner[2]) != 0) {
+				char_velocity[1] = 0;
+				break;
+			}
+		}
+	}
+
+	// STEP 3: ...
+	if (east_corners[0][0] > char_position[0]) { // implies up velocity
+		for (ivec4 corner : ieast_corners) {
+			if ((uint8_t)chunk_get(chunk, corner[0], corner[1], corner[2]) != 0) {
+				char_velocity[0] = 0;
+				break;
+			}
+		}
+	}
+
+	if (west_corners[0][0] < char_position[0]) { // implies up velocity
+		for (ivec4 corner : iwest_corners) {
+			if ((uint8_t)chunk_get(chunk, corner[0], corner[1], corner[2]) != 0) {
+				char_velocity[0] = 0;
+				break;
+			}
+		}
+	}
+
+	if (north_corners[0][2] < char_position[2]) { // implies up velocity
+		for (ivec4 corner : inorth_corners) {
+			if ((uint8_t)chunk_get(chunk, corner[0], corner[1], corner[2]) != 0) {
+				char_velocity[2] = 0;
+				break;
+			}
+		}
+	}
+
+	if (south_corners[0][2] > char_position[2]) { // implies up velocity
+		for (ivec4 corner : isouth_corners) {
+			if ((uint8_t)chunk_get(chunk, corner[0], corner[1], corner[2]) != 0) {
+				char_velocity[2] = 0;
+				break;
+			}
+		}
+	}
 }
 
 

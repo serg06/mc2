@@ -37,7 +37,14 @@ Block* gen_chunk() {
 					}
 				}
 
-				// 66 and higher = air
+				// add some floating blocks
+				else if (y == 68) {
+					if (rand() % 4 == 0) {
+						chunk_set(result, x, y, z, Block::Grass);
+					}
+				}
+
+				// else air
 				else {
 					chunk_set(result, x, y, z, Block::Air);
 				}
@@ -145,6 +152,8 @@ initializer_list<vec4> surrounding_blocks(vec4 player_coord) {
 initializer_list<vec4> north_blocks(vec4 player_coord) {
 	return {};
 }
+
+
 
 // transform a chunk's coords to real-world coords
 inline vec4 chunk_to_world(ivec2 chunk_coords) {
