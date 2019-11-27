@@ -81,7 +81,10 @@ public:
 	void update_player_movement(const double);
 	void velocity_prevent_collisions(const double);
 	void velocity_prevent_collisions2(const double);
+	void velocity_prevent_collisions3(const double);
 	//Block get_type(int x, int y, int z);
+	bool is_dir_clear(vec4);
+
 
 	inline void add_chunk(int x, int z, Chunk* chunk) {
 		chunk_map[{x, z}] = chunk;

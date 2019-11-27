@@ -8,6 +8,7 @@
 #include <vmath.h>
 
 // player dimensions
+#define PLAYER_RADIUS 0.3125f
 #define PLAYER_WIDTH 0.625f
 #define PLAYER_DEPTH 0.625f
 #define PLAYER_HEIGHT 1.8125f

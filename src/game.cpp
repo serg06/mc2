@@ -282,10 +282,11 @@ void App::render(double time) {
 	//glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
 
 	char buf[256];
-	sprintf(buf, "Drawing (took %d ms)\n", (int)(dt * 1000));
-	OutputDebugString(buf);
-	sprintf(buf, "Position: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2]);
-	OutputDebugString(buf);
+	//sprintf(buf, "Drawing (took %d ms)\n", (int)(dt * 1000));
+	//OutputDebugString(buf);
+	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
+	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
+	//OutputDebugString(buf);
 
 	// Draw our chunks!
 	glBindVertexArray(vao_cube);
@@ -293,6 +294,7 @@ void App::render(double time) {
 }
 
 void App::update_player_movement(const double dt) {
+	char buf[256];
 	// update player's movement based on how much time has passed since we last did it
 
 	// Velocity falloff
@@ -316,6 +318,7 @@ void App::update_player_movement(const double dt) {
 	// calculate acceleration
 	vec4 acceleration = { 0.0f };
 
+
 	if (held_keys[GLFW_KEY_W]) {
 		acceleration += dir_rotation * vec4(0.0f, 0.0f, -1.0f, 0.0f);
 	}
@@ -334,13 +337,18 @@ void App::update_player_movement(const double dt) {
 	if (held_keys[GLFW_KEY_LEFT_SHIFT]) {
 		acceleration += dir_rotation * vec4(0.0f, -1.0f, 0.0f, 0.0f);
 	}
-
+	
 	// Velocity change via acceleration
 	char_velocity += acceleration * dt * 50.0f;
 	if (length(char_velocity) > 10.0f) {
 		char_velocity = 10.0f * normalize(char_velocity);
 	}
 	char_velocity[3] = 0.0f; // Just in case
+
+	sprintf(buf, "Accel: (%.3f, %.3f, %.3f) | Velocity: (%.3f, %.3f, %.3f)\n", acceleration[0], acceleration[1], acceleration[2], char_velocity[0], char_velocity[1], char_velocity[2]);
+	//OutputDebugString(buf);
+
+
 
 	// Check for collision and remove necessary velocity
 	//velocity_prevent_collisions(dt);
@@ -547,7 +555,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 	vec4 corner_swu = new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0;
 
 	// our corner locations
-	vec4 corners[8] = {
+	vec4 corners[12] = {
 		// 8 corners around us
 		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0,
 		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0,
@@ -559,16 +567,16 @@ void App::velocity_prevent_collisions2(const double dt) {
 		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0,
 
 		// 4 corners in our middle
-		//new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + (PLAYER_UP_0 / 2),
-		//new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + (PLAYER_UP_0 / 2),
-		//new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + (PLAYER_UP_0 / 2),
-		//new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + (PLAYER_UP_0 / 2),
+		new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + (PLAYER_UP_0 / 2),
+		new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + (PLAYER_UP_0 / 2),
+		new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + (PLAYER_UP_0 / 2),
+		new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + (PLAYER_UP_0 / 2),
 	};
 
 	// 1. Get all blocks we intersects with
 
 	// our corner locations, changed to coordinates
-	ivec4 icorners[8];
+	ivec4 icorners[12];
 	for (int i = 0; i < sizeof(corners) / sizeof(corners[0]); i++) {
 		icorners[i] = vec2ivec(corners[i]);
 	}
@@ -582,7 +590,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 		}
 	}
 	bufp += sprintf(bufp, ")\n");
-	OutputDebugString(buf);
+	//OutputDebugString(buf);
 
 	// 2. Check blocks
 
@@ -642,59 +650,204 @@ void App::velocity_prevent_collisions2(const double dt) {
 
 		// 2.2. If block is ne/nw/any double-combination, doable
 
-		//float dist1, dist2, dist3; // distances to 3 sides of the block you're on
-		//float tmp;
+		/* SO FAR DONE horizontal directions; NOT BAD! */
 
-		//if (block == ipos + INORTH_0 + IEAST_0 || block == ipos + INORTH_0 + IEAST_0 + IUP_0) {
-		//	bufp += sprintf(bufp, "NORTH-EAST ");
+		float dist1, dist2, dist3; // distances to 3 sides of the block you're on
+		float tmp;
+		ivec4 ivtmp;
 
-		//	dist1 = modf(-char_velocity[2], &tmp); // -z
-		//	dist2 = modf(char_velocity[0], &tmp); // +x
+		float corner_allowance = 0.05f;
 
-		//	if ((dist1 - dist2) < 0.01f) {
-		//	}
+		if (block == ipos + INORTH_0 + IEAST_0 || block == ipos + INORTH_0 + IEAST_0 + IUP_0) {
+			bufp += sprintf(bufp, "NORTH-EAST ");
 
-		//										  // if z wins, kill x
-		//	char_velocity[dist1 < dist2 ? 0 : 2] = 0;
-		//}
+			dist1 = abs(modf(block[2]-char_position[2], &tmp)); // -z
+			dist2 = abs(modf(block[0]-char_position[0], &tmp)); // +x
 
-		//if (block == ipos + INORTH_0 + IWEST_0 || block == ipos + INORTH_0 + IWEST_0 + IUP_0) {
-		//	bufp += sprintf(bufp, "NORTH-WEST ");
+			//bufp += sprintf(bufp, "(dist1 = %.2f, dist2 = %.2f) ", dist1, dist2);
 
-		//	dist1 = modf(-char_velocity[2], &tmp); // -z
-		//	dist2 = modf(-char_velocity[0], &tmp); // -x
+			// if right on the corner, and one side is clear, choose that side
+			if (abs(dist1 - dist2) < corner_allowance) {
+				// if north is clear
+				if (is_dir_clear(NORTH_0)) {
+					// go north
+					char_velocity[0] = 0;
+					OutputDebugString("RESET EAST\n");
+					char_position[0] = ipos[0] + 1.0f - PLAYER_RADIUS; // RESET EAST
+					//char_velocity[2] = -1;
+					continue;
+				}
 
-		//										  // if z wins, kill x
-		//	char_velocity[dist1 < dist2 ? 0 : 2] = 0;
-		//}
+				// if east is clear
+				if (is_dir_clear(EAST_0)) {
+					// go east
+					char_velocity[2] = 0;
+					OutputDebugString("RESET NORTH\n");
+					char_position[2] = ipos[2] + PLAYER_RADIUS; // RESET NORTH
+					//char_velocity[0] = -1;
+					continue;
+				}
+				else {
+					OutputDebugString("CANNOT RESET NORTH -- EAST NOT CLEAR\n");
+				}
+			}
+			else {
+				bool check = dist1 < dist2;
+				if (check && char_velocity[0] > 0) {
+					char_velocity[0] = 0;
+				}
+				if (!check && char_velocity[2] < 0) {
+					char_velocity[2] = 0;
+				}
+			}
+		}
 
-		//if (block == ipos + ISOUTH_0 + IEAST_0 || block == ipos + ISOUTH_0 + IEAST_0 + IUP_0) {
-		//	bufp += sprintf(bufp, "SOUTH-EAST ");
+		if (block == ipos + INORTH_0 + IWEST_0 || block == ipos + INORTH_0 + IWEST_0 + IUP_0) {
+			bufp += sprintf(bufp, "NORTH-WEST ");
 
-		//	dist1 = modf(char_velocity[2], &tmp); // +z
-		//	dist2 = modf(char_velocity[0], &tmp); // +x
+			dist1 = abs(modf(block[2]-char_position[2], &tmp)); // -z
+			dist2 = abs(modf(block[0]-char_position[0], &tmp)); // -x
 
-		//										   // if z wins, kill x
-		//	char_velocity[dist1 < dist2 ? 0 : 2] = 0;
-		//}
+			bufp += sprintf(bufp, "(dist1 = %.2f, dist2 = %.2f) ", dist1, dist2);
 
-		//if (block == ipos + ISOUTH_0 + IWEST_0 || block == ipos + ISOUTH_0 + IWEST_0 + IUP_0) {
-		//	bufp += sprintf(bufp, "SOUTH-WEST ");
+			// if right on the corner, and one side is clear, choose that side
+			if (abs(dist1 - dist2) < corner_allowance) {
+				// if north is clear
+				if (is_dir_clear(NORTH_0)) {
+					// go north
+					char_velocity[0] = 0;
+					OutputDebugString("RESET WEST\n");
+					char_position[0] = ipos[0] + PLAYER_RADIUS; // RESET WEST
+					continue;
+				}
 
-		//	dist1 = modf(char_velocity[2], &tmp); // +z
-		//	dist2 = modf(-char_velocity[0], &tmp); // -x
+				// if west is clear
+				if (is_dir_clear(WEST_0)) {
+					// go west
+					char_velocity[2] = 0;
+					OutputDebugString("RESET NORTH\n");
+					char_position[2] = ipos[2] + PLAYER_RADIUS; // RESET NORTH
+					continue;
+				}
+				else {
+					OutputDebugString("CANNOT RESET NORTH -- WEST NOT CLEAR\n");
+				}
+			}
+			else {
+				bool check = dist1 < dist2;
+				if (check && char_velocity[0] < 0) {
+					char_velocity[0] = 0;
+				}
+				if (!check && char_velocity[2] < 0) {
+					char_velocity[2] = 0;
+				}
+			}
+		}
 
-		//										   // if z wins, kill x
-		//	char_velocity[dist1 < dist2 ? 0 : 2] = 0;
-		//}
+		if (block == ipos + ISOUTH_0 + IEAST_0 || block == ipos + ISOUTH_0 + IEAST_0 + IUP_0) {
+			bufp += sprintf(bufp, "SOUTH-EAST ");
+
+			dist1 = abs(modf(block[2]-char_position[2], &tmp)); // +z
+			dist2 = abs(modf(block[0]-char_position[0], &tmp)); // +x
+
+			// if right on the corner, and one side is clear, choose that side
+			if (abs(dist1 - dist2) < corner_allowance) {
+				// if south is clear
+				if (is_dir_clear(SOUTH_0)) {
+					// go south
+					char_velocity[0] = 0;
+					OutputDebugString("RESET EAST\n");
+					char_position[0] = ipos[0] + 1.0f - PLAYER_RADIUS; // RESET EAST
+					continue;
+				}
+
+				// if east is clear
+				if (is_dir_clear(EAST_0)) {
+					// go east
+					char_velocity[2] = 0;
+					OutputDebugString("RESET SOUTH\n");
+					char_position[2] = ipos[2] + 1.0f - PLAYER_RADIUS; // RESET SOUTH
+					continue;
+				}
+			}
+			else {
+				bool check = dist1 < dist2;
+				if (check && char_velocity[0] > 0) {
+					char_velocity[0] = 0;
+				}
+				if (!check && char_velocity[2] > 0) {
+					char_velocity[2] = 0;
+				}
+			}
+		}
+
+		if (block == ipos + ISOUTH_0 + IWEST_0 || block == ipos + ISOUTH_0 + IWEST_0 + IUP_0) {
+			bufp += sprintf(bufp, "SOUTH-WEST ");
+
+			dist1 = abs(modf(block[2]-char_position[2], &tmp)); // +z
+			dist2 = abs(modf(block[0]-char_position[0], &tmp)); // -x
+
+												   // if right on the corner, and one side is clear, choose that side
+			if (abs(dist1 - dist2) < corner_allowance) {
+				// if south is clear
+				if (is_dir_clear(SOUTH_0)) {
+					// go south
+					char_velocity[0] = 0;
+					OutputDebugString("RESET WEST\n");
+					char_position[0] = ipos[0] + PLAYER_RADIUS; // RESET WEST
+					continue;
+				}
+
+				// if west is clear
+				if (is_dir_clear(WEST_0)) {
+					// go west
+					char_velocity[2] = 0;
+					OutputDebugString("RESET SOUTH\n");
+					char_position[2] = ipos[2] + 1.0f - PLAYER_RADIUS; // RESET SOUTH
+					continue;
+				}
+			}
+			else {
+				bool check = dist1 < dist2;
+				if (check && char_velocity[0] < 0) {
+					char_velocity[0] = 0;
+				}
+				if (!check && char_velocity[2] > 0) {
+					char_velocity[2] = 0;
+				}
+			}
+		}
 	}
 	if (bufp > buf) {
 		bufp += sprintf(bufp, "\n");
-		OutputDebugString(buf);
+		//OutputDebugString(buf);
 	}
+
+	// LATEST IDEA (though annoying to implement)
+	// - When hit north-east block
+	//   - If RIGHT on corner (<0.01f difference), then
+	//	   - If east is clear, go east; if north is clear, go north.
 
 	// 2.3. If block is neu/etc, difficult!
 }
+
+// check if a direction (n/e/s/w) is clear for the player to fit through
+bool App::is_dir_clear(vec4 direction) {
+	int yMin = char_position[1];
+	int yMax = char_position[1] + PLAYER_HEIGHT;
+
+	for (int yOffset = 0; yOffset <= (yMax - yMin); yOffset++) {
+		vec4 checkme = char_position + direction;
+		checkme[1] += yOffset;
+
+		if (get_type((int) checkme[0], (int) checkme[1], (int) checkme[2]) != Block::Air) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 
 //// TODO: Implement. Do it by having a hashtable which points (chunk coords (i.e. /16)) -> (chunk), then chunk_get(...)
 //Block App::get_type(int x, int y, int z) {
