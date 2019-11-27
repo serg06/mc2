@@ -658,7 +658,8 @@ void App::velocity_prevent_collisions2(const double dt) {
 
 		float corner_allowance = 0.05f;
 
-		if (block == ipos + INORTH_0 + IEAST_0 || block == ipos + INORTH_0 + IEAST_0 + IUP_0) {
+
+		if ((char_velocity[2] < 0 || char_velocity[0]) > 0 && (block == ipos + INORTH_0 + IEAST_0 || block == ipos + INORTH_0 + IEAST_0 + IUP_0)) {
 			bufp += sprintf(bufp, "NORTH-EAST ");
 
 			dist1 = abs(modf(block[2]-char_position[2], &tmp)); // -z
@@ -673,7 +674,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 					// go north
 					char_velocity[0] = 0;
 					OutputDebugString("RESET EAST\n");
-					char_position[0] = ipos[0] + 1.0f - PLAYER_RADIUS; // RESET EAST
+					char_position[0] = fmin(char_position[0], ipos[0] + 1.0f - PLAYER_RADIUS); // RESET EAST
 					//char_velocity[2] = -1;
 					continue;
 				}
@@ -683,7 +684,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 					// go east
 					char_velocity[2] = 0;
 					OutputDebugString("RESET NORTH\n");
-					char_position[2] = ipos[2] + PLAYER_RADIUS; // RESET NORTH
+					char_position[2] = fmax(char_position[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
 					//char_velocity[0] = -1;
 					continue;
 				}
@@ -702,7 +703,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 			}
 		}
 
-		if (block == ipos + INORTH_0 + IWEST_0 || block == ipos + INORTH_0 + IWEST_0 + IUP_0) {
+		if ((char_velocity[2] < 0 || char_velocity[0] < 0) && (block == ipos + INORTH_0 + IWEST_0 || block == ipos + INORTH_0 + IWEST_0 + IUP_0)) {
 			bufp += sprintf(bufp, "NORTH-WEST ");
 
 			dist1 = abs(modf(block[2]-char_position[2], &tmp)); // -z
@@ -717,7 +718,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 					// go north
 					char_velocity[0] = 0;
 					OutputDebugString("RESET WEST\n");
-					char_position[0] = ipos[0] + PLAYER_RADIUS; // RESET WEST
+					char_position[0] = fmax(char_position[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
 					continue;
 				}
 
@@ -726,7 +727,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 					// go west
 					char_velocity[2] = 0;
 					OutputDebugString("RESET NORTH\n");
-					char_position[2] = ipos[2] + PLAYER_RADIUS; // RESET NORTH
+					char_position[2] = fmax(char_position[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
 					continue;
 				}
 				else {
@@ -744,7 +745,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 			}
 		}
 
-		if (block == ipos + ISOUTH_0 + IEAST_0 || block == ipos + ISOUTH_0 + IEAST_0 + IUP_0) {
+		if ((char_velocity[2] > 0 || char_velocity[0] > 0) && (block == ipos + ISOUTH_0 + IEAST_0 || block == ipos + ISOUTH_0 + IEAST_0 + IUP_0)) {
 			bufp += sprintf(bufp, "SOUTH-EAST ");
 
 			dist1 = abs(modf(block[2]-char_position[2], &tmp)); // +z
@@ -757,7 +758,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 					// go south
 					char_velocity[0] = 0;
 					OutputDebugString("RESET EAST\n");
-					char_position[0] = ipos[0] + 1.0f - PLAYER_RADIUS; // RESET EAST
+					char_position[0] = fmin(char_position[0], ipos[0] + 1.0f - PLAYER_RADIUS); // RESET EAST
 					continue;
 				}
 
@@ -766,7 +767,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 					// go east
 					char_velocity[2] = 0;
 					OutputDebugString("RESET SOUTH\n");
-					char_position[2] = ipos[2] + 1.0f - PLAYER_RADIUS; // RESET SOUTH
+					char_position[2] = fmin(char_position[2], ipos[2] + 1.0f - PLAYER_RADIUS); // RESET SOUTH
 					continue;
 				}
 			}
@@ -781,7 +782,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 			}
 		}
 
-		if (block == ipos + ISOUTH_0 + IWEST_0 || block == ipos + ISOUTH_0 + IWEST_0 + IUP_0) {
+		if ((char_velocity[2] > 0 || char_velocity[0] < 0) && (block == ipos + ISOUTH_0 + IWEST_0 || block == ipos + ISOUTH_0 + IWEST_0 + IUP_0)) {
 			bufp += sprintf(bufp, "SOUTH-WEST ");
 
 			dist1 = abs(modf(block[2]-char_position[2], &tmp)); // +z
@@ -794,7 +795,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 					// go south
 					char_velocity[0] = 0;
 					OutputDebugString("RESET WEST\n");
-					char_position[0] = ipos[0] + PLAYER_RADIUS; // RESET WEST
+					char_position[0] = fmax(char_position[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
 					continue;
 				}
 
@@ -803,7 +804,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 					// go west
 					char_velocity[2] = 0;
 					OutputDebugString("RESET SOUTH\n");
-					char_position[2] = ipos[2] + 1.0f - PLAYER_RADIUS; // RESET SOUTH
+					char_position[2] = fmin(char_position[2], ipos[2] + 1.0f - PLAYER_RADIUS); // RESET SOUTH
 					continue;
 				}
 			}
