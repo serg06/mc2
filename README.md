@@ -6,13 +6,17 @@ OpenGL: No previous experience, learning it from *OpenGL Superbible*.
 
 C++: No previous experience, learning it on-the-fly, from *OpenGL Superbible*, and from my existing expertise with Java and C.
 
+## Wanna try it out?
+
+Download the latest [release](https://github.com/serg06/mc2/releases). (On Win10 and with OpenGL 4.5+.)
+
 ## Current features:
 
-- Basic chunk generation, with data stored in chunks.
+- Basic chunk generation, with chunk data efficiently stored in a 65536-byte array.
 
 - Smooth player movement (flying), smooth-ish collisions (WIP), smooth looking around.
 
-- OpenGL draws each chunk (65536 blocks) with a single draw call.
+- OpenGL draws each chunk (65536 blocks) with a single draw call, indexing into data using only a blockId.
 
 - Handles window resizing. 
 
@@ -43,6 +47,10 @@ C++: No previous experience, learning it on-the-fly, from *OpenGL Superbible*, a
 - Clouds.
 
 - Skybox.
+
+- Settings on settings on settings. Enough settings to allow even the slowest PC to run at a reasonable framerate.
+
+- Making sure to exclude all the issues that Minecraft has.
 
 ## Reasoning behind this project:
 
