@@ -8,7 +8,7 @@ C++: No previous experience, learning it on-the-fly, from *OpenGL Superbible*, a
 
 ## Wanna try it out?
 
-Download the latest [release](https://github.com/serg06/mc2/releases). (On Win10 and with OpenGL 4.5+.)
+Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 10, OpenGL 4.5+.)
 
 ## Current features:
 
