@@ -824,15 +824,20 @@ void App::velocity_prevent_collisions2(const double dt) {
 		//OutputDebugString(buf);
 	}
 
-	// LATEST IDEA (though annoying to implement)
-	// - When hit north-east block
-	//   - If RIGHT on corner (<0.01f difference), then
-	//	   - If east is clear, go east; if north is clear, go north.
+	// CURRENT IDEA:
+	// - Get collisions working for up/down
+	// - Get collisions working for up/down + n/s/e/w/
+	// - Finally get collisions working for up/down + n/s + e/w (or maybe not lmao, seems really hard)
+	// EPIC IDEA:
+	// - For diagonal collision, when choosing which direction to allow me to go (i.e. which direction to kill), don't kill it if that way is open and other is closed!
+	// - E.g.: When moving into north-east corner, if block exists south of corner, kill east direction; if block exists west of corner, kill north direction.
+
 
 	// 2.3. If block is neu/etc, difficult!
 }
 
 // check if a direction (n/e/s/w) is clear for the player to fit through
+// TODO: Currently only checking that center of player can move through; instead, should check all corners on that side
 bool App::is_dir_clear(vec4 direction) {
 	int yMin = char_position[1];
 	int yMax = char_position[1] + PLAYER_HEIGHT;
