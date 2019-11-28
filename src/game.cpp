@@ -831,6 +831,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 	// EPIC IDEA:
 	// - For diagonal collision, when choosing which direction to allow me to go (i.e. which direction to kill), don't kill it if that way is open and other is closed!
 	// - E.g.: When moving into north-east corner, if block exists south of corner, kill east direction; if block exists west of corner, kill north direction.
+	// -- and make sure to fix is_dir_clear bug first!
 
 
 	// 2.3. If block is neu/etc, difficult!
