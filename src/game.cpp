@@ -215,7 +215,7 @@ void App::startup() {
 	glBindBufferBase(GL_UNIFORM_BUFFER, trans_buf_uni_bidx, trans_buf); // bind transformation buffer to uniform buffer binding point
 
 	// allocate
-	glNamedBufferStorage(trans_buf, sizeof(mat4) * 2, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+	glNamedBufferStorage(trans_buf, sizeof(mat4) * 2 + sizeof(vec2), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
 
 	/*
@@ -233,9 +233,14 @@ void App::startup() {
 	glUseProgram(rendering_program);
 
 	// generate a chunk
-	Chunk* chunk = gen_chunk();
-	chunk->data[1] = Block::Grass;
-	add_chunk(0, 0, chunk);
+	for (int x = 0; x < 5; x++) {
+		for (int z = 0; z < 5; z++) {
+			Chunk* chunk = gen_chunk(x, z);
+			chunk->data[1] = Block::Grass;
+			add_chunk(x, z, chunk);
+		}
+	}
+
 
 	// load into memory pog
 	//glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
@@ -292,9 +297,23 @@ void App::render(double time) {
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
 	//OutputDebugString(buf);
 
-	// Draw our chunks!
+	//// Draw our chunks!
+	//glBindVertexArray(vao_cube);
+	//glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
+
+	// Draw ALL our chunks!
 	glBindVertexArray(vao_cube);
-	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
+	for (auto chunk_entry : chunk_map) {
+		Chunk* chunk = chunk_entry.second;
+		glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunk->data); // proj matrix
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
+
+		// Add base chunk coordinates to transformation data (temporary solution)
+		ivec2 coords = { chunk_entry.first.first, chunk_entry.first.second };
+		sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
+		OutputDebugString(buf);
+		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // proj matrix
+	}
 }
 
 void App::update_player_movement(const double dt) {
@@ -396,7 +415,7 @@ void App::update_player_movement(const double dt) {
 	char_position += fixed_position_change;
 
 	sprintf(buf, "Velocity: (%.2f, %.2f, %.2f)\n", char_velocity[0], char_velocity[1], char_velocity[2]);
-	OutputDebugString(buf);
+	//OutputDebugString(buf);
 }
 
 vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_change) {
@@ -434,7 +453,7 @@ vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_chang
 
 	// just in case
 	for (int i = 0; i < 3; i++) {
-		assert(count_if(begin(vals_and_indices), end(vals_and_indices), [](const auto &[val, idx]) { return idx == i; }) == 1 && "Invalid indices array.");
+		assert(count_if(begin(vals_and_indices), end(vals_and_indices), [i](const auto &vi) { return vi.second == i; }) == 1 && "Invalid indices array.");
 	}
 
 	// TODO: Instead of removing 1 or 2 separately, group them together, and remove the ones with smallest length.

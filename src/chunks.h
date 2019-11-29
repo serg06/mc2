@@ -2,7 +2,10 @@
 #ifndef __CHUNKS_H__
 #define __CHUNKS_H__
 
+#include "GL/gl3w.h" // OutputDebugString
+
 #include <cstdint>
+#include <vmath.h>
 
 /*
 *
@@ -39,7 +42,7 @@ static inline Block chunk_get(Block* chunk, uint8_t x, uint8_t y, uint8_t z) {
 class Chunk {
 public:
 	Block data[16*16*256];
-	//vec4 coords; // coordinates in chunk format
+	vmath::ivec2 coords; // coordinates in chunk format
 
 	//inline vec4 coords_real() {
 	//	return coords * 16;
@@ -47,6 +50,15 @@ public:
 
 	// get block at these coordinates
 	inline Block get_block(uint8_t x, uint8_t y, uint8_t z) {
+		if (!data) {
+			char buf[256];
+			char *bufp = buf;
+			bufp += sprintf(bufp, "No loaded block at (%d, %d, %d)", x, y, z);
+			//bufp += sprintf(buf, " in chunk (%d, %d).", coords[0], coords[1]);
+			bufp += sprintf(bufp, "\n");
+			OutputDebugString(buf);
+			return Block::Air;
+		}
 		return data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
 	}
 
@@ -56,7 +68,7 @@ public:
 	}
 };
 
-Chunk* gen_chunk();
+Chunk* gen_chunk(int, int);
 
 // TODO: This maybe?
 //#define EL_TYPE uint8_t

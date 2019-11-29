@@ -3,12 +3,17 @@
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
+#include <assert.h>
 #include <fstream>
+#include <functional>
 #include <iterator> 
 #include <tuple> 
 #include <vector> 
 #include <vmath.h>
 
+#define SEED 5370157038
+
+using namespace std;
 using namespace vmath;
 
 void print_arr(const GLfloat *arr, int size, int row_size) {
@@ -155,7 +160,7 @@ void main(void)
 		{
 			// get src
 			const GLchar * shader_src_ptr;
-			
+
 			switch (shadertype) {
 			case GL_VERTEX_SHADER:
 				if (vshader_src[0] == '\0') {
@@ -339,5 +344,90 @@ GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnam
 	return program;
 }
 
+// create a (deterministic) 2D random gradient
+vec2 rand_grad(int seed, int x, int y) {
+	vec2 result;
+	auto h = hash<int>();
+	srand(h(seed) ^ h(x) ^ h(y));
 
+	for (int i = 0; i < result.size(); i++) {
+		result[i] = rand();
+	}
+
+	result = normalize(result);
+
+	return result;
+}
+
+// apply ease curve to p, which should be a number btwn 0 and 1
+// p -> 3p^2 - 2p^3
+double ease(double p) {
+	assert(0 <= p && p <= 1 && "Invalid p value.");
+	return 3 * pow(p, 2) - 2 * pow(p, 3);
+}
+
+// calculate weighted avg
+double weighted_avg(double point, double left, double right) {
+	assert(0 <= point && point <= 1 && "Invalid p value 2.");
+
+	return left + (right - left)*point;
+}
+
+// perlin function gives us y value at (x,z).
+// for now call it (x,y) for math-clarity
+double noise2d(double x, double y) {
+	// get coordinates
+	float xMin = floor(x);
+	float xMax = ceil(x);
+	float yMin = floor(y);
+	float yMax = ceil(y);
+
+	vec2 coords[4] = {
+		{ xMin, yMin },
+		{ xMax, yMin },
+		{ xMin, yMax },
+		{ xMax, yMax },
+	};
+
+	int len = sizeof(coords) / sizeof(coords[0]);
+
+	// get "random" gradient for each coordinate
+	vec2 grads[4];
+
+	for (int i = 0; i < len; i++) {
+		grads[i] = rand_grad(SEED, coords[i][0], coords[i][1]);
+	}
+
+	// generate vectors from coordinates to (x,y)
+	vec2 vecs_to_xy[4];
+
+	for (int i = 0; i < len; i++) {
+		vecs_to_xy[i] = vec2(x, y) - coords[i];
+	}
+
+	// dot product vec_to_xy with grad
+	float dots[4];
+	
+	for (int i = 0; i < len; i++) {
+		dots[i] = dot(grads[i], vecs_to_xy[i]);
+	}
+
+	// get x-dimension weight, Sx = ease(x-x0)
+	double Sx = ease(x - xMin);
+
+	// apply weighted avg along top corners (where both have y=yMin), and along bottom corners (where both have y=yMax)
+	double a = weighted_avg(Sx, dots[0], dots[1]);
+	double b = weighted_avg(Sx, dots[2], dots[3]);
+
+	// get y-dimension weight, Sy = ease(y-y0)
+	double Sy = ease(y - yMin);
+
+	// apply weighted avg using our two previous weighted avgs
+	double z = weighted_avg(Sy, a, b);
+
+	z = (z + 1.0) / 2.0;
+	assert(z >= 0.0 && z <= 1.0);
+
+	return z;
+}
 

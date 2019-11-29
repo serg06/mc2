@@ -61,4 +61,6 @@ inline ivec4 vec2ivec(vec4 v) {
 	return result;
 }
 
+double noise2d(double x, double y);
+
 #endif // __UTIL_H__

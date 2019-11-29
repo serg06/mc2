@@ -4,6 +4,7 @@
 
 #include "GL/gl3w.h"
 
+#include <assert.h>
 #include <cstdlib>
 #include <initializer_list>
 #include <stdio.h>
@@ -14,7 +15,7 @@ using namespace std;
 using namespace vmath;
 
 // generate us a nice lil chunk
-Chunk* gen_chunk() {
+Chunk* gen_chunk2() {
 	Chunk* result = new Chunk();
 	Block* data = result->data;
 
@@ -73,6 +74,58 @@ Chunk* gen_chunk() {
 
 	return result;
 };
+
+Chunk* gen_chunk(int chunkX, int chunkZ) {
+	Chunk* result = new Chunk();
+	result->coords = { chunkX, chunkZ };
+	Block* data = result->data;
+
+	memset(data, (uint8_t) Block::Air, sizeof(Block) * CHUNK_SIZE);
+
+
+	double maxY = 0;
+	for (int x = 0; x < CHUNK_WIDTH; x++) {
+		for (int z = 0; z < CHUNK_DEPTH; z++) {
+			double y = noise2d((float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH);
+			if (y < 0) {
+				OutputDebugString("WTF?");
+			}
+			if (y > maxY) {
+				maxY = y;
+			}
+		}
+	}
+
+	for (int x = 0; x < CHUNK_WIDTH; x++) {
+		for (int z = 0; z < CHUNK_DEPTH; z++) {
+			char buf[256];
+
+			double y = noise2d((float)x / CHUNK_WIDTH, (float)z / CHUNK_DEPTH);
+
+			if (x == 2 && z == 4) {
+				OutputDebugString("");
+			}
+
+			// max height: 64
+			assert(maxY > 0 && "WTF?");
+			y = y * (64/maxY);
+
+			sprintf(buf, "Top: (%d, %.3f, %d)\n", x, y, z);
+			OutputDebugString(buf);
+			if (z > 16 || z < 0) {
+				OutputDebugString("");
+			}
+
+			for (int i = 0; i < y; i++) {
+				chunk_set(data, x, i, z, Block::Stone);
+			}
+			chunk_set(data, x, y, z, Block::Grass);
+		}
+	}
+
+	return result;
+};
+
 
 initializer_list<ivec2> surrounding_chunks(ivec2 chunk_coord) {
 	return {
