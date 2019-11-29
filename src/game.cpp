@@ -36,22 +36,6 @@ void glfw_onError(int error, const char* description)
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	for (int x = 0; x < CHUNK_WIDTH; x++) {
-		for (int y = 0; y < CHUNK_HEIGHT; y++) {
-			for (int z = 0; z < CHUNK_DEPTH; z++) {
-				int gl_InstanceID = x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH;
-
-				int remainder = gl_InstanceID;
-				int newY = remainder / CHUNK_HEIGHT;
-				remainder -= newY * CHUNK_WIDTH * CHUNK_DEPTH;
-				int newZ = remainder / CHUNK_DEPTH;
-				remainder -= newZ * CHUNK_WIDTH;
-				int newX = remainder;
-
-				assert(newX == x && newY == y && newZ == z);
-			}
-		}
-	}
 	glfwSetErrorCallback(glfw_onError);
 	App::app = new App();
 	App::app->run();
@@ -249,8 +233,8 @@ void App::startup() {
 	glUseProgram(rendering_program);
 
 	// generate a chunk
-	for (int x = 0; x < 1; x++) {
-		for (int z = 0; z < 2; z++) {
+	for (int x = 0; x < 5; x++) {
+		for (int z = 0; z < 5; z++) {
 			Chunk* chunk = gen_chunk(x, z);
 			add_chunk(x, z, chunk);
 		}
@@ -318,16 +302,16 @@ void App::render(double time) {
 
 	// Draw ALL our chunks!
 	glBindVertexArray(vao_cube);
-	for (auto chunk_entry : chunk_map) {
-		Chunk* chunk = chunk_entry.second;
+	for (auto &[coords_p, chunk] : chunk_map) {
+		ivec2 coords = { coords_p.first , coords_p.second };
+
 		glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunk->data); // proj matrix
+		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // proj matrix
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 
 		// Add base chunk coordinates to transformation data (temporary solution)
-		ivec2 coords = { chunk_entry.first.first, chunk_entry.first.second };
 		sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
 		//OutputDebugString(buf);
-		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // proj matrix
 	}
 }
 
