@@ -42,6 +42,7 @@ public:
 	// the one and only copy of this app
 	AppInfo info;
 	GLFWwindow *window;
+	double time;
 
 	GLuint rendering_program;
 	GLuint vao_cube, vao2;
@@ -79,11 +80,9 @@ public:
 	void startup();
 	void render(double);
 	void update_player_movement(const double);
-	void velocity_prevent_collisions(const double);
-	void velocity_prevent_collisions2(const double);
-	void velocity_prevent_collisions3(const double);
-	//Block get_type(int x, int y, int z);
+	vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_change);
 	bool is_dir_clear(vec4);
+	vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction = { 0 });
 
 
 	inline void add_chunk(int x, int z, Chunk* chunk) {
@@ -96,7 +95,7 @@ public:
 
 	// get chunk that contains block w/ these coordinates
 	inline Chunk* get_chunk_real_coords(int x, int z) {
-		return chunk_map[{x / 16, z / 16}];
+		return get_chunk(x / 16, z / 16);
 	}
 
 	// coordinates in real world to coordinates in its chunk
