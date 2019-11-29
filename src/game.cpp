@@ -36,6 +36,22 @@ void glfw_onError(int error, const char* description)
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	for (int x = 0; x < CHUNK_WIDTH; x++) {
+		for (int y = 0; y < CHUNK_HEIGHT; y++) {
+			for (int z = 0; z < CHUNK_DEPTH; z++) {
+				int gl_InstanceID = x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH;
+
+				int remainder = gl_InstanceID;
+				int newY = remainder / CHUNK_HEIGHT;
+				remainder -= newY * CHUNK_WIDTH * CHUNK_DEPTH;
+				int newZ = remainder / CHUNK_DEPTH;
+				remainder -= newZ * CHUNK_WIDTH;
+				int newX = remainder;
+
+				assert(newX == x && newY == y && newZ == z);
+			}
+		}
+	}
 	glfwSetErrorCallback(glfw_onError);
 	App::app = new App();
 	App::app->run();
@@ -233,10 +249,9 @@ void App::startup() {
 	glUseProgram(rendering_program);
 
 	// generate a chunk
-	for (int x = 0; x < 5; x++) {
-		for (int z = 0; z < 5; z++) {
+	for (int x = 0; x < 1; x++) {
+		for (int z = 0; z < 2; z++) {
 			Chunk* chunk = gen_chunk(x, z);
-			chunk->data[1] = Block::Grass;
 			add_chunk(x, z, chunk);
 		}
 	}
@@ -295,7 +310,7 @@ void App::render(double time) {
 	//OutputDebugString(buf);
 	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
-	//OutputDebugString(buf);
+	OutputDebugString(buf);
 
 	//// Draw our chunks!
 	//glBindVertexArray(vao_cube);
@@ -311,7 +326,7 @@ void App::render(double time) {
 		// Add base chunk coordinates to transformation data (temporary solution)
 		ivec2 coords = { chunk_entry.first.first, chunk_entry.first.second };
 		sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
-		OutputDebugString(buf);
+		//OutputDebugString(buf);
 		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // proj matrix
 	}
 }
