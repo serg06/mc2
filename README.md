@@ -37,6 +37,8 @@ Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 1
 
 - Algorithm for deterministic world generation; that is, given a seed and a chunk coordinate, I can determine exactly what structure/biome/etc will be in that chunk.
 
+- Automatic chunk offloading to keep RAM and VRAM from filling up.
+
 - Perfectly smooth mob/block collision, including sliding along walls when walking diagonally. (In the future I might add support for non-cube world blocks (like slabs or window panes in Minecraft.)
 
 - Orgasmic look and feel: prioritizing stuff like mouse latency, intuitive movement, low frame-time.
@@ -44,9 +46,7 @@ Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 1
 - Data chunking for easy map storage and drawing.
 	- Super efficient map storage, including smart algorithms to fit the job; no more 2GB save files like in Minecraft.
 
-- Clouds.
-
-- Skybox.
+- Skybox and clouds.
 
 - Settings on settings on settings. Enough settings to allow even the slowest PC to run at a reasonable framerate.
 
