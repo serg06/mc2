@@ -456,6 +456,9 @@ vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_chang
 		assert(count(begin(indices), end(indices), i) == 1 && "Invalid indices array.");
 	}
 
+	// TODO: Instead of removing 1 or 2 separately, group them together, and remove the ones with smallest length.
+	// E.g. if velocity is (2, 2, 10), and have to either remove (2,2) or (10), remove (2,2) because sqrt(2^2+2^2) = sqrt(8) < 10.
+
 	// try removing just one velocity
 	for (int i = 0; i < 3; i++) {
 		// TODO: Adjust player's position along with velocity cancellation?
