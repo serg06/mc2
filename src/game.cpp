@@ -8,6 +8,7 @@
 #include "GLFW/glfw3.h"
 
 #include <algorithm> // howbig?
+#include <assert.h>
 #include <cmath>
 #include <math.h>
 #include <string>
@@ -809,17 +810,72 @@ void App::velocity_prevent_collisions2(const double dt) {
 }
 
 // check if a direction (n/e/s/w) is clear for the player to fit through
-// TODO: Currently only checking that center of player can move through; instead, should check all corners on that side
 bool App::is_dir_clear(vec4 direction) {
+	// make sure there's exactly one non-zero value, and it's 1
+	int num_nonzero = count_if(direction.begin(), direction.end(), [](int n) { return n != 0; });
+	assert(num_nonzero == 1 && "Not a direction vector.");
+	assert(length(direction) == 1 && "Not a direction vector.");
+
+	// get x/y/z min/max
+	int xMin = char_position[0] - PLAYER_RADIUS;
+	int xMax = char_position[0] + PLAYER_RADIUS;
+
 	int yMin = char_position[1];
 	int yMax = char_position[1] + PLAYER_HEIGHT;
 
-	for (int yOffset = 0; yOffset <= (yMax - yMin); yOffset++) {
-		vec4 checkme = char_position + direction;
-		checkme[1] += yOffset;
+	int zMin = char_position[2] - PLAYER_RADIUS;
+	int zMax = char_position[2] + PLAYER_RADIUS;
 
-		if (get_type((int)checkme[0], (int)checkme[1], (int)checkme[2]) != Block::Air) {
-			return false;
+	// set min/max to the same value for the direction we're given
+	// e.g. if given direction NORTH, set zmin/zmax to PLAYER_NORTH_0
+
+	// if going east
+	if (direction[0] > 0) {
+		xMin = xMax;
+	}
+	// if going west
+	else if (direction[0] < 0) {
+		xMax = xMin;
+	}
+	// if going north
+	else if (direction[2] < 0) {
+		yMax = yMin;
+	}
+	// if going south
+	else if (direction[2] > 0) {
+		yMin = yMax;
+	}
+	// if going up
+	else if (direction[1] > 0) {
+		zMin = zMax;
+	}
+	// if going down
+	else if (direction[1] < 0) {
+		zMax = zMin;
+	}
+	// uh oh
+	else {
+		OutputDebugString("Uh on...\n");
+		exit(-1);
+	}
+
+	// integerize
+	int ixMin = (int)xMin;
+	int ixMax = (int)xMax;
+	int iyMin = (int)yMin;
+	int iyMax = (int)yMax;
+	int izMin = (int)zMin;
+	int izMax = (int)zMax;
+
+
+	// get all blocks that our player intersects with, but only in the direction they're moving in!
+	for (int x = ixMin; x < ixMax; x++) {
+		for (int y = iyMin; y < iyMax; y++) {
+			for (int z = izMin; z < izMax; z++) {
+				if (get_type(x, y, z) != Block::Air) {
+					return false;
+				}
+			}
 		}
 	}
 

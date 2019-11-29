@@ -3,6 +3,8 @@
 
 
 #define _USE_MATH_DEFINES  1 // Include constants defined in math.h
+#include <array>
+#include <iterator>
 #include <math.h>
 
 namespace vmath
@@ -87,6 +89,15 @@ class vecN
 public:
     typedef class vecN<T,len> my_type;
     typedef T element_type;
+
+	inline auto begin() 
+	{
+		return std::begin(data);
+	}
+
+	inline auto end() {
+		return std::end(data);
+	}
 
     // Default constructor does nothing, just like built-in types
     inline vecN()
@@ -243,6 +254,7 @@ public:
         return result;
     }
 
+	// compare by value instead of by pointer
 	inline bool operator==(const vecN& that)
 	{
 		for (int i = 0; i < len; i++) {

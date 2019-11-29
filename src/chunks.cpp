@@ -40,12 +40,12 @@ Chunk* gen_chunk() {
 					}
 				}
 
-				// add some floating blocks
-				else if (y == 68) {
-					if (rand() % 4 == 0) {
-						chunk_set(data, x, y, z, Block::Grass);
-					}
-				}
+				//// add some floating blocks
+				//else if (y == 68) {
+				//	if (rand() % 4 == 0) {
+				//		chunk_set(data, x, y, z, Block::Grass);
+				//	}
+				//}
 
 				// else air
 				else {
@@ -53,6 +53,22 @@ Chunk* gen_chunk() {
 				}
 			}
 		}
+	}
+
+	chunk_set(data, 8, 69, 4, Block::Stone);
+	chunk_set(data, 8, 70, 4, Block::Stone);
+	chunk_set(data, 8, 71, 4, Block::Stone);
+	chunk_set(data, 8, 72, 4, Block::Stone);
+	chunk_set(data, 8, 73, 4, Block::Stone);
+	chunk_set(data, 8, 74, 4, Block::Stone);
+
+	for (int i = 8; i < 12; i++) {
+		chunk_set(data, i, 69, 8, Block::Stone);
+		chunk_set(data, i, 70, 8, Block::Stone);
+		chunk_set(data, i, 71, 8, Block::Stone);
+		chunk_set(data, i, 72, 8, Block::Stone);
+		chunk_set(data, i, 73, 8, Block::Stone);
+		chunk_set(data, i, 74, 8, Block::Stone);
 	}
 
 	return result;
