@@ -546,15 +546,6 @@ void App::velocity_prevent_collisions2(const double dt) {
 	vec4 new_pos = char_position + char_velocity * dt;
 	ivec4 inew_pos = vec2ivec(new_pos);
 
-	vec4 corner_ned = new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0;
-	vec4 corner_neu = new_pos + PLAYER_NORTH_0 + PLAYER_EAST_0 + PLAYER_UP_0;
-	vec4 corner_nwd = new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0;
-	vec4 corner_nwu = new_pos + PLAYER_NORTH_0 + PLAYER_WEST_0 + PLAYER_UP_0;
-	vec4 corner_sed = new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_DOWN_0;
-	vec4 corner_seu = new_pos + PLAYER_SOUTH_0 + PLAYER_EAST_0 + PLAYER_UP_0;
-	vec4 corner_swd = new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_DOWN_0;
-	vec4 corner_swu = new_pos + PLAYER_SOUTH_0 + PLAYER_WEST_0 + PLAYER_UP_0;
-
 	// our corner locations
 	vec4 corners[12] = {
 		// 8 corners around us
@@ -668,7 +659,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 
 			//bufp += sprintf(bufp, "(dist1 = %.2f, dist2 = %.2f) ", dist1, dist2);
 
-			// if right on the corner, and one side is clear, choose that side
+			// if right on the corner, which way should we go?
 			if (abs(dist1 - dist2) < corner_allowance) {
 				// if north and east are clear, kill a direction based on velocity
 				if (is_dir_clear(NORTH_0) && is_dir_clear(EAST_0)) {
@@ -705,7 +696,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 
 			bufp += sprintf(bufp, "(dist1 = %.2f, dist2 = %.2f) ", dist1, dist2);
 
-			// if right on the corner, and one side is clear, choose that side
+			// if right on the corner, which way should we go?
 			if (abs(dist1 - dist2) < corner_allowance) {
 				// if north and west are clear, kill a direction based on velocity
 				if (is_dir_clear(NORTH_0) && is_dir_clear(WEST_0)) {
@@ -740,7 +731,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 			dist1 = abs(modf(block[2] - char_position[2], &tmp)); // +z
 			dist2 = abs(modf(block[0] - char_position[0], &tmp)); // +x
 
-			// if right on the corner, and one side is clear, choose that side
+			// if right on the corner, which way should we go?
 			if (abs(dist1 - dist2) < corner_allowance) {
 				// if south and east are clear, kill a direction based on velocity
 				if (is_dir_clear(SOUTH_0) && is_dir_clear(EAST_0)) {
@@ -775,7 +766,7 @@ void App::velocity_prevent_collisions2(const double dt) {
 			dist1 = abs(modf(block[2] - char_position[2], &tmp)); // +z
 			dist2 = abs(modf(block[0] - char_position[0], &tmp)); // -x
 
-			// if right on the corner, and one side is clear, choose that side
+			// if right on the corner, which way should we go?
 			if (abs(dist1 - dist2) < corner_allowance) {
 				// if south and west are clear, kill a direction based on velocity
 				if (is_dir_clear(SOUTH_0) && is_dir_clear(WEST_0)) {
@@ -809,15 +800,10 @@ void App::velocity_prevent_collisions2(const double dt) {
 		//OutputDebugString(buf);
 	}
 
-	// CURRENT IDEA:
+	// COLLISIONS TODO:
 	// - Get collisions working for up/down
 	// - Get collisions working for up/down + n/s/e/w/
 	// - Finally get collisions working for up/down + n/s + e/w (or maybe not lmao, seems really hard)
-	// EPIC IDEA: (TODO)
-	// - For diagonal collision, when choosing which direction to allow me to go (i.e. which direction to kill), don't kill it if that way is open and other is closed!
-	// - E.g.: When moving into north-east corner, if block exists south of corner, kill east direction; if block exists west of corner, kill north direction.
-	// -- and make sure to fix is_dir_clear bug first!
-
 
 	// 2.3. If block is neu/etc, difficult!
 }
