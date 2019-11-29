@@ -424,36 +424,17 @@ vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_chang
 		return position_change;
 	}
 
-	// values of velocities, sorted smallest to largest
-	float values[3] = { position_change[0] , position_change[1], position_change[2] };
-	sort(begin(values), end(values)); // sort velocities smallest to largest
-
-	// indices corresponding to those values
-	int indices[3];
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			if (values[i] == position_change[j]) {
-				indices[i] = j;
-				break;
-			}
-		}
-	}
-
-	int themax = std::max(std::max(indices[0], indices[1]), indices[2]);
-	if (count(begin(indices), end(indices), 0) == 3) {
-		indices[1] = 1;
-		indices[2] = 2;
-	}
-	if (count(begin(indices), end(indices), 0) == 2) {
-		*find(begin(indices), end(indices), 0) = 1;
-	}
-	if (count(begin(indices), end(indices), 1) == 2) {
-		*find(begin(indices), end(indices), 1) = 2;
-	}
+	// values of velocities, sorted smallest to largest, along with their indices
+	pair<float, int> vals_and_indices[3] = {
+		{ position_change[0], 0 },
+		{ position_change[1], 1 },
+		{ position_change[2], 2 }
+	};
+	sort(begin(vals_and_indices), end(vals_and_indices), [](const auto &vi1, const auto &vi2) { return vi1.first < vi2.first; }); // sort velocities smallest to largest
 
 	// just in case
 	for (int i = 0; i < 3; i++) {
-		assert(count(begin(indices), end(indices), i) == 1 && "Invalid indices array.");
+		assert(count_if(begin(vals_and_indices), end(vals_and_indices), [](const auto &[val, idx]) { return idx == i; }) == 1 && "Invalid indices array.");
 	}
 
 	// TODO: Instead of removing 1 or 2 separately, group them together, and remove the ones with smallest length.
@@ -463,7 +444,7 @@ vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_chang
 	for (int i = 0; i < 3; i++) {
 		// TODO: Adjust player's position along with velocity cancellation?
 		vec4 position_change_fixed = position_change;
-		position_change_fixed[i] = 0.0f;
+		position_change_fixed[vals_and_indices[i].second] = 0.0f;
 		blocks = get_intersecting_blocks(position_change_fixed);
 
 		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
@@ -478,16 +459,16 @@ vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_chang
 		// hacked-together permutations of (0, 1, 2), (0, 1, 2)
 		// TODO: what if we have velocities (0, 1000, 1), and we're removing 0 and 1000? :(
 		if (i == 0) {
-			v1 = indices[0];
-			v2 = indices[1];
+			v1 = vals_and_indices[0].second;
+			v2 = vals_and_indices[1].second;
 		}
 		if (i == 1) {
-			v1 = indices[0];
-			v2 = indices[2];
+			v1 = vals_and_indices[0].second;
+			v2 = vals_and_indices[2].second;
 		}
 		if (i == 2) {
-			v1 = indices[1];
-			v2 = indices[2];
+			v1 = vals_and_indices[2].second;
+			v2 = vals_and_indices[2].second;
 		}
 
 		// TODO: Adjust player's position along with velocity cancellation?
