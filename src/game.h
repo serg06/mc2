@@ -7,11 +7,12 @@
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
-#include <unordered_map>
+#include <assert.h>
 #include <string>
-#include <vmath.h>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
+#include <vmath.h>
 
 using namespace std;
 using namespace vmath;
@@ -86,7 +87,16 @@ public:
 
 
 	inline void add_chunk(int x, int z, Chunk* chunk) {
-		chunk_map[{x, z}] = chunk;
+		try {
+			chunk_map.at({ x, z });
+		}
+		catch (out_of_range e) {
+			chunk_map[{x, z}] = chunk;
+			return;
+		}
+
+		// chunk already exists
+		assert(false && "Tried to add chunk but it already exists.");
 	}
 
 	inline Chunk* get_chunk(int x, int z) {
