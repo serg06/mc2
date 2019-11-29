@@ -1,5 +1,6 @@
 #include "chunks.h"
 
+#include "kenp_noise.h"
 #include "util.h"
 
 #include "GL/gl3w.h"
@@ -75,6 +76,14 @@ Chunk* gen_chunk2() {
 	return result;
 };
 
+double noise22(float vec[2]) {
+	double result = noise2(vec);
+	result = (result + 1.0f) / 2.0f;
+	assert(result >= 0);
+	assert(result <= 1);
+	return result;
+}
+
 Chunk* gen_chunk(int chunkX, int chunkZ) {
 	Chunk* result = new Chunk();
 	result->coords = { chunkX, chunkZ };
@@ -86,7 +95,9 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 	double maxY = 0;
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
 		for (int z = 0; z < CHUNK_DEPTH; z++) {
-			double y = noise2d((float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH);
+			//double y = noise2d((float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH);
+			float input[2] = { (float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH };
+			double y = noise22(input);
 			if (y < 0) {
 				OutputDebugString("WTF?");
 			}
