@@ -357,18 +357,46 @@ void App::update_player_movement(const double dt) {
 	vec4 position_change = char_velocity * dt;
 
 	// Fix it to avoid collisions
-	position_change = velocity_prevent_collisions(dt, position_change);
+	vec4 fixed_position_change = velocity_prevent_collisions(dt, position_change);
 
-	// Update it
-	char_position += position_change;
-}
-
-ivec4 vec2ivec(vec4 v) {
-	ivec4 result;
-	for (int i = 0; i < v.size(); i++) {
-		result[i] = (int)v[i];
+	// Snap to walls to cancel velocity and to stay at a constant value while moving along wall
+	ivec4 ipos = vec2ivec(char_position);
+	// if removed east, snap to east wall
+	if (position_change[0] > fixed_position_change[0]) {
+		char_velocity[0] = 0;
+		char_position[0] = fmin(char_position[0], ipos[0] + 1.0f - PLAYER_RADIUS); // RESET EAST
 	}
-	return result;
+	// west
+	if (position_change[0] < fixed_position_change[0]) {
+		char_velocity[0] = 0;
+		char_position[0] = fmax(char_position[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
+	}
+	// north
+	if (position_change[2] < fixed_position_change[2]) {
+		char_velocity[2] = 0;
+		char_position[2] = fmax(char_position[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
+	}
+	// south
+	if (position_change[2] > fixed_position_change[2]) {
+		char_velocity[2] = 0;
+		char_position[2] = fmin(char_position[2], ipos[2] + 1.0f - PLAYER_RADIUS); // RESET SOUTH
+	}
+	// up
+	if (position_change[1] > fixed_position_change[1]) {
+		char_velocity[1] = 0;
+		char_position[1] = fmin(char_position[1], ipos[1] + 2.0f - PLAYER_HEIGHT); // RESET UP
+	}
+	// down
+	if (position_change[1] < fixed_position_change[1]) {
+		char_velocity[1] = 0;
+		char_position[1] = fmax(char_position[1], ipos[1]); // RESET DOWN
+	}
+
+	// Update position
+	char_position += fixed_position_change;
+
+	sprintf(buf, "Velocity: (%.2f, %.2f, %.2f)\n", char_velocity[0], char_velocity[1], char_velocity[2]);
+	OutputDebugString(buf);
 }
 
 vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_change) {
