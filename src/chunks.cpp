@@ -129,8 +129,8 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 			// max height: 64
 			assert(maxY > 0 && "WTF?");
 			//y *= (6 / maxY); // variation of around 6
-			y *= 10; // variation of around 6
-			y += 58; // minimum height 60
+			y *= 12; // variation of around 6
+			y += 55; // minimum height 60
 
 			sprintf(buf, "Top: (%d, %.3f, %d)\n", x, y, z);
 			//OutputDebugString(buf);

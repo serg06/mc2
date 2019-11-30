@@ -271,11 +271,12 @@ void App::render(double time) {
 	mat4 model_view_matrix = world_view_matrix * model_world_matrix;
 
 	// Update projection matrix too, in case if width/height changed
+	// NOTE: Careful, if (nearplane/farplane) ratio is too small, things get fucky.
 	mat4 proj_matrix = perspective(
 		(float)info.vfov, // virtual fov
 		(float)info.width / (float)info.height, // aspect ratio
-		0.0001f,  // can't see behind 0.0 anyways
-		-1000.0f // our object will be closer than 100.0
+		PLAYER_RADIUS,  // blocks are always at least PLAYER_RADIUS away from camera
+		16 * CHUNK_WIDTH // only support 32 chunks for now
 	);
 
 	// Draw background color
