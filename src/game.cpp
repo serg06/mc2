@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <cmath>
 #include <math.h>
+#include <numeric>
 #include <string>
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 #include <windows.h>
@@ -375,7 +376,7 @@ void App::update_player_movement(const float dt) {
 	// Fix it to avoid collisions, if noclip is not on
 	vec4 fixed_position_change = position_change;
 	if (!noclip) {
-		fixed_position_change = velocity_prevent_collisions(dt, position_change);
+		fixed_position_change = prevent_collisions(position_change);
 	}
 
 	// Snap to walls to cancel velocity and to stay at a constant value while moving along wall
@@ -425,91 +426,65 @@ void App::update_player_movement(const float dt) {
 	//OutputDebugString(buf);
 }
 
-vec4 App::velocity_prevent_collisions(const float dt, const vec4 position_change) {
-	// Given a change-in-position, check if it's possible; if not, fix it optimally.
-	char buf[4096];
-	char *bufp = buf;
-
-	vec4 pos = char_position;
-	ivec4 ipos = vec2ivec(pos);
-
-	vec4 new_pos = char_position + position_change;
-	ivec4 inew_pos = vec2ivec(new_pos);
-
-	// TODO: if iminXYZ and imaxXYZ haven't changed, nothing to worry about
-
-	// 2. Check blocks
-
-	// TODO: Remove duplicates? Or someth.
-
+// given a player's change-in-position, modify the change to optimally prevent collisions
+vec4 App::prevent_collisions(const vec4 position_change) {
 	// Get all blocks we might be intersecting with
 	auto blocks = get_intersecting_blocks(char_position + position_change);
 
 	// if all blocks are air, we done
-	if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
+	if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block) == Block::Air; })) {
 		return position_change;
 	}
 
-	// values of velocities, sorted smallest to largest, along with their indices
-	pair<float, int> vals_and_indices[3] = {
-		{ position_change[0], 0 },
-		{ position_change[1], 1 },
-		{ position_change[2], 2 }
-	};
-	sort(begin(vals_and_indices), end(vals_and_indices), [](const auto &vi1, const auto &vi2) { return vi1.first < vi2.first; }); // sort velocities smallest to largest
+	// indices of position-change array
+	int indices[3] = { 0, 1, 2 };
 
-	// just in case
-	for (int i = 0; i < 3; i++) {
-		assert(count_if(begin(vals_and_indices), end(vals_and_indices), [i](const auto &vi) { return vi.second == i; }) == 1 && "Invalid indices array.");
-	}
+	// sort indices by position_change value, smallest absolute value to largest absolute value
+	sort(begin(indices), end(indices), [position_change](const int i1, const int i2) {
+		return abs(position_change[i1]) < abs(position_change[i2]);
+	});
 
 	// TODO: Instead of removing 1 or 2 separately, group them together, and remove the ones with smallest length.
 	// E.g. if velocity is (2, 2, 10), and have to either remove (2,2) or (10), remove (2,2) because sqrt(2^2+2^2) = sqrt(8) < 10.
 
 	// try removing just one velocity
 	for (int i = 0; i < 3; i++) {
-		// TODO: Adjust player's position along with velocity cancellation?
 		vec4 position_change_fixed = position_change;
-		position_change_fixed[vals_and_indices[i].second] = 0.0f;
+		position_change_fixed[indices[i]] = 0.0f;
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
+		// if all blocks are air, we done
 		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
-			// success!
 			return position_change_fixed;
 		}
 	}
+
+	// indices for pairs of velocities
+	ivec2 pair_indices[3] = {
+		{0, 1},
+		{0, 2},
+		{1, 2},
+	};
+
+	// sort again, this time based on 2d-vector length
+	sort(begin(pair_indices), end(pair_indices), [position_change](const auto pair1, const auto pair2) {
+		return length(vec2(position_change[pair1[0]], position_change[pair1[1]])) < length(vec2(position_change[pair2[0]], position_change[pair2[1]]));
+	});
 
 	// try removing two velocities
-	int v1, v2;
 	for (int i = 0; i < 3; i++) {
-		// hacked-together permutations of (0, 1, 2), (0, 1, 2)
-		// TODO: what if we have velocities (0, 1000, 1), and we're removing 0 and 1000? :(
-		if (i == 0) {
-			v1 = vals_and_indices[0].second;
-			v2 = vals_and_indices[1].second;
-		}
-		if (i == 1) {
-			v1 = vals_and_indices[0].second;
-			v2 = vals_and_indices[2].second;
-		}
-		if (i == 2) {
-			v1 = vals_and_indices[2].second;
-			v2 = vals_and_indices[2].second;
-		}
-
-		// TODO: Adjust player's position along with velocity cancellation?
 		vec4 position_change_fixed = position_change;
-		position_change_fixed[v1] = 0.0f;
-		position_change_fixed[v2] = 0.0f;
+		position_change_fixed[pair_indices[i][0]] = 0.0f;
+		position_change_fixed[pair_indices[i][1]] = 0.0f;
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
+		// if all blocks are air, we done
 		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
-			// success!
 			return position_change_fixed;
 		}
 	}
 
-	// If, after all this, we still can't fix it? Frick.
+	// after all this we still can't fix it? Frick, just don't move player then.
 	OutputDebugString("Holy fuck it's literally unfixable.\n");
 	return { 0 };
 }
@@ -519,6 +494,8 @@ vector<ivec4> App::get_intersecting_blocks(vec4 player_position) {
 	// get x/y/z min/max
 	ivec3 xyzMin = { (int)floorf(player_position[0] - PLAYER_RADIUS), (int)floorf(player_position[1]), (int)floorf(player_position[2] - PLAYER_RADIUS) };
 	ivec3 xyzMax = { (int)floorf(player_position[0] + PLAYER_RADIUS), (int)floorf(player_position[1] + PLAYER_HEIGHT), (int)floorf(player_position[2] + PLAYER_RADIUS) };
+
+	// TODO: use set for duplicate-removal
 
 	// get all blocks that our player intersects with
 	vector<ivec4> blocks;

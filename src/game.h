@@ -74,7 +74,7 @@ public:
 	void shutdown() { /* TODO: Maybe some day. */ }
 	void render(float time);
 	void update_player_movement(const float dt);
-	vec4 velocity_prevent_collisions(const float dt, const vec4 position_change);
+	vec4 prevent_collisions(const vec4 position_change);
 	vector<ivec4> get_intersecting_blocks(vec4 player_position);
 
 	// generate chunks near player
