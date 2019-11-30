@@ -47,9 +47,9 @@ public:
 	// buffers
 	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
 	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
-	GLuint chunk_types_buf; // stores the block type for every block in the chunk
-	//GLuint chunk_types_buf_yuge; // store ALL chunks
-	//GLuint coords_buf_yuge; // store coordinates for ALL chunks
+
+	// binding points
+	GLuint chunk_types_bidx = 1;
 
 	// mouse inputs
 	double last_mouse_x;

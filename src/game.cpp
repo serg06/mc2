@@ -162,7 +162,6 @@ void App::startup() {
 	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
-	const GLuint chunk_types_bidx = 1; // chunk types buffer's binding-point index
 	const GLuint chunk_coords_bidx = 2;
 	const GLuint chunk_types_attr_idx = 1; // index of 'block_type' attribute
 
@@ -173,11 +172,9 @@ void App::startup() {
 
 	// buffers: create
 	glCreateBuffers(1, &vert_buf);
-	glCreateBuffers(1, &chunk_types_buf);
 
 	// buffers: allocate space
 	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
-	glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
 
 	// buffers: insert static data
 	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
@@ -197,13 +194,11 @@ void App::startup() {
 
 	// vao: bind buffers to their binding points, 1 at a time
 	glVertexArrayVertexBuffer(vao_cube, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
-	glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf, 0, sizeof(Block));
 
 	// vao: extra properties
 	glBindVertexArray(vao_cube);
 	glVertexAttribDivisor(chunk_types_attr_idx, 1);
 	glBindVertexArray(0);
-
 
 	/* HANDLE UNIFORM NOW */
 
@@ -302,7 +297,9 @@ void App::render(float time) {
 	for (auto &[coords_p, chunk] : chunk_map) {
 		ivec2 coords = { coords_p.first , coords_p.second };
 
-		glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->data); // proj matrix
+		// now, instead of filling buffer, just switch to chunk's buffer!
+		glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk->gl_buf, 0, sizeof(Block));
+
 		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 
