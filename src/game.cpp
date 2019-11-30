@@ -165,8 +165,6 @@ void App::startup() {
 	const GLuint chunk_types_bidx = 1; // chunk types buffer's binding-point index
 	const GLuint chunk_coords_bidx = 2;
 	const GLuint chunk_types_attr_idx = 1; // index of 'block_type' attribute
-	//const GLuint chunk_types_attr_idx_yuge = 1; // index of 'block_type' attribute
-	//const GLuint chunk_coords_attr_idx_yuge = 2; // index of 'chunk_coords'
 
 	/* HANDLE CUBES FIRST */
 
@@ -176,15 +174,10 @@ void App::startup() {
 	// buffers: create
 	glCreateBuffers(1, &vert_buf);
 	glCreateBuffers(1, &chunk_types_buf);
-	//glCreateBuffers(1, &chunk_types_buf_yuge);
-	//glCreateBuffers(1, &coords_buf_yuge);
 
 	// buffers: allocate space
 	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
 	glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
-	//glNamedBufferStorage(chunk_types_buf_yuge, CHUNK_SIZE * sizeof(Block) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
-	//glNamedBufferStorage(coords_buf_yuge, sizeof(ivec2) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
-	//glNamedBufferStorage(coords_buf_yuge, CHUNK_SIZE * sizeof(ivec2) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
 
 	// buffers: insert static data
 	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
@@ -192,34 +185,23 @@ void App::startup() {
 	// vao: enable all cube's attributes, 1 at a time
 	glEnableVertexArrayAttrib(vao_cube, position_attr_idx);
 	glEnableVertexArrayAttrib(vao_cube, chunk_types_attr_idx);
-	//glEnableVertexArrayAttrib(vao_cube, chunk_types_attr_idx_yuge);
-	//glEnableVertexArrayAttrib(vao_cube, chunk_coords_attr_idx_yuge);
 
 	// vao: set up formats for cube's attributes, 1 at a time
 	glVertexArrayAttribFormat(vao_cube, position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
 	glVertexArrayAttribIFormat(vao_cube, chunk_types_attr_idx, 1, GL_BYTE, 0);
-	//glVertexArrayAttribIFormat(vao_cube, chunk_types_attr_idx_yuge, 1, GL_BYTE, 0);
-	//glVertexArrayAttribIFormat(vao_cube, chunk_coords_attr_idx_yuge, 2, GL_INT, 0);
 
 	// vao: set binding points for all attributes, 1 at a time
 	//      - 1 buffer per binding point; for clarity, to keep it clear, I should only bind 1 attr per binding point
 	glVertexArrayAttribBinding(vao_cube, position_attr_idx, vert_buf_bidx);
 	glVertexArrayAttribBinding(vao_cube, chunk_types_attr_idx, chunk_types_bidx);
-	//glVertexArrayAttribBinding(vao_cube, chunk_types_attr_idx_yuge, chunk_types_bidx);
-	//glVertexArrayAttribBinding(vao_cube, chunk_coords_attr_idx_yuge, chunk_coords_bidx);
 
 	// vao: bind buffers to their binding points, 1 at a time
 	glVertexArrayVertexBuffer(vao_cube, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
 	glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf, 0, sizeof(Block));
-	//glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf_yuge, 0, sizeof(Block));
-	//glVertexArrayVertexBuffer(vao_cube, chunk_coords_bidx, coords_buf_yuge, 0, sizeof(ivec2));
 
 	// vao: extra properties
 	glBindVertexArray(vao_cube);
 	glVertexAttribDivisor(chunk_types_attr_idx, 1);
-	//glVertexAttribDivisor(chunk_types_attr_idx_yuge, 1); // 1 block type per instance
-	//glVertexAttribDivisor(chunk_coords_attr_idx_yuge, CHUNK_SIZE); // 1 chunk coordinate per 65536 instances!
-	//glVertexAttribDivisor(chunk_coords_attr_idx_yuge, 1); // 1 chunk coordinate per 1 instances?
 	glBindVertexArray(0);
 
 
@@ -327,15 +309,6 @@ void App::render(float time) {
 		sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
 		//OutputDebugString(buf);
 	}
-
-	//// Draw ALL our chunks!
-	//glBindVertexArray(vao_cube);
-	//for (auto &[coords, chunk] : chunk_map) {
-	//	sprintf(buf, "Drawing at (%d, %d), base idx = %d\n", coords.first, coords.second, chunk_indices_map[coords]);
-	//	glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 36, CHUNK_SIZE, CHUNK_SIZE*chunk_indices_map[coords]);
-	//	//glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 36, CHUNK_SIZE, 0);
-	//	OutputDebugString(buf);
-	//}
 }
 
 // update player's movement based on how much time has passed since we last did it
@@ -625,6 +598,9 @@ void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity,
 	exit(-1);
 }
 
+void App::onMouseButton(int button, int action) {}
+void App::onMouseWheel(int pos) {}
+
 namespace {
 	/* GLFW/GL callback functions */
 
@@ -642,6 +618,16 @@ namespace {
 
 	void glfw_onResize(GLFWwindow* window, int width, int height) {
 		App::app->onResize(window, width, height);
+	}
+
+	void glfw_onMouseButton(GLFWwindow* window, int button, int action, int mods)
+	{
+		App::app->onMouseButton(button, action);
+	}
+
+	static void glfw_onMouseWheel(GLFWwindow* window, double xoffset, double yoffset)
+	{
+		App::app->onMouseWheel(yoffset);
 	}
 
 	void APIENTRY gl_onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam) {
