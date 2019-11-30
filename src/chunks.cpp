@@ -107,7 +107,7 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 				OutputDebugString("WTF?");
 			}
 			if (y > maxY) {
-				OutputDebugString("Update maxY...\n");
+				//OutputDebugString("Update maxY...\n");
 				maxY = y;
 			}
 		}

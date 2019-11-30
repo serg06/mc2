@@ -7,6 +7,7 @@
 
 layout (location = 0) in vec4 position;
 layout (location = 1) in uint block_type; // fed in via instance array!
+layout (location = 2) in ivec2 chunk_coords;
 
 out vec4 vs_color;
 out uint vs_block_type;
@@ -39,7 +40,9 @@ void main(void)
 
 	/* CREATE OUR OFFSET VARIABLE */
 
-	vec4 instance_offset = vec4(x + uni.base_coords[0] * 16, y, z + uni.base_coords[1] * 16, 0);
+	// vec4 instance_offset = vec4(x + uni.base_coords[0] * 16, y, z + uni.base_coords[1] * 16, 0);
+	vec4 instance_offset = vec4(x + chunk_coords[0] * 16, y, z + chunk_coords[1] * 16, 0);
+	// vec4 instance_offset = vec4(x, y, z, 0);
 
 	/* ADD IT TO VERTEX */
 

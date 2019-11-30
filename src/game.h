@@ -2,6 +2,7 @@
 #define __GAME_H__
 
 #define MIN_RENDER_DISTANCE 2
+#define GPU_MAX_CHUNKS 256
 
 #include "chunks.h"
 #include "util.h"
@@ -46,7 +47,9 @@ public:
 	// buffers
 	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
 	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
-	GLuint chunk_types_buf; // stores the block type for every block in the chunk
+	//GLuint chunk_types_buf; // stores the block type for every block in the chunk
+	GLuint chunk_types_buf_yuge; // store ALL chunks
+	GLuint coords_buf_yuge; // store coordinates for ALL chunks
 
 	// mouse inputs
 	double last_mouse_x;
@@ -67,6 +70,8 @@ public:
 	// misc
 	unordered_map<pair<int, int>, Chunk*, pair_hash> chunk_map;
 	float last_render_time;
+	int num_gpu_chunks = 0;
+	unordered_map<pair<int, int>, int, pair_hash> chunk_indices_map;
 
 	App() {}
 	void run();
@@ -89,6 +94,7 @@ public:
 	}
 
 	// add chunk to chunk coords (x, z)
+	// AND TO GPU!
 	inline void add_chunk(int x, int z, Chunk* chunk) {
 		auto search = chunk_map.find({ x, z });
 
@@ -96,9 +102,27 @@ public:
 		if (search != chunk_map.end()) {
 			throw "Tried to add chunk but it already exists.";
 		}
-		
+
 		// insert our chunk
 		chunk_map[{x, z}] = chunk;
+
+		/* ADD TO GPU */
+
+		if (num_gpu_chunks >= GPU_MAX_CHUNKS) {
+			throw "ERROR: Cannot add new chunk, we've fully filled up the chunk buffer.";
+		}
+
+		ivec2 coord_data[CHUNK_SIZE];
+		for (int i = 0; i < CHUNK_SIZE; i++) {
+			coord_data[i] = ivec2(x, z);
+		}
+
+		glNamedBufferSubData(chunk_types_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(uint8_t), CHUNK_SIZE * sizeof(uint8_t), chunk->data);
+		//glNamedBufferSubData(coords_buf_yuge, num_gpu_chunks * sizeof(ivec2), sizeof(ivec2), ivec2(x, z));
+		glNamedBufferSubData(coords_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(ivec2), CHUNK_SIZE * sizeof(ivec2), coord_data);
+		chunk_indices_map[{x, z}] = num_gpu_chunks;
+
+		num_gpu_chunks++;
 	}
 
 	// generate chunk at (x, z) and add it

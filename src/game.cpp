@@ -163,7 +163,10 @@ void App::startup() {
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
 	const GLuint chunk_types_bidx = 1; // chunk types buffer's binding-point index
-	const GLuint chunk_types_attr_idx = 1; // index of 'chunk_type' attribute
+	const GLuint chunk_coords_bidx = 2;
+	//const GLuint chunk_types_attr_idx = 1; // index of 'block_type' attribute
+	const GLuint chunk_types_attr_idx_yuge = 1; // index of 'block_type' attribute
+	const GLuint chunk_coords_attr_idx_yuge = 2; // index of 'chunk_coords'
 
 	/* HANDLE CUBES FIRST */
 
@@ -172,35 +175,51 @@ void App::startup() {
 
 	// buffers: create
 	glCreateBuffers(1, &vert_buf);
-	glCreateBuffers(1, &chunk_types_buf);
+	//glCreateBuffers(1, &chunk_types_buf);
+	glCreateBuffers(1, &chunk_types_buf_yuge);
+	glCreateBuffers(1, &coords_buf_yuge);
 
 	// buffers: allocate space
 	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
-	glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE * sizeof(uint8_t), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+	//glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE * sizeof(uint8_t), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+	glNamedBufferStorage(chunk_types_buf_yuge, CHUNK_SIZE * sizeof(uint8_t) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
+	//glNamedBufferStorage(coords_buf_yuge, sizeof(ivec2) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
+	glNamedBufferStorage(coords_buf_yuge, CHUNK_SIZE * sizeof(ivec2) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
 
 	// buffers: insert static data
 	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
 
 	// vao: enable all cube's attributes, 1 at a time
 	glEnableVertexArrayAttrib(vao_cube, position_attr_idx);
-	glEnableVertexArrayAttrib(vao_cube, chunk_types_attr_idx);
+	//glEnableVertexArrayAttrib(vao_cube, chunk_types_attr_idx);
+	glEnableVertexArrayAttrib(vao_cube, chunk_types_attr_idx_yuge);
+	glEnableVertexArrayAttrib(vao_cube, chunk_coords_attr_idx_yuge);
 
 	// vao: set up formats for cube's attributes, 1 at a time
 	glVertexArrayAttribFormat(vao_cube, position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
-	glVertexArrayAttribIFormat(vao_cube, chunk_types_attr_idx, 1, GL_BYTE, 0);
+	//glVertexArrayAttribIFormat(vao_cube, chunk_types_attr_idx, 1, GL_BYTE, 0);
+	glVertexArrayAttribIFormat(vao_cube, chunk_types_attr_idx_yuge, 1, GL_BYTE, 0);
+	glVertexArrayAttribIFormat(vao_cube, chunk_coords_attr_idx_yuge, 2, GL_INT, 0);
 
 	// vao: set binding points for all attributes, 1 at a time
 	//      - 1 buffer per binding point; for clarity, to keep it clear, I should only bind 1 attr per binding point
 	glVertexArrayAttribBinding(vao_cube, position_attr_idx, vert_buf_bidx);
-	glVertexArrayAttribBinding(vao_cube, chunk_types_attr_idx, chunk_types_bidx);
+	//glVertexArrayAttribBinding(vao_cube, chunk_types_attr_idx, chunk_types_bidx);
+	glVertexArrayAttribBinding(vao_cube, chunk_types_attr_idx_yuge, chunk_types_bidx);
+	glVertexArrayAttribBinding(vao_cube, chunk_coords_attr_idx_yuge, chunk_coords_bidx);
 
 	// vao: bind buffers to their binding points, 1 at a time
 	glVertexArrayVertexBuffer(vao_cube, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
-	glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf, 0, sizeof(uint8_t));
+	//glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf, 0, sizeof(uint8_t));
+	glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf_yuge, 0, sizeof(uint8_t));
+	glVertexArrayVertexBuffer(vao_cube, chunk_coords_bidx, coords_buf_yuge, 0, sizeof(ivec2));
 
 	// vao: extra properties
 	glBindVertexArray(vao_cube);
-	glVertexAttribDivisor(chunk_types_attr_idx, 1);
+	//glVertexAttribDivisor(chunk_types_attr_idx, 1);
+	glVertexAttribDivisor(chunk_types_attr_idx_yuge, 1); // 1 block type per instance
+	//glVertexAttribDivisor(chunk_coords_attr_idx_yuge, CHUNK_SIZE); // 1 chunk coordinate per 65536 instances!
+	glVertexAttribDivisor(chunk_coords_attr_idx_yuge, 1); // 1 chunk coordinate per 1 instances?
 	glBindVertexArray(0);
 
 
@@ -230,13 +249,9 @@ void App::startup() {
 	// use our program object for rendering
 	glUseProgram(rendering_program);
 
-	//// generate a chunk
-	//for (int x = 0; x < 5; x++) {
-	//	for (int z = 0; z < 5; z++) {
-	//		Chunk* chunk = gen_chunk(x, z);
-	//		add_chunk(x, z, chunk);
-	//	}
-	//}
+	// generate one chunk
+	//gen_chunk_at(0, 0);
+	//gen_chunk_at(0, 1);
 
 
 	// load into memory pog
@@ -299,17 +314,26 @@ void App::render(float time) {
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
 	//OutputDebugString(buf);
 
+	//// Draw ALL our chunks!
+	//glBindVertexArray(vao_cube);
+	//for (auto &[coords_p, chunk] : chunk_map) {
+	//	ivec2 coords = { coords_p.first , coords_p.second };
+
+	//	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunk->data); // proj matrix
+	//	glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
+	//	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
+
+	//	sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
+	//	//OutputDebugString(buf);
+	//}
+
 	// Draw ALL our chunks!
 	glBindVertexArray(vao_cube);
-	for (auto &[coords_p, chunk] : chunk_map) {
-		ivec2 coords = { coords_p.first , coords_p.second };
-
-		glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunk->data); // proj matrix
-		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
-
-		sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
-		//OutputDebugString(buf);
+	for (auto &[coords, chunk] : chunk_map) {
+		sprintf(buf, "Drawing at (%d, %d), base idx = %d\n", coords.first, coords.second, chunk_indices_map[coords]);
+		glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 36, CHUNK_SIZE, CHUNK_SIZE*chunk_indices_map[coords]);
+		//glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 36, CHUNK_SIZE, 0);
+		OutputDebugString(buf);
 	}
 }
 
@@ -597,7 +621,7 @@ void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity,
 	bufp += sprintf(bufp, "\n");
 
 	OutputDebugString(buf);
-	throw buf; // for now
+	exit(-1);
 }
 
 namespace {
