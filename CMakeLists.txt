@@ -34,7 +34,7 @@ add_library(fastnoise include/FastNoise/FastNoise.cpp)
 add_library(kenp_noise src/kenp_noise.h src/kenp_noise.cpp)
 
 # add source files
-add_executable(${PROJECT_NAME} WIN32 src/game.h src/game.cpp src/util.h src/util.cpp src/shapes.h src/chunks.h src/chunks.cpp)
+add_executable(${PROJECT_NAME} WIN32 src/game.h src/game.cpp src/util.h src/util.cpp src/shapes.h src/chunks.h src/chunks.cpp src/minichunk.h src/minichunk.cpp)
 
 # link executable to libraries
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
