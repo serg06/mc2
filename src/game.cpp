@@ -28,10 +28,8 @@
 using namespace std;
 using namespace vmath;
 
-void glfw_onError(int error, const char* description)
-{
-	MessageBox(NULL, description, "GLFW error", MB_OK);
-}
+
+
 
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -91,14 +89,16 @@ void App::run() {
 		return;
 	}
 
-	//// TODO: set debug message callback
-	//if (info.flags.debug) {
-	//	if (gl3wIsSupported(4, 3))
-	//	{
-	//		glDebugMessageCallback((GLDEBUGPROC)debug_callback, this);
-	//		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-	//	}
-	//}
+	// set debug message callback
+	if (info.debug) {
+		if (gl3wIsSupported(4, 3))
+		{
+			glEnable(GL_DEBUG_OUTPUT);
+			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+			glDebugMessageCallback((GLDEBUGPROC)gl_onDebugMessage, nullptr);
+			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+		}
+	}
 
 	char buf[256];
 	GLint tmpi;
@@ -646,11 +646,6 @@ bool App::is_dir_clear(vec4 direction) {
 	return true;
 }
 
-void App::glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	App::app->onKey(window, key, scancode, action, mods);
-}
-
-// on key press
 void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	// ignore unknown keys
@@ -674,11 +669,6 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 	}
 }
 
-void App::glfw_onMouseMove(GLFWwindow* window, double x, double y) {
-	App::app->onMouseMove(window, x, y);
-}
-
-// on mouse movement
 void App::onMouseMove(GLFWwindow* window, double x, double y)
 {
 	// bonus of using deltas for yaw/pitch:
@@ -699,11 +689,6 @@ void App::onMouseMove(GLFWwindow* window, double x, double y)
 	last_mouse_y = y;
 }
 
-void App::glfw_onResize(GLFWwindow* window, int width, int height) {
-	App::app->onResize(window, width, height);
-}
-
-// on window resize
 void App::onResize(GLFWwindow* window, int width, int height) {
 	info.width = width;
 	info.height = height;
@@ -713,3 +698,72 @@ void App::onResize(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, px_width, px_height);
 }
 
+void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message) {
+	char buf[4096];
+	char *bufp = buf;
+
+	// ignore non-significant error/warning codes (e.g. 131185 = "buffer created")
+	if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+
+	bufp += sprintf(bufp, "---------------\n");
+	bufp += sprintf(bufp, "OpenGL debug message (%d): %s\n", id, message);
+
+	switch (source)
+	{
+	case GL_DEBUG_SOURCE_API:             bufp += sprintf(bufp, "Source: API"); break;
+	case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   bufp += sprintf(bufp, "Source: Window System"); break;
+	case GL_DEBUG_SOURCE_SHADER_COMPILER: bufp += sprintf(bufp, "Source: Shader Compiler"); break;
+	case GL_DEBUG_SOURCE_THIRD_PARTY:     bufp += sprintf(bufp, "Source: Third Party"); break;
+	case GL_DEBUG_SOURCE_APPLICATION:     bufp += sprintf(bufp, "Source: Application"); break;
+	case GL_DEBUG_SOURCE_OTHER:           bufp += sprintf(bufp, "Source: Other"); break;
+	} bufp += sprintf(bufp, "\n");
+
+	switch (type)
+	{
+	case GL_DEBUG_TYPE_ERROR:               bufp += sprintf(bufp, "Type: Error"); break;
+	case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: bufp += sprintf(bufp, "Type: Deprecated Behaviour"); break;
+	case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  bufp += sprintf(bufp, "Type: Undefined Behaviour"); break;
+	case GL_DEBUG_TYPE_PORTABILITY:         bufp += sprintf(bufp, "Type: Portability"); break;
+	case GL_DEBUG_TYPE_PERFORMANCE:         bufp += sprintf(bufp, "Type: Performance"); break;
+	case GL_DEBUG_TYPE_MARKER:              bufp += sprintf(bufp, "Type: Marker"); break;
+	case GL_DEBUG_TYPE_PUSH_GROUP:          bufp += sprintf(bufp, "Type: Push Group"); break;
+	case GL_DEBUG_TYPE_POP_GROUP:           bufp += sprintf(bufp, "Type: Pop Group"); break;
+	case GL_DEBUG_TYPE_OTHER:               bufp += sprintf(bufp, "Type: Other"); break;
+	} bufp += sprintf(bufp, "\n");
+
+	switch (severity)
+	{
+	case GL_DEBUG_SEVERITY_HIGH:         bufp += sprintf(bufp, "Severity: high"); break;
+	case GL_DEBUG_SEVERITY_MEDIUM:       bufp += sprintf(bufp, "Severity: medium"); break;
+	case GL_DEBUG_SEVERITY_LOW:          bufp += sprintf(bufp, "Severity: low"); break;
+	case GL_DEBUG_SEVERITY_NOTIFICATION: bufp += sprintf(bufp, "Severity: notification"); break;
+	} bufp += sprintf(bufp, "\n");
+	bufp += sprintf(bufp, "\n");
+
+	OutputDebugString(buf);
+	throw buf; // for now
+}
+
+namespace {
+	/* GLFW/GL callback functions */
+
+	void glfw_onError(int error, const char* description) {
+		MessageBox(NULL, description, "GLFW error", MB_OK);
+	}
+
+	void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		App::app->onKey(window, key, scancode, action, mods);
+	}
+
+	void glfw_onMouseMove(GLFWwindow* window, double x, double y) {
+		App::app->onMouseMove(window, x, y);
+	}
+
+	void glfw_onResize(GLFWwindow* window, int width, int height) {
+		App::app->onResize(window, width, height);
+	}
+
+	void APIENTRY gl_onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam) {
+		App::app->onDebugMessage(source, type, id, severity, length, message);
+	}
+}

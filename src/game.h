@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vmath.h>
+#include <windows.h>
 
 using namespace std;
 using namespace vmath;
@@ -187,15 +188,22 @@ public:
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void onMouseMove(GLFWwindow* window, double x, double y);
 	void onResize(GLFWwindow* window, int width, int height);
+	void onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
 
 	// glfw static functions which passthrough to real handle functions
-	static void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
-	static void glfw_onMouseMove(GLFWwindow* window, double x, double y);
-	static void glfw_onResize(GLFWwindow* window, int width, int height);
-	//static void gl_onDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
+
 
 	static App* app;
 };
+
+
+namespace {
+	void glfw_onError(int error, const char* description);
+	void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
+	void glfw_onMouseMove(GLFWwindow* window, double x, double y);
+	void glfw_onResize(GLFWwindow* window, int width, int height);
+	void APIENTRY gl_onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
+}
 
 // define/declare/de-whatever App's static variables
 App* App::app;
