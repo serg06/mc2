@@ -136,8 +136,7 @@ public:
 		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
 	}
 
-	// coordinates in real world to coordinates in its chunk
-	// given a block's real-world coordinates, given that block's coordinates relative to its chunk
+	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
 	inline ivec3 get_chunk_relative_coordinates(int x, int y, int z) {
 		// adjust x and y
 		x = x % CHUNK_WIDTH;
@@ -162,47 +161,29 @@ public:
 		ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
 		auto result = chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
 
-		if (z == -4) {
-			OutputDebugString("wait");
-		}
-
-		std::string s = block_name(result);
-		sprintf(buf, "get_type(%d, %d, %d) = %s\n", x, y, z, s.c_str());
-		//OutputDebugString(buf);
-
 		return result;
 	}
 
-	inline Block get_type(ivec3 xyz) {
-		return get_type(xyz[0], xyz[1], xyz[2]);
-	}
+	inline Block get_type(ivec3 xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
+	inline Block get_type(ivec4 xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
 
-	inline Block get_type(ivec4 xyz_) {
-		return get_type(xyz_[0], xyz_[1], xyz_[2]);
-	}
-
-
+	// redirected GLFW/GL callbacks
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void onMouseMove(GLFWwindow* window, double x, double y);
 	void onResize(GLFWwindow* window, int width, int height);
 	void onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
 
-	// glfw static functions which passthrough to real handle functions
-
-
 	static App* app;
 };
-
+App* App::app;
 
 namespace {
+	// global GLFW/GL callback functions
 	void glfw_onError(int error, const char* description);
 	void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void glfw_onMouseMove(GLFWwindow* window, double x, double y);
 	void glfw_onResize(GLFWwindow* window, int width, int height);
 	void APIENTRY gl_onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
 }
-
-// define/declare/de-whatever App's static variables
-App* App::app;
 
 #endif /* __GAME_H__ */

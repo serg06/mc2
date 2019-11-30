@@ -113,7 +113,7 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 		}
 	}
 
-	sprintf(buf, "FINAL MAXY: [%d]\n", maxY);
+	sprintf(buf, "FINAL MAXY: [%.2f]\n", maxY);
 	OutputDebugString(buf);
 
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
