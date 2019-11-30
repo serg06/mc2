@@ -27,6 +27,14 @@
 #define IUP_0 vmath::ivec4(0, 1, 0, 0)
 #define IDOWN_0 vmath::ivec4(0, -1, 0, 0)
 
+// Chunk size
+#define CHUNK_WIDTH 16
+#define CHUNK_DEPTH 16
+#define CHUNK_HEIGHT 256
+#define CHUNK_SIZE (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
+
+#define MINICHUNK_HEIGHT 16
+
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 

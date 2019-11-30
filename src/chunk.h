@@ -2,6 +2,9 @@
 #ifndef __CHUNK_H__
 #define __CHUNK_H__
 
+#include "block.h"
+#include "util.h"
+
 #include "GL/gl3w.h" // OutputDebugString
 
 #include <assert.h>
@@ -20,31 +23,7 @@
 *
 */
 
-// Chunk size
-#define CHUNK_WIDTH 16
-#define CHUNK_DEPTH 16
-#define CHUNK_HEIGHT 256
-#define CHUNK_SIZE (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
 
-enum class Block : uint8_t {
-	Air = 0,
-	Grass = 1,
-	Stone = 2,
-};
-
-inline std::string block_name(Block b) {
-	switch (b) {
-	case Block::Air:
-		return "Air";
-	case Block::Grass:
-		return "Grass";
-	case Block::Stone:
-		return "Stone";
-	default:
-		assert(false && "Unknown block type.");
-		return "UNKNOWN";
-	}
-}
 
 static inline void chunk_set(Block* chunk, int x, int y, int z, Block val) {
 	chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
@@ -56,7 +35,7 @@ static inline Block chunk_get(Block* chunk, int x, int y, int z) {
 
 class Chunk {
 public:
-	Block data[16 * 16 * 256];
+	Block * data;
 	vmath::ivec2 coords; // coordinates in chunk format
 
 	//inline vec4 coords_real() {
@@ -64,21 +43,20 @@ public:
 	//}
 
 	// get block at these coordinates
-	inline Block get_block(uint8_t x, uint8_t y, uint8_t z) {
-		if (!data) {
-			char buf[256];
-			char *bufp = buf;
-			bufp += sprintf(bufp, "No loaded block at (%d, %d, %d)", x, y, z);
-			//bufp += sprintf(buf, " in chunk (%d, %d).", coords[0], coords[1]);
-			bufp += sprintf(bufp, "\n");
-			OutputDebugString(buf);
-			return Block::Air;
-		}
-		return data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
+	inline Block get_block(int x, int y, int z) {
+		assert(0 <= x && x < CHUNK_WIDTH && "chunk get_block invalid x coordinate");
+		assert(0 <= y && y < CHUNK_HEIGHT && "chunk get_block invalid y coordinate");
+		assert(0 <= z && z < CHUNK_DEPTH && "chunk get_block invalid z coordinate");
+
+		return chunk_get(data, x, y, z);
 	}
 
 	// set block at these coordinates
-	inline void set_block(uint8_t x, uint8_t y, uint8_t z, Block val) {
+	inline void set_block(int x, int y, int z, Block val) {
+		assert(0 <= x && x < CHUNK_WIDTH && "chunk set_block invalid x coordinate");
+		assert(0 <= y && y < CHUNK_HEIGHT && "chunk set_block invalid y coordinate");
+		assert(0 <= z && z < CHUNK_DEPTH && "chunk set_block invalid z coordinate");
+
 		data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
 	}
 };

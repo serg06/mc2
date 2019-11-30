@@ -16,67 +16,6 @@
 using namespace std;
 using namespace vmath;
 
-// generate us a nice lil chunk
-Chunk* gen_chunk2() {
-	Chunk* result = new Chunk();
-	Block* data = result->data;
-
-	memset(data, 0, sizeof(Block) * CHUNK_SIZE);
-
-	for (int y = 0; y < CHUNK_HEIGHT; y++) {
-		for (int x = 0; x < CHUNK_WIDTH; x++) {
-			for (int z = 0; z < CHUNK_DEPTH; z++) {
-				// 62 or lower = stone
-				if (y <= 62) {
-					chunk_set(data, x, y, z, Block::Stone);
-				}
-
-				// 63 to 64 = grass
-				else if (y <= 64) {
-					chunk_set(data, x, y, z, Block::Grass);
-				}
-
-				// 65 = maybe grass
-				else if (y <= 65) {
-					if (rand() % 2) {
-						chunk_set(data, x, y, z, Block::Grass);
-					}
-				}
-
-				//// add some floating blocks
-				//else if (y == 68) {
-				//	if (rand() % 4 == 0) {
-				//		chunk_set(data, x, y, z, Block::Grass);
-				//	}
-				//}
-
-				// else air
-				else {
-					chunk_set(data, x, y, z, Block::Air);
-				}
-			}
-		}
-	}
-
-	chunk_set(data, 8, 69, 4, Block::Stone);
-	chunk_set(data, 8, 70, 4, Block::Stone);
-	chunk_set(data, 8, 71, 4, Block::Stone);
-	chunk_set(data, 8, 72, 4, Block::Stone);
-	chunk_set(data, 8, 73, 4, Block::Stone);
-	chunk_set(data, 8, 74, 4, Block::Stone);
-
-	for (int i = 8; i < 12; i++) {
-		chunk_set(data, i, 69, 8, Block::Stone);
-		chunk_set(data, i, 70, 8, Block::Stone);
-		chunk_set(data, i, 71, 8, Block::Stone);
-		chunk_set(data, i, 72, 8, Block::Stone);
-		chunk_set(data, i, 73, 8, Block::Stone);
-		chunk_set(data, i, 74, 8, Block::Stone);
-	}
-
-	return result;
-};
-
 double noise22(float vec[2]) {
 	double result = noise2(vec);
 	result = (result + 1.0f) / 2.0f;
@@ -87,6 +26,7 @@ double noise22(float vec[2]) {
 
 Chunk* gen_chunk(int chunkX, int chunkZ) {
 	Chunk* result = new Chunk();
+	result->data = (Block*) malloc(sizeof(Block) * CHUNK_SIZE);
 	result->coords = { chunkX, chunkZ };
 	Block* data = result->data;
 	FastNoise fn;
@@ -145,17 +85,19 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 	return result;
 };
 
-
 initializer_list<ivec2> surrounding_chunks(ivec2 chunk_coord) {
 	return {
-		chunk_coord + ivec2(0,  0),
-		chunk_coord + ivec2(0,  1),
+		// sides
 		chunk_coord + ivec2(1,  0),
-		chunk_coord + ivec2(1,  1),
-		chunk_coord + ivec2(0,  0),
-		chunk_coord + ivec2(0, -1),
+		chunk_coord + ivec2(0,  1),
 		chunk_coord + ivec2(-1,  0),
+		chunk_coord + ivec2(0, -1),
+
+		// corners
+		chunk_coord + ivec2(1,  1),
+		chunk_coord + ivec2(-1,  1),
 		chunk_coord + ivec2(-1, -1),
+		chunk_coord + ivec2(1,  -1),
 	};
 }
 

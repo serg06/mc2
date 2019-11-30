@@ -181,8 +181,8 @@ void App::startup() {
 
 	// buffers: allocate space
 	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
-	//glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE * sizeof(uint8_t), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
-	glNamedBufferStorage(chunk_types_buf_yuge, CHUNK_SIZE * sizeof(uint8_t) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
+	//glNamedBufferStorage(chunk_types_buf, CHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+	glNamedBufferStorage(chunk_types_buf_yuge, CHUNK_SIZE * sizeof(Block) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
 	//glNamedBufferStorage(coords_buf_yuge, sizeof(ivec2) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
 	glNamedBufferStorage(coords_buf_yuge, CHUNK_SIZE * sizeof(ivec2) * GPU_MAX_CHUNKS, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for GPU_MAX_CHUNKS chunks
 
@@ -210,8 +210,8 @@ void App::startup() {
 
 	// vao: bind buffers to their binding points, 1 at a time
 	glVertexArrayVertexBuffer(vao_cube, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
-	//glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf, 0, sizeof(uint8_t));
-	glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf_yuge, 0, sizeof(uint8_t));
+	//glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf, 0, sizeof(Block));
+	glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk_types_buf_yuge, 0, sizeof(Block));
 	glVertexArrayVertexBuffer(vao_cube, chunk_coords_bidx, coords_buf_yuge, 0, sizeof(ivec2));
 
 	// vao: extra properties
@@ -255,7 +255,7 @@ void App::startup() {
 
 
 	// load into memory pog
-	//glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), get_chunk(0, 0)->data);
+	//glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(Block), get_chunk(0, 0)->data);
 
 }
 
@@ -320,7 +320,7 @@ void App::render(float time) {
 	//for (auto &[coords_p, chunk] : chunk_map) {
 	//	ivec2 coords = { coords_p.first , coords_p.second };
 
-	//	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunk->data); // proj matrix
+	//	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->data); // proj matrix
 	//	glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
 	//	glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 

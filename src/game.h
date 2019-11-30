@@ -117,7 +117,7 @@ public:
 			coord_data[i] = ivec2(x, z);
 		}
 
-		glNamedBufferSubData(chunk_types_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(uint8_t), CHUNK_SIZE * sizeof(uint8_t), chunk->data);
+		glNamedBufferSubData(chunk_types_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(Block), CHUNK_SIZE * sizeof(Block), chunk->data);
 		//glNamedBufferSubData(coords_buf_yuge, num_gpu_chunks * sizeof(ivec2), sizeof(ivec2), ivec2(x, z));
 		glNamedBufferSubData(coords_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(ivec2), CHUNK_SIZE * sizeof(ivec2), coord_data);
 		chunk_indices_map[{x, z}] = num_gpu_chunks;
