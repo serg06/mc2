@@ -46,7 +46,6 @@ public:
 	// the one and only copy of this app
 	AppInfo info;
 	GLFWwindow *window;
-	double time;
 
 	GLuint rendering_program;
 	GLuint vao_cube, vao2;

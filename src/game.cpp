@@ -118,11 +118,12 @@ void App::run() {
 	// Start up app
 	startup();
 
+
 	// run until user presses ESC or tries to close window
-	last_render_time = (float)glfwGetTime();
+	last_render_time = (float)glfwGetTime(); // updated in render()
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
 		// run rendering function
-		render(last_render_time);
+		render((float)glfwGetTime());
 
 		// display drawing buffer on screen
 		glfwSwapBuffers(window);
