@@ -4,7 +4,7 @@
 #define MIN_RENDER_DISTANCE 2
 #define GPU_MAX_CHUNKS 256
 
-#include "chunks.h"
+#include "chunk.h"
 #include "util.h"
 
 #include "GL/gl3w.h"

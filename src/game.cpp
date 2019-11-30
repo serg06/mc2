@@ -1,6 +1,6 @@
 #include "game.h"
 
-#include "chunks.h"
+#include "chunk.h"
 #include "shapes.h"
 #include "util.h"
 

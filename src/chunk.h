@@ -1,6 +1,6 @@
 // UTIL class filled with useful static functions
-#ifndef __CHUNKS_H__
-#define __CHUNKS_H__
+#ifndef __CHUNK_H__
+#define __CHUNK_H__
 
 #include "GL/gl3w.h" // OutputDebugString
 
@@ -89,4 +89,4 @@ Chunk* gen_chunk(int, int);
 //#define EL_TYPE uint8_t
 //#define EL_SIZE sizeof(EL_TYPE)
 
-#endif // __CHUNKS_H__
+#endif // __CHUNK_H__

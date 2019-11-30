@@ -1,4 +1,4 @@
-#include "chunks.h"
+#include "chunk.h"
 
 #include "kenp_noise.h"
 #include "util.h"
