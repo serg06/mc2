@@ -47,9 +47,9 @@ public:
 	// buffers
 	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
 	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
-	//GLuint chunk_types_buf; // stores the block type for every block in the chunk
-	GLuint chunk_types_buf_yuge; // store ALL chunks
-	GLuint coords_buf_yuge; // store coordinates for ALL chunks
+	GLuint chunk_types_buf; // stores the block type for every block in the chunk
+	//GLuint chunk_types_buf_yuge; // store ALL chunks
+	//GLuint coords_buf_yuge; // store coordinates for ALL chunks
 
 	// mouse inputs
 	double last_mouse_x;
@@ -117,9 +117,8 @@ public:
 			coord_data[i] = ivec2(x, z);
 		}
 
-		glNamedBufferSubData(chunk_types_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(Block), CHUNK_SIZE * sizeof(Block), chunk->data);
-		//glNamedBufferSubData(coords_buf_yuge, num_gpu_chunks * sizeof(ivec2), sizeof(ivec2), ivec2(x, z));
-		glNamedBufferSubData(coords_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(ivec2), CHUNK_SIZE * sizeof(ivec2), coord_data);
+		//glNamedBufferSubData(chunk_types_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(Block), CHUNK_SIZE * sizeof(Block), chunk->data);
+		//glNamedBufferSubData(coords_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(ivec2), CHUNK_SIZE * sizeof(ivec2), coord_data);
 		chunk_indices_map[{x, z}] = num_gpu_chunks;
 
 		num_gpu_chunks++;
