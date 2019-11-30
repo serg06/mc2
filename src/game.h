@@ -18,7 +18,7 @@ using namespace std;
 using namespace vmath;
 
 struct AppInfo {
-	string title = "OpenGL";
+	std::string title = "OpenGL";
 	bool debug = GL_TRUE;
 	bool msaa = GL_FALSE;
 	int width = 800;
@@ -47,6 +47,8 @@ public:
 
 	GLuint rendering_program;
 	GLuint vao_cube, vao2;
+
+	bool noclip = false;
 
 	// buffers
 	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
@@ -100,25 +102,68 @@ public:
 	}
 
 	inline Chunk* get_chunk(int x, int z) {
-		return chunk_map[{x, z}];
+		// if chunk doesn't exist, create new chunk
+		try {
+			return chunk_map.at({ x, z });
+		}
+		catch (out_of_range e) {
+			add_chunk(x, z, gen_chunk(x, z));
+			return chunk_map[{x, z}];
+		}
 	}
 
 	// get chunk that contains block w/ these coordinates
 	inline Chunk* get_chunk_real_coords(int x, int z) {
-		return get_chunk(x / 16, z / 16);
+		// 0-15 -> 0
+		// 16-31 -> 16
+		// -15--1 -> 0 (fuck)
+		return get_chunk(floorf((float)x / 16.0f), floorf((float)z / 16.0f));
 	}
 
 	// coordinates in real world to coordinates in its chunk
 	inline ivec3 real_coords_to_chunk_coords(int x, int y, int z) {
-		return ivec3(x % 16, y, z % 16);
+		// adjust x and y
+		x = x % CHUNK_WIDTH;
+		z = z % CHUNK_DEPTH;
+
+		// make sure modulo didn't leave them negative
+		if (x < 0) {
+			x += CHUNK_WIDTH;
+		}
+		if (z < 0) {
+			z += CHUNK_WIDTH;
+		}
+
+		return ivec3(x, y, z);
 	}
 
 	// get type of this block
 	inline Block get_type(int x, int y, int z) {
+		char buf[256];
+
 		Chunk* chunk = get_chunk_real_coords(x, z);
 		ivec3 chunk_coords = real_coords_to_chunk_coords(x, y, z);
-		return chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
+		auto result = chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
+
+		if (z == -4) {
+			OutputDebugString("wait");
+		}
+
+		std::string s = block_name(result);
+		sprintf(buf, "get_type(%d, %d, %d) = %s\n", x, y, z, s.c_str());
+		OutputDebugString(buf);
+
+		return result;
 	}
+
+	inline Block get_type(ivec3 xyz) {
+		return get_type(xyz[0], xyz[1], xyz[2]);
+	}
+
+	inline Block get_type(ivec4 xyz_) {
+		return get_type(xyz_[0], xyz_[1], xyz_[2]);
+	}
+
 
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void onMouseMove(GLFWwindow* window, double x, double y);
@@ -132,6 +177,7 @@ public:
 
 	static App* app;
 };
+
 // define/declare/de-whatever App's static variables
 App* App::app;
 

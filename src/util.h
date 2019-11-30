@@ -56,7 +56,7 @@ inline mat4 rotate_pitch_yaw(float pitch, float yaw) {
 inline ivec4 vec2ivec(vec4 v) {
 	ivec4 result;
 	for (int i = 0; i < v.size(); i++) {
-		result[i] = (int)v[i];
+		result[i] = (int)floor(v[i]);
 	}
 	return result;
 }

@@ -4,6 +4,7 @@
 #include "util.h"
 
 #include "GL/gl3w.h"
+#include "FastNoise/FastNoise.h"
 
 #include <assert.h>
 #include <cstdlib>
@@ -88,30 +89,42 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 	Chunk* result = new Chunk();
 	result->coords = { chunkX, chunkZ };
 	Block* data = result->data;
+	FastNoise fn;
+	char buf[256];
 
-	memset(data, (uint8_t) Block::Air, sizeof(Block) * CHUNK_SIZE);
+	memset(data, (uint8_t)Block::Air, sizeof(Block) * CHUNK_SIZE);
 
 
 	double maxY = 0;
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
 		for (int z = 0; z < CHUNK_DEPTH; z++) {
 			//double y = noise2d((float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH);
-			float input[2] = { (float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH };
-			double y = noise22(input);
+			//float input[2] = { (float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH };
+			//double y = noise22(input);
+			double y = fn.GetSimplex(x + chunkX * 16, z + chunkZ * 16);
+			y = (y + 1.0) / 2.0;
 			if (y < 0) {
 				OutputDebugString("WTF?");
 			}
 			if (y > maxY) {
+				OutputDebugString("Update maxY...\n");
 				maxY = y;
 			}
 		}
 	}
 
+	sprintf(buf, "FINAL MAXY: [%d]\n", maxY);
+	OutputDebugString(buf);
+
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
 		for (int z = 0; z < CHUNK_DEPTH; z++) {
-			char buf[256];
 
-			double y = noise2d((float)x / CHUNK_WIDTH, (float)z / CHUNK_DEPTH);
+			//double y = noise2d((float)x / CHUNK_WIDTH, (float)z / CHUNK_DEPTH);
+			//double y = noise2d((float)(x + chunkX * 16)/CHUNK_WIDTH, (float)(z + chunkZ * 16)/CHUNK_DEPTH);
+			double y = fn.GetSimplex(x + chunkX * 16, z + chunkZ * 16);
+			//float input[2] = { (float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH };
+			//double y = noise22(input);
+			y = (y + 1.0) / 2.0;
 
 			if (x == 2 && z == 4) {
 				OutputDebugString("");
@@ -119,7 +132,9 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 
 			// max height: 64
 			assert(maxY > 0 && "WTF?");
-			y = y * (64/maxY);
+			//y *= (6 / maxY); // variation of around 6
+			y *= 10; // variation of around 6
+			y += 58; // minimum height 60
 
 			sprintf(buf, "Top: (%d, %.3f, %d)\n", x, y, z);
 			OutputDebugString(buf);
@@ -247,8 +262,3 @@ inline vec4 chunk_to_world(ivec2 chunk_coords) {
 inline ivec2 world_to_chunk(vec4 world_coords) {
 	return ivec2(world_coords[0], world_coords[1]);
 }
-
-//// convert real coordinates to chunk coordinates
-//static inline vec4 coords_real_to_chunk(vec4 coords) {
-//	return vec4(((int)coords[0]) / 16, ((int)coords[0]) / 16, ((int)coords[0]) / 16)
-//}

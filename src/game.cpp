@@ -306,10 +306,9 @@ void App::render(double time) {
 		ivec2 coords = { coords_p.first , coords_p.second };
 
 		glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunk->data); // proj matrix
-		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // proj matrix
+		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 
-		// Add base chunk coordinates to transformation data (temporary solution)
 		sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
 		//OutputDebugString(buf);
 	}
@@ -374,11 +373,16 @@ void App::update_player_movement(const double dt) {
 	// Calculate our change-in-position
 	vec4 position_change = char_velocity * dt;
 
-	// Fix it to avoid collisions
-	vec4 fixed_position_change = velocity_prevent_collisions(dt, position_change);
+	// Fix it to avoid collisions, if noclip is not on
+	vec4 fixed_position_change = position_change;
+	if (!noclip) {
+		fixed_position_change = velocity_prevent_collisions(dt, position_change);
+	}
 
 	// Snap to walls to cancel velocity and to stay at a constant value while moving along wall
 	ivec4 ipos = vec2ivec(char_position);
+	float remainder;
+	float integer;
 	// if removed east, snap to east wall
 	if (position_change[0] > fixed_position_change[0]) {
 		char_velocity[0] = 0;
@@ -412,6 +416,12 @@ void App::update_player_movement(const double dt) {
 
 	// Update position
 	char_position += fixed_position_change;
+
+	vec4 below = char_position + DOWN_0;
+	auto type = get_type(below[0], below[1], below[2]);
+	auto name = block_name(type);
+	sprintf(buf, "Block below: %s\n", name.c_str());
+	OutputDebugString(buf);
 
 	sprintf(buf, "Velocity: (%.2f, %.2f, %.2f)\n", char_velocity[0], char_velocity[1], char_velocity[2]);
 	//OutputDebugString(buf);
@@ -512,8 +522,12 @@ vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction) {
 	assert((num_nonzero - direction[3]) <= 1 && "Not a direction vector.");
 
 	// get x/y/z min/max
-	ivec3 xyzMin = { (int)(char_position[0] - PLAYER_RADIUS + velocity[0]), (int)(char_position[1] + velocity[1]), (int)(char_position[2] - PLAYER_RADIUS + velocity[2]) };
-	ivec3 xyzMax = { (int)(char_position[0] + PLAYER_RADIUS + velocity[0]), (int)(char_position[1] + PLAYER_HEIGHT + velocity[1]), (int)(char_position[2] + PLAYER_RADIUS + velocity[2]) };
+	ivec3 xyzMin = { (int)floor(char_position[0] - PLAYER_RADIUS + velocity[0]), (int)floor(char_position[1] + velocity[1]), (int)floor(char_position[2] - PLAYER_RADIUS + velocity[2]) };
+	ivec3 xyzMax = { (int)floor(char_position[0] + PLAYER_RADIUS + velocity[0]), (int)floor(char_position[1] + PLAYER_HEIGHT + velocity[1]), (int)floor(char_position[2] + PLAYER_RADIUS + velocity[2]) };
+
+	if (char_position[0] < 0 && char_position[2] < 0 && velocity[0] == 0) {
+		OutputDebugString("");
+	}
 
 	// apply direction vector if needed
 	for (int i = 0; i < xyzMin.size(); i++) {
@@ -538,6 +552,24 @@ vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction) {
 				blocks.push_back({ x, y, z, 0 });
 			}
 		}
+	}
+
+	char buf[256];
+	char *bufp = buf;
+	bufp += sprintf(bufp, "Potential blocks: ");
+	for (auto block : blocks) {
+		auto type = get_type(block);
+		if (block[2] == -4) {
+			OutputDebugString("");
+		}
+		bufp += sprintf(bufp, "(%d, %d, %d), ", block[0], block[1], block[2]);
+	}
+	//sprintf(buf, "Num intersecting blocks: %d\n", count_if(begin(blocks), end(blocks), [this](const auto& block) { return get_type(block[0], block[1], block[2]) != Block::Air; }));
+	bufp += sprintf(bufp, "\n");
+	//OutputDebugString(buf);
+
+	if (char_position[0] < 0 && char_position[2] < 0) {
+		OutputDebugString("");
 	}
 
 	return blocks;
@@ -586,17 +618,16 @@ bool App::is_dir_clear(vec4 direction) {
 	}
 	// uh oh
 	else {
-		OutputDebugString("Uh on...\n");
-		exit(-1);
+		throw "Uh oh...";
 	}
 
 	// integerize
-	int ixMin = (int)xMin;
-	int ixMax = (int)xMax;
-	int iyMin = (int)yMin;
-	int iyMax = (int)yMax;
-	int izMin = (int)zMin;
-	int izMax = (int)zMax;
+	int ixMin = (int)floor(xMin);
+	int ixMax = (int)floor(xMax);
+	int iyMin = (int)floor(yMin);
+	int iyMax = (int)floor(yMax);
+	int izMin = (int)floor(zMin);
+	int izMax = (int)floor(zMax);
 
 
 	// get all blocks that our player intersects with, but only in the direction they're moving in!
@@ -628,6 +659,11 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 	// handle key presses
 	if (action == GLFW_PRESS) {
 		held_keys[key] = true;
+
+		// N = toggle noclip
+		if (key == GLFW_KEY_N) {
+			noclip = !noclip;
+		}
 	}
 
 	// handle key releases

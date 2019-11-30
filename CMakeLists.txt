@@ -27,12 +27,15 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 # include gl3w in compilation
 add_library(gl3w src/gl3w.c)
 
+# include fastnoise in compilation
+add_library(fastnoise include/FastNoise/FastNoise.cpp)
+
 # add source files
 add_executable(${PROJECT_NAME} WIN32 src/game.h src/game.cpp src/util.h src/util.cpp src/shapes.h src/chunks.h src/chunks.cpp src/kenp_noise.h src/kenp_noise.cpp)
 
 # link executable to libraries
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # dab on 'em
-target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d)
+target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d fastnoise)
 
 # specify include directories
 include_directories(include)

@@ -4,6 +4,7 @@
 
 #include "GL/gl3w.h" // OutputDebugString
 
+#include <assert.h>
 #include <cstdint>
 #include <vmath.h>
 
@@ -31,6 +32,20 @@ enum class Block : uint8_t {
 	Stone = 2,
 };
 
+inline std::string block_name(Block b) {
+	switch (b) {
+	case Block::Air:
+		return "Air";
+	case Block::Grass:
+		return "Grass";
+	case Block::Stone:
+		return "Stone";
+	default:
+		assert(false && "Unknown block type.");
+		return "UNKNOWN";
+	}
+}
+
 static inline void chunk_set(Block* chunk, uint8_t x, uint8_t y, uint8_t z, Block val) {
 	chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
 }
@@ -41,7 +56,7 @@ static inline Block chunk_get(Block* chunk, uint8_t x, uint8_t y, uint8_t z) {
 
 class Chunk {
 public:
-	Block data[16*16*256];
+	Block data[16 * 16 * 256];
 	vmath::ivec2 coords; // coordinates in chunk format
 
 	//inline vec4 coords_real() {
