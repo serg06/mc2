@@ -416,7 +416,7 @@ void App::update_player_movement(const float dt) {
 	char_position += fixed_position_change;
 
 	ivec4 below = vec2ivec(char_position + DOWN_0);
-	auto type = get_type(below[0], below[1], below[2]);
+	auto type = get_type(below);
 	auto name = block_name(type);
 	sprintf(buf, "Block below: %s\n", name.c_str());
 	//OutputDebugString(buf);
@@ -443,7 +443,7 @@ vec4 App::velocity_prevent_collisions(const float dt, const vec4 position_change
 	// TODO: Remove duplicates? Or someth.
 
 	// Get all blocks we might be intersecting with
-	auto blocks = get_intersecting_blocks(position_change);
+	auto blocks = get_intersecting_blocks(char_position + position_change);
 
 	// if all blocks are air, we done
 	if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
@@ -471,7 +471,7 @@ vec4 App::velocity_prevent_collisions(const float dt, const vec4 position_change
 		// TODO: Adjust player's position along with velocity cancellation?
 		vec4 position_change_fixed = position_change;
 		position_change_fixed[vals_and_indices[i].second] = 0.0f;
-		blocks = get_intersecting_blocks(position_change_fixed);
+		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
 			// success!
@@ -501,7 +501,7 @@ vec4 App::velocity_prevent_collisions(const float dt, const vec4 position_change
 		vec4 position_change_fixed = position_change;
 		position_change_fixed[v1] = 0.0f;
 		position_change_fixed[v2] = 0.0f;
-		blocks = get_intersecting_blocks(position_change_fixed);
+		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
 			// success!
@@ -514,32 +514,11 @@ vec4 App::velocity_prevent_collisions(const float dt, const vec4 position_change
 	return { 0 };
 }
 
-vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction) {
-	// make sure exactly one entry is 1, rest are 0 (TODO: Support any direction vector)
-	int num_nonzero = count_if(direction.begin(), direction.end(), [](int n) { return n != 0; });
-	assert((num_nonzero - direction[3]) <= 1 && "Not a direction vector.");
-
+// given a player's position, what blocks does he intersect with?
+vector<ivec4> App::get_intersecting_blocks(vec4 player_position) {
 	// get x/y/z min/max
-	ivec3 xyzMin = { (int)floorf(char_position[0] - PLAYER_RADIUS + velocity[0]), (int)floorf(char_position[1] + velocity[1]), (int)floorf(char_position[2] - PLAYER_RADIUS + velocity[2]) };
-	ivec3 xyzMax = { (int)floorf(char_position[0] + PLAYER_RADIUS + velocity[0]), (int)floorf(char_position[1] + PLAYER_HEIGHT + velocity[1]), (int)floorf(char_position[2] + PLAYER_RADIUS + velocity[2]) };
-
-	if (char_position[0] < 0 && char_position[2] < 0 && velocity[0] == 0) {
-		OutputDebugString("");
-	}
-
-	// apply direction vector if needed
-	for (int i = 0; i < xyzMin.size(); i++) {
-		if (direction[i] < 0) {
-			OutputDebugString("Updating...\n");
-			xyzMax[i] = xyzMin[i];
-			break;
-		}
-		if (direction[i] > 0) {
-			OutputDebugString("Updating...\n");
-			xyzMin[i] = xyzMax[i];
-			break;
-		}
-	}
+	ivec3 xyzMin = { (int)floorf(player_position[0] - PLAYER_RADIUS), (int)floorf(player_position[1]), (int)floorf(player_position[2] - PLAYER_RADIUS) };
+	ivec3 xyzMax = { (int)floorf(player_position[0] + PLAYER_RADIUS), (int)floorf(player_position[1] + PLAYER_HEIGHT), (int)floorf(player_position[2] + PLAYER_RADIUS) };
 
 	// get all blocks that our player intersects with
 	vector<ivec4> blocks;
@@ -552,85 +531,7 @@ vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction) {
 		}
 	}
 
-	char buf[256];
-	char *bufp = buf;
-	bufp += sprintf(bufp, "Potential blocks: ");
-	for (auto block : blocks) {
-		auto type = get_type(block);
-		if (block[2] == -4) {
-			OutputDebugString("");
-		}
-		bufp += sprintf(bufp, "(%d, %d, %d), ", block[0], block[1], block[2]);
-	}
-	//sprintf(buf, "Num intersecting blocks: %d\n", count_if(begin(blocks), end(blocks), [this](const auto& block) { return get_type(block[0], block[1], block[2]) != Block::Air; }));
-	bufp += sprintf(bufp, "\n");
-	//OutputDebugString(buf);
-
-	if (char_position[0] < 0 && char_position[2] < 0) {
-		OutputDebugString("");
-	}
-
 	return blocks;
-}
-
-// check if a direction (n/e/s/w) is clear for the player to fit through
-bool App::is_dir_clear(vec4 direction) {
-	// make sure there's exactly one non-zero value, and it's 1
-	int num_nonzero = count_if(direction.begin(), direction.end(), [](int n) { return n != 0; });
-	assert(num_nonzero == 1 && "Not a direction vector.");
-	assert(length(direction) == 1 && "Not a direction vector.");
-
-	// get x/y/z min/max
-	int xMin = (int)floorf(char_position[0] - PLAYER_RADIUS);
-	int xMax = (int)floorf(char_position[0] + PLAYER_RADIUS);
-
-	int yMin = (int)floorf(char_position[1]);
-	int yMax = (int)floorf(char_position[1] + PLAYER_HEIGHT);
-
-	int zMin = (int)floorf(char_position[2] - PLAYER_RADIUS);
-	int zMax = (int)floorf(char_position[2] + PLAYER_RADIUS);
-
-	// if going east
-	if (direction[0] > 0) {
-		xMin = xMax;
-	}
-	// if going west
-	else if (direction[0] < 0) {
-		xMax = xMin;
-	}
-	// if going north
-	else if (direction[2] < 0) {
-		yMax = yMin;
-	}
-	// if going south
-	else if (direction[2] > 0) {
-		yMin = yMax;
-	}
-	// if going up
-	else if (direction[1] > 0) {
-		zMin = zMax;
-	}
-	// if going down
-	else if (direction[1] < 0) {
-		zMax = zMin;
-	}
-	// uh oh
-	else {
-		throw "Uh oh...";
-	}
-
-	// get all blocks that our player intersects with, but only in the direction they're moving in!
-	for (int x = xMin; x < xMax; x++) {
-		for (int y = yMin; y < yMax; y++) {
-			for (int z = zMin; z < zMax; z++) {
-				if (get_type(x, y, z) != Block::Air) {
-					return false;
-				}
-			}
-		}
-	}
-
-	return true;
 }
 
 void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)

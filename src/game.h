@@ -31,67 +31,54 @@ struct AppInfo {
 	float mouseY_Sensitivity = 0.25f;
 };
 
-struct pair_hash
-{
-	template <class T1, class T2>
-	std::size_t operator() (const std::pair<T1, T2> &pair) const
-	{
-		return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
-	}
-};
-
 class App {
-protected:
 public:
-	// the one and only copy of this app
+	static App* app;
+
+	// GLFW (window) stuff
 	AppInfo info;
 	GLFWwindow *window;
 
+	// OpenGL stuff
 	GLuint rendering_program;
 	GLuint vao_cube, vao2;
-
-	bool noclip = false;
 
 	// buffers
 	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
 	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
 	GLuint chunk_types_buf; // stores the block type for every block in the chunk
 
+	// mouse inputs
 	double last_mouse_x;
 	double last_mouse_y;
-	float last_render_time;
-	bool held_keys[GLFW_KEY_LAST + 1];
 
+	// key inputs
+	bool held_keys[GLFW_KEY_LAST + 1];
+	bool noclip = false;
+
+	// movement
 	vec4 char_position = { 8.0f, 66.0f, 8.0f, 1.0f };
 	vec4 char_velocity = { 0.0f };
+
+	// rotation
 	float char_pitch = 0.0f; //   up/down  angle;    capped to [-90.0, 90.0]
 	float char_yaw = 0.0f;   // left/right angle; un-capped (TODO: Reset it if it gets too high?)
 
-	// store our chunk info in here for now
-	Block* chunks[1024];
-	ivec2 chunk_coords[1024];
-
+	// misc
 	unordered_map<pair<int, int>, Chunk*, pair_hash> chunk_map;
+	float last_render_time;
 
-	App() {
-
-	}
-
-	void shutdown() {
-		// TODO: Maybe some day.
-	}
-
+	App() {}
 	void run();
 	void startup();
+	void shutdown() { /* TODO: Maybe some day. */ }
 	void render(float time);
 	void update_player_movement(const float dt);
-	vec4 App::velocity_prevent_collisions(const float dt, const vec4 position_change);
-	bool is_dir_clear(vec4);
-	vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction = { 0 });
+	vec4 velocity_prevent_collisions(const float dt, const vec4 position_change);
+	vector<ivec4> get_intersecting_blocks(vec4 player_position);
 
-
+	// generate chunks near player
 	inline void gen_nearby_chunks() {
-		// get chunk coords
 		ivec2 chunk_coords = get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
 
 		for (int i = -MIN_RENDER_DISTANCE; i <= MIN_RENDER_DISTANCE; i++) {
@@ -101,6 +88,7 @@ public:
 		}
 	}
 
+	// add chunk to chunk coords (x, z)
 	inline void add_chunk(int x, int z, Chunk* chunk) {
 		auto search = chunk_map.find({ x, z });
 
@@ -113,13 +101,18 @@ public:
 		chunk_map[{x, z}] = chunk;
 	}
 
+	// generate chunk at (x, z) and add it
+	inline void gen_chunk_at(int x, int z) {
+		add_chunk(x, z, gen_chunk(x, z));
+	}
+
 	// get chunk (generate it if required)
 	inline Chunk* get_chunk(int x, int z) {
 		auto search = chunk_map.find({ x, z });
 
 		// if doesn't exist, generate it
 		if (search == chunk_map.end()) {
-			add_chunk(x, z, gen_chunk(x, z));
+			gen_chunk_at(x, z);
 		}
 
 		return chunk_map[{x, z}];
@@ -152,7 +145,7 @@ public:
 		return ivec3(x, y, z);
 	}
 
-	// get type of this block
+	// get a block's type
 	inline Block get_type(int x, int y, int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 		ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
@@ -169,8 +162,6 @@ public:
 	void onMouseMove(GLFWwindow* window, double x, double y);
 	void onResize(GLFWwindow* window, int width, int height);
 	void onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
-
-	static App* app;
 };
 App* App::app;
 
