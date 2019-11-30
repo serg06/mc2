@@ -249,11 +249,15 @@ void App::render(float time) {
 	const float dt = time - last_render_time;
 	last_render_time = time;
 
+	/* CHANGES IN WORLD */
+
 	// update player movement
 	update_player_movement(dt);
 
 	// generate nearby chunks
 	gen_nearby_chunks();
+
+	/* TRANSFORMATION MATRICES */
 
 	// Create Model->World matrix
 	float f = (float)time * (float)M_PI * 0.1f;
@@ -277,6 +281,8 @@ void App::render(float time) {
 		16 * CHUNK_WIDTH // only support 32 chunks for now
 	);
 
+	/* BACKGROUND / SKYBOX */
+
 	// Draw background color
 	const GLfloat color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	glClearBufferfv(GL_COLOR, 0, color);
@@ -286,19 +292,12 @@ void App::render(float time) {
 	glNamedBufferSubData(trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
 	glNamedBufferSubData(trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 
-	// Update chunk types buffer with chunk types!
-	//glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), chunks[0]); // proj matrix
-
 	char buf[256];
 	sprintf(buf, "Drawing (took %d ms)\n", (int)(dt * 1000));
 	//OutputDebugString(buf);
 	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
 	//OutputDebugString(buf);
-
-	//// Draw our chunks!
-	//glBindVertexArray(vao_cube);
-	//glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 
 	// Draw ALL our chunks!
 	glBindVertexArray(vao_cube);
