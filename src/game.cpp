@@ -119,11 +119,10 @@ void App::run() {
 	startup();
 
 	// run until user presses ESC or tries to close window
-	last_render_time = glfwGetTime();
+	last_render_time = (float)glfwGetTime();
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
-		time = glfwGetTime();
 		// run rendering function
-		render(glfwGetTime());
+		render(last_render_time);
 
 		// display drawing buffer on screen
 		glfwSwapBuffers(window);
@@ -243,9 +242,9 @@ void App::startup() {
 	glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(uint8_t), get_chunk(0, 0)->data); // proj matrix
 }
 
-void App::render(double time) {
+void App::render(float time) {
 	// change in time
-	const double dt = time - last_render_time;
+	const float dt = time - last_render_time;
 	last_render_time = time;
 
 	// update player movement
@@ -313,7 +312,7 @@ void App::render(double time) {
 	}
 }
 
-void App::update_player_movement(const double dt) {
+void App::update_player_movement(const float dt) {
 	char buf[256];
 	// update player's movement based on how much time has passed since we last did it
 
@@ -324,7 +323,7 @@ void App::update_player_movement(const double dt) {
 	vec4 norm = normalize(char_velocity);
 	for (int i = 0; i < 4; i++) {
 		if (char_velocity[i] > 0.0f) {
-			char_velocity[i] = (float)fmax(0.0f, char_velocity[i] - (10.0f * norm[i] * dt));
+			char_velocity[i] = (float)fmaxf(0.0f, char_velocity[i] - (10.0f * norm[i] * dt));
 		}
 		else if (char_velocity[i] < 0.0f) {
 			char_velocity[i] = (float)fmin(0.0f, char_velocity[i] - (10.0f * norm[i] * dt));
@@ -380,8 +379,7 @@ void App::update_player_movement(const double dt) {
 
 	// Snap to walls to cancel velocity and to stay at a constant value while moving along wall
 	ivec4 ipos = vec2ivec(char_position);
-	float remainder;
-	float integer;
+
 	// if removed east, snap to east wall
 	if (position_change[0] > fixed_position_change[0]) {
 		char_velocity[0] = 0;
@@ -390,12 +388,12 @@ void App::update_player_movement(const double dt) {
 	// west
 	if (position_change[0] < fixed_position_change[0]) {
 		char_velocity[0] = 0;
-		char_position[0] = fmax(char_position[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
+		char_position[0] = fmaxf(char_position[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
 	}
 	// north
 	if (position_change[2] < fixed_position_change[2]) {
 		char_velocity[2] = 0;
-		char_position[2] = fmax(char_position[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
+		char_position[2] = fmaxf(char_position[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
 	}
 	// south
 	if (position_change[2] > fixed_position_change[2]) {
@@ -410,7 +408,7 @@ void App::update_player_movement(const double dt) {
 	// down
 	if (position_change[1] < fixed_position_change[1]) {
 		char_velocity[1] = 0;
-		char_position[1] = fmax(char_position[1], ipos[1]); // RESET DOWN
+		char_position[1] = fmaxf(char_position[1], (float)ipos[1]); // RESET DOWN
 	}
 
 	// Update position
@@ -426,7 +424,7 @@ void App::update_player_movement(const double dt) {
 	//OutputDebugString(buf);
 }
 
-vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_change) {
+vec4 App::velocity_prevent_collisions(const float dt, const vec4 position_change) {
 	// Given a change-in-position, check if it's possible; if not, fix it optimally.
 	char buf[4096];
 	char *bufp = buf;

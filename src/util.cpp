@@ -376,7 +376,7 @@ double weighted_avg(double point, double left, double right) {
 
 // perlin function gives us y value at (x,z).
 // for now call it (x,y) for math-clarity
-double noise2d(double x, double y) {
+double noise2d(float x, float y) {
 	// get coordinates
 	int xMin = (int)floorf(x);
 	int xMax = (int)ceilf(x);

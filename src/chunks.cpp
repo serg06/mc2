@@ -121,7 +121,7 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 
 			//double y = noise2d((float)x / CHUNK_WIDTH, (float)z / CHUNK_DEPTH);
 			//double y = noise2d((float)(x + chunkX * 16)/CHUNK_WIDTH, (float)(z + chunkZ * 16)/CHUNK_DEPTH);
-			double y = fn.GetSimplex(x + chunkX * 16, z + chunkZ * 16);
+			double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
 			//float input[2] = { (float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH };
 			//double y = noise22(input);
 			y = (y + 1.0) / 2.0;
@@ -138,7 +138,7 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 			for (int i = 0; i < y; i++) {
 				chunk_set(data, x, i, z, Block::Stone);
 			}
-			chunk_set(data, x, y, z, Block::Grass);
+			chunk_set(data, x, (int)y, z, Block::Grass);
 		}
 	}
 

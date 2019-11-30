@@ -46,11 +46,11 @@ inline std::string block_name(Block b) {
 	}
 }
 
-static inline void chunk_set(Block* chunk, uint8_t x, uint8_t y, uint8_t z, Block val) {
+static inline void chunk_set(Block* chunk, int x, int y, int z, Block val) {
 	chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
 }
 
-static inline Block chunk_get(Block* chunk, uint8_t x, uint8_t y, uint8_t z) {
+static inline Block chunk_get(Block* chunk, int x, int y, int z) {
 	return chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
 }
 

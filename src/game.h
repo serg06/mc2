@@ -60,7 +60,7 @@ public:
 
 	double last_mouse_x;
 	double last_mouse_y;
-	double last_render_time;
+	float last_render_time;
 	bool held_keys[GLFW_KEY_LAST + 1];
 
 	vec4 char_position = { 8.0f, 66.0f, 8.0f, 1.0f };
@@ -84,9 +84,9 @@ public:
 
 	void run();
 	void startup();
-	void render(double);
-	void update_player_movement(const double);
-	vec4 App::velocity_prevent_collisions(const double dt, const vec4 position_change);
+	void render(float time);
+	void update_player_movement(const float dt);
+	vec4 App::velocity_prevent_collisions(const float dt, const vec4 position_change);
 	bool is_dir_clear(vec4);
 	vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction = { 0 });
 
@@ -155,8 +155,6 @@ public:
 
 	// get type of this block
 	inline Block get_type(int x, int y, int z) {
-		char buf[256];
-
 		Chunk* chunk = get_chunk_containing_block(x, z);
 		ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
 		auto result = chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
