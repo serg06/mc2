@@ -126,10 +126,6 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 			//double y = noise22(input);
 			y = (y + 1.0) / 2.0;
 
-			if (x == 2 && z == 4) {
-				OutputDebugString("");
-			}
-
 			// max height: 64
 			assert(maxY > 0 && "WTF?");
 			//y *= (6 / maxY); // variation of around 6
@@ -137,10 +133,7 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 			y += 58; // minimum height 60
 
 			sprintf(buf, "Top: (%d, %.3f, %d)\n", x, y, z);
-			OutputDebugString(buf);
-			if (z > 16 || z < 0) {
-				OutputDebugString("");
-			}
+			//OutputDebugString(buf);
 
 			for (int i = 0; i < y; i++) {
 				chunk_set(data, x, i, z, Block::Stone);

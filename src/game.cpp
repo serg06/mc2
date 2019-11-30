@@ -232,13 +232,13 @@ void App::startup() {
 	// use our program object for rendering
 	glUseProgram(rendering_program);
 
-	// generate a chunk
-	for (int x = 0; x < 5; x++) {
-		for (int z = 0; z < 5; z++) {
-			Chunk* chunk = gen_chunk(x, z);
-			add_chunk(x, z, chunk);
-		}
-	}
+	//// generate a chunk
+	//for (int x = 0; x < 5; x++) {
+	//	for (int z = 0; z < 5; z++) {
+	//		Chunk* chunk = gen_chunk(x, z);
+	//		add_chunk(x, z, chunk);
+	//	}
+	//}
 
 
 	// load into memory pog
@@ -252,9 +252,10 @@ void App::render(double time) {
 	last_render_time = time;
 
 	// update player movement
-	App::update_player_movement(dt);
+	update_player_movement(dt);
 
 	// generate nearby chunks
+	gen_nearby_chunks();
 
 	// Create Model->World matrix
 	float f = (float)time * (float)M_PI * 0.1f;
@@ -294,7 +295,7 @@ void App::render(double time) {
 	//OutputDebugString(buf);
 	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
-	OutputDebugString(buf);
+	//OutputDebugString(buf);
 
 	//// Draw our chunks!
 	//glBindVertexArray(vao_cube);
@@ -421,7 +422,7 @@ void App::update_player_movement(const double dt) {
 	auto type = get_type(below[0], below[1], below[2]);
 	auto name = block_name(type);
 	sprintf(buf, "Block below: %s\n", name.c_str());
-	OutputDebugString(buf);
+	//OutputDebugString(buf);
 
 	sprintf(buf, "Velocity: (%.2f, %.2f, %.2f)\n", char_velocity[0], char_velocity[1], char_velocity[2]);
 	//OutputDebugString(buf);

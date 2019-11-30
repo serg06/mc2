@@ -1,6 +1,8 @@
 #ifndef __GAME_H__
 #define __GAME_H__
 
+#define MIN_RENDER_DISTANCE 2
+
 #include "chunks.h"
 #include "util.h"
 
@@ -88,6 +90,18 @@ public:
 	vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction = { 0 });
 
 
+	inline void gen_nearby_chunks() {
+		// get chunk coords
+		ivec2 chunk_coords = get_chunk_coords(char_position[0], char_position[2]);
+
+		for (int i = -MIN_RENDER_DISTANCE; i <= MIN_RENDER_DISTANCE; i++) {
+			for (int j = -(MIN_RENDER_DISTANCE - abs(i)); j <= MIN_RENDER_DISTANCE - abs(i); j++) {
+				get_chunk(chunk_coords[0] + i, chunk_coords[1] + j);
+			}
+		}
+	}
+
+
 	inline void add_chunk(int x, int z, Chunk* chunk) {
 		try {
 			chunk_map.at({ x, z });
@@ -118,6 +132,11 @@ public:
 		// 16-31 -> 16
 		// -15--1 -> 0 (fuck)
 		return get_chunk(floorf((float)x / 16.0f), floorf((float)z / 16.0f));
+	}
+
+	inline ivec2 get_chunk_coords(int x, int z) {
+		// get CHUNK coordinates of chunk at (x,z)
+		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
 	}
 
 	// coordinates in real world to coordinates in its chunk
@@ -151,7 +170,7 @@ public:
 
 		std::string s = block_name(result);
 		sprintf(buf, "get_type(%d, %d, %d) = %s\n", x, y, z, s.c_str());
-		OutputDebugString(buf);
+		//OutputDebugString(buf);
 
 		return result;
 	}
