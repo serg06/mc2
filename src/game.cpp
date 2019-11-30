@@ -314,11 +314,12 @@ void App::render(float time) {
 	}
 }
 
+// update player's movement based on how much time has passed since we last did it
 void App::update_player_movement(const float dt) {
 	char buf[256];
-	// update player's movement based on how much time has passed since we last did it
 
-	// Velocity falloff
+	/* VELOCITY FALLOFF */
+
 	//   TODO: Handle walking on blocks, in water, etc. Maybe do it based on friction.
 	//   TODO: Tweak values.
 	char_velocity *= (float)pow(0.5, dt);
@@ -332,13 +333,13 @@ void App::update_player_movement(const float dt) {
 		}
 	}
 
+	/* ACCELERATION */
 
-	// Calculate char's yaw rotation direction
+	// character's horizontal rotation
 	mat4 dir_rotation = rotate_pitch_yaw(0.0f, char_yaw);
 
 	// calculate acceleration
 	vec4 acceleration = { 0.0f };
-
 
 	if (held_keys[GLFW_KEY_W]) {
 		acceleration += dir_rotation * vec4(0.0f, 0.0f, -1.0f, 0.0f);
@@ -359,27 +360,27 @@ void App::update_player_movement(const float dt) {
 		acceleration += dir_rotation * vec4(0.0f, -1.0f, 0.0f, 0.0f);
 	}
 
-	// Velocity change via acceleration
+	/* VELOCITY INCREASE */
+
 	char_velocity += acceleration * dt * 50.0f;
 	if (length(char_velocity) > 10.0f) {
 		char_velocity = 10.0f * normalize(char_velocity);
 	}
 	char_velocity[3] = 0.0f; // Just in case
 
-	sprintf(buf, "Accel: (%.3f, %.3f, %.3f) | Velocity: (%.3f, %.3f, %.3f)\n", acceleration[0], acceleration[1], acceleration[2], char_velocity[0], char_velocity[1], char_velocity[2]);
-	//OutputDebugString(buf);
-
+	/* POSITION CHANGE */
 
 	// Calculate our change-in-position
 	vec4 position_change = char_velocity * dt;
 
-	// Fix it to avoid collisions, if noclip is not on
+	// Adjust it to avoid collisions
 	vec4 fixed_position_change = position_change;
 	if (!noclip) {
 		fixed_position_change = prevent_collisions(position_change);
 	}
 
-	// Snap to walls to cancel velocity and to stay at a constant value while moving along wall
+	/* SNAP TO WALLS */
+
 	ivec4 ipos = vec2ivec(char_position);
 
 	// if removed east, snap to east wall
@@ -415,15 +416,6 @@ void App::update_player_movement(const float dt) {
 
 	// Update position
 	char_position += fixed_position_change;
-
-	ivec4 below = vec2ivec(char_position + DOWN_0);
-	auto type = get_type(below);
-	auto name = block_name(type);
-	sprintf(buf, "Block below: %s\n", name.c_str());
-	//OutputDebugString(buf);
-
-	sprintf(buf, "Velocity: (%.2f, %.2f, %.2f)\n", char_velocity[0], char_velocity[1], char_velocity[2]);
-	//OutputDebugString(buf);
 }
 
 // given a player's change-in-position, modify the change to optimally prevent collisions
