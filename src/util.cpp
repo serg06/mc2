@@ -58,8 +58,9 @@ out uint vs_block_type;
 
 layout (std140, binding = 0) uniform UNI_IN
 {
-	mat4 mv_matrix; // takes up 16 bytes
-	mat4 proj_matrix; // takes up 16 bytes
+	mat4 mv_matrix; // takes up 16? bytes
+	mat4 proj_matrix; // takes up 16? bytes
+	ivec2 base_coords; // takes up ? bytes
 } uni;
 
 float rand(float seed) {
@@ -83,7 +84,7 @@ void main(void)
 
 	/* CREATE OUR OFFSET VARIABLE */
 
-	vec4 instance_offset = vec4(x, y, z, 0);
+	vec4 instance_offset = vec4(x + uni.base_coords[0] * 16, y, z + uni.base_coords[1] * 16, 0);
 
 	/* ADD IT TO VERTEX */
 
