@@ -101,7 +101,7 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 			//double y = noise2d((float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH);
 			//float input[2] = { (float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH };
 			//double y = noise22(input);
-			double y = fn.GetSimplex(x + chunkX * 16, z + chunkZ * 16);
+			double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
 			y = (y + 1.0) / 2.0;
 			if (y < 0) {
 				OutputDebugString("WTF?");
@@ -253,5 +253,5 @@ inline vec4 chunk_to_world(ivec2 chunk_coords) {
 
 // transform world coordinates to chunk coordinates
 inline ivec2 world_to_chunk(vec4 world_coords) {
-	return ivec2(world_coords[0], world_coords[1]);
+	return ivec2((int)floorf(world_coords[0]), (int)floorf(world_coords[1]));
 }

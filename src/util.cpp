@@ -352,7 +352,7 @@ vec2 rand_grad(int seed, int x, int y) {
 	srand(h(seed) ^ h(x) ^ h(y));
 
 	for (int i = 0; i < result.size(); i++) {
-		result[i] = rand();
+		result[i] = ((float)rand() / (float)RAND_MAX);
 	}
 
 	result = normalize(result);
@@ -378,12 +378,12 @@ double weighted_avg(double point, double left, double right) {
 // for now call it (x,y) for math-clarity
 double noise2d(double x, double y) {
 	// get coordinates
-	float xMin = floor(x);
-	float xMax = ceil(x);
-	float yMin = floor(y);
-	float yMax = ceil(y);
+	int xMin = (int)floorf(x);
+	int xMax = (int)ceilf(x);
+	int yMin = (int)floorf(y);
+	int yMax = (int)ceilf(y);
 
-	vec2 coords[4] = {
+	ivec2 coords[4] = {
 		{ xMin, yMin },
 		{ xMax, yMin },
 		{ xMin, yMax },
@@ -403,12 +403,12 @@ double noise2d(double x, double y) {
 	vec2 vecs_to_xy[4];
 
 	for (int i = 0; i < len; i++) {
-		vecs_to_xy[i] = vec2(x, y) - coords[i];
+		vecs_to_xy[i] = vec2(x, y) - vec2((float)coords[i][0], (float)coords[i][1]);
 	}
 
 	// dot product vec_to_xy with grad
 	float dots[4];
-	
+
 	for (int i = 0; i < len; i++) {
 		dots[i] = dot(grads[i], vecs_to_xy[i]);
 	}

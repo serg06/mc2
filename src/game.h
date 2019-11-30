@@ -93,7 +93,7 @@ public:
 
 	inline void gen_nearby_chunks() {
 		// get chunk coords
-		ivec2 chunk_coords = get_chunk_coords(char_position[0], char_position[2]);
+		ivec2 chunk_coords = get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
 
 		for (int i = -MIN_RENDER_DISTANCE; i <= MIN_RENDER_DISTANCE; i++) {
 			for (int j = -(MIN_RENDER_DISTANCE - abs(i)); j <= MIN_RENDER_DISTANCE - abs(i); j++) {
@@ -102,46 +102,43 @@ public:
 		}
 	}
 
-
 	inline void add_chunk(int x, int z, Chunk* chunk) {
-		try {
-			chunk_map.at({ x, z });
-		}
-		catch (out_of_range e) {
-			chunk_map[{x, z}] = chunk;
-			return;
-		}
+		auto search = chunk_map.find({ x, z });
 
-		// chunk already exists
-		assert(false && "Tried to add chunk but it already exists.");
+		// if element already exists, error
+		if (search != chunk_map.end()) {
+			throw "Tried to add chunk but it already exists.";
+		}
+		
+		// insert our chunk
+		chunk_map[{x, z}] = chunk;
 	}
 
+	// get chunk (generate it if required)
 	inline Chunk* get_chunk(int x, int z) {
-		// if chunk doesn't exist, create new chunk
-		try {
-			return chunk_map.at({ x, z });
-		}
-		catch (out_of_range e) {
+		auto search = chunk_map.find({ x, z });
+
+		// if doesn't exist, generate it
+		if (search == chunk_map.end()) {
 			add_chunk(x, z, gen_chunk(x, z));
-			return chunk_map[{x, z}];
 		}
+
+		return chunk_map[{x, z}];
 	}
 
-	// get chunk that contains block w/ these coordinates
-	inline Chunk* get_chunk_real_coords(int x, int z) {
-		// 0-15 -> 0
-		// 16-31 -> 16
-		// -15--1 -> 0 (fuck)
-		return get_chunk(floorf((float)x / 16.0f), floorf((float)z / 16.0f));
+	// get chunk that contains block at (x, _, z)
+	inline Chunk* get_chunk_containing_block(int x, int z) {
+		return get_chunk((int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f));
 	}
 
+	// get chunk-coordinates of chunk containing the block at (x, _, z)
 	inline ivec2 get_chunk_coords(int x, int z) {
-		// get CHUNK coordinates of chunk at (x,z)
 		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
 	}
 
 	// coordinates in real world to coordinates in its chunk
-	inline ivec3 real_coords_to_chunk_coords(int x, int y, int z) {
+	// given a block's real-world coordinates, given that block's coordinates relative to its chunk
+	inline ivec3 get_chunk_relative_coordinates(int x, int y, int z) {
 		// adjust x and y
 		x = x % CHUNK_WIDTH;
 		z = z % CHUNK_DEPTH;
@@ -161,8 +158,8 @@ public:
 	inline Block get_type(int x, int y, int z) {
 		char buf[256];
 
-		Chunk* chunk = get_chunk_real_coords(x, z);
-		ivec3 chunk_coords = real_coords_to_chunk_coords(x, y, z);
+		Chunk* chunk = get_chunk_containing_block(x, z);
+		ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
 		auto result = chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
 
 		if (z == -4) {

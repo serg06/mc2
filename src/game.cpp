@@ -155,12 +155,9 @@ void App::startup() {
 	// create program
 	rendering_program = compile_shaders(shader_fnames);
 
-	/*
-	* CUBE MOVEMENT
-	*/
+	/* OPENGL SETUP */
 
 	// Set up our binding indices
-
 	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
@@ -419,7 +416,7 @@ void App::update_player_movement(const double dt) {
 	// Update position
 	char_position += fixed_position_change;
 
-	vec4 below = char_position + DOWN_0;
+	ivec4 below = vec2ivec(char_position + DOWN_0);
 	auto type = get_type(below[0], below[1], below[2]);
 	auto name = block_name(type);
 	sprintf(buf, "Block below: %s\n", name.c_str());
@@ -524,8 +521,8 @@ vector<ivec4> App::get_intersecting_blocks(vec4 velocity, vec4 direction) {
 	assert((num_nonzero - direction[3]) <= 1 && "Not a direction vector.");
 
 	// get x/y/z min/max
-	ivec3 xyzMin = { (int)floor(char_position[0] - PLAYER_RADIUS + velocity[0]), (int)floor(char_position[1] + velocity[1]), (int)floor(char_position[2] - PLAYER_RADIUS + velocity[2]) };
-	ivec3 xyzMax = { (int)floor(char_position[0] + PLAYER_RADIUS + velocity[0]), (int)floor(char_position[1] + PLAYER_HEIGHT + velocity[1]), (int)floor(char_position[2] + PLAYER_RADIUS + velocity[2]) };
+	ivec3 xyzMin = { (int)floorf(char_position[0] - PLAYER_RADIUS + velocity[0]), (int)floorf(char_position[1] + velocity[1]), (int)floorf(char_position[2] - PLAYER_RADIUS + velocity[2]) };
+	ivec3 xyzMax = { (int)floorf(char_position[0] + PLAYER_RADIUS + velocity[0]), (int)floorf(char_position[1] + PLAYER_HEIGHT + velocity[1]), (int)floorf(char_position[2] + PLAYER_RADIUS + velocity[2]) };
 
 	if (char_position[0] < 0 && char_position[2] < 0 && velocity[0] == 0) {
 		OutputDebugString("");
@@ -585,14 +582,14 @@ bool App::is_dir_clear(vec4 direction) {
 	assert(length(direction) == 1 && "Not a direction vector.");
 
 	// get x/y/z min/max
-	int xMin = char_position[0] - PLAYER_RADIUS;
-	int xMax = char_position[0] + PLAYER_RADIUS;
+	int xMin = (int)floorf(char_position[0] - PLAYER_RADIUS);
+	int xMax = (int)floorf(char_position[0] + PLAYER_RADIUS);
 
-	int yMin = char_position[1];
-	int yMax = char_position[1] + PLAYER_HEIGHT;
+	int yMin = (int)floorf(char_position[1]);
+	int yMax = (int)floorf(char_position[1] + PLAYER_HEIGHT);
 
-	int zMin = char_position[2] - PLAYER_RADIUS;
-	int zMax = char_position[2] + PLAYER_RADIUS;
+	int zMin = (int)floorf(char_position[2] - PLAYER_RADIUS);
+	int zMax = (int)floorf(char_position[2] + PLAYER_RADIUS);
 
 	// if going east
 	if (direction[0] > 0) {
@@ -623,19 +620,10 @@ bool App::is_dir_clear(vec4 direction) {
 		throw "Uh oh...";
 	}
 
-	// integerize
-	int ixMin = (int)floor(xMin);
-	int ixMax = (int)floor(xMax);
-	int iyMin = (int)floor(yMin);
-	int iyMax = (int)floor(yMax);
-	int izMin = (int)floor(zMin);
-	int izMax = (int)floor(zMax);
-
-
 	// get all blocks that our player intersects with, but only in the direction they're moving in!
-	for (int x = ixMin; x < ixMax; x++) {
-		for (int y = iyMin; y < iyMax; y++) {
-			for (int z = izMin; z < izMax; z++) {
+	for (int x = xMin; x < xMax; x++) {
+		for (int y = yMin; y < yMax; y++) {
+			for (int z = zMin; z < zMax; z++) {
 				if (get_type(x, y, z) != Block::Air) {
 					return false;
 				}
