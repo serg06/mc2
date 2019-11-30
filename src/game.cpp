@@ -299,8 +299,9 @@ void App::render(float time) {
 	/* BACKGROUND / SKYBOX */
 
 	// Draw background color
-	const GLfloat color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	glClearBufferfv(GL_COLOR, 0, color);
+	const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	const GLfloat sky_blue[] = { 135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f };
+	glClearBufferfv(GL_COLOR, 0, sky_blue);
 	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // used for depth test somehow
 
 	// Update transformation buffer with matrices
