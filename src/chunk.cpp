@@ -25,62 +25,41 @@ double noise22(float vec[2]) {
 }
 
 Chunk* gen_chunk(int chunkX, int chunkZ) {
+	char buf[256];
+	FastNoise fn;
+
+	// create new chunk
 	Chunk* result = new Chunk();
-	result->data = (Block*) malloc(sizeof(Block) * CHUNK_SIZE);
+	result->data = (Block*)malloc(sizeof(Block) * CHUNK_SIZE);
 	result->coords = { chunkX, chunkZ };
 	Block* data = result->data;
-	FastNoise fn;
-	char buf[256];
-
 	memset(data, (uint8_t)Block::Air, sizeof(Block) * CHUNK_SIZE);
 
+	// create its buffer
+	glCreateBuffers(1, &result->gl_buf);
+	glNamedBufferStorage(result->gl_buf, CHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
-	double maxY = 0;
-	for (int x = 0; x < CHUNK_WIDTH; x++) {
-		for (int z = 0; z < CHUNK_DEPTH; z++) {
-			//double y = noise2d((float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH);
-			//float input[2] = { (float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH };
-			//double y = noise22(input);
-			double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
-			y = (y + 1.0) / 2.0;
-			if (y < 0) {
-				OutputDebugString("WTF?");
-			}
-			if (y > maxY) {
-				//OutputDebugString("Update maxY...\n");
-				maxY = y;
-			}
-		}
-	}
-
-	sprintf(buf, "FINAL MAXY: [%.2f]\n", maxY);
-	OutputDebugString(buf);
-
+	// fill data
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
 		for (int z = 0; z < CHUNK_DEPTH; z++) {
 
-			//double y = noise2d((float)x / CHUNK_WIDTH, (float)z / CHUNK_DEPTH);
-			//double y = noise2d((float)(x + chunkX * 16)/CHUNK_WIDTH, (float)(z + chunkZ * 16)/CHUNK_DEPTH);
+			// get height at this location
 			double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
-			//float input[2] = { (float)(x + chunkX * 16) / CHUNK_WIDTH, (float)(z + chunkZ * 16) / CHUNK_DEPTH };
-			//double y = noise22(input);
-			y = (y + 1.0) / 2.0;
 
-			// max height: 64
-			assert(maxY > 0 && "WTF?");
-			//y *= (6 / maxY); // variation of around 6
+			y = (y + 1.0) / 2.0; // normalize to [0.0, 1.0]
 			y *= 12; // variation of around 6
 			y += 55; // minimum height 60
 
-			sprintf(buf, "Top: (%d, %.3f, %d)\n", x, y, z);
-			//OutputDebugString(buf);
-
+			// fill everything under that height
 			for (int i = 0; i < y; i++) {
 				chunk_set(data, x, i, z, Block::Stone);
 			}
 			chunk_set(data, x, (int)y, z, Block::Grass);
 		}
 	}
+
+	// fill buffer
+	glNamedBufferSubData(result->gl_buf, 0, CHUNK_SIZE * sizeof(Block), data);
 
 	return result;
 };

@@ -37,6 +37,7 @@ class Chunk {
 public:
 	Block * data;
 	vmath::ivec2 coords; // coordinates in chunk format
+	GLuint gl_buf; // opengl buffer with this chunk's data
 
 	//inline vec4 coords_real() {
 	//	return coords * 16;
