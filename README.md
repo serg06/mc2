@@ -1,6 +1,7 @@
 # (In-progress): A Minecraft-like game using C++ and OpenGL.
 
 Video: 
+
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/32xDZ_fhXz4/0.jpg)](https://www.youtube.com/watch?v=32xDZ_fhXz4)
 
 This is a from-scratch creation of a Minecraft-like game, using C++ and OpenGL.
