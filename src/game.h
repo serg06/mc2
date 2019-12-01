@@ -1,7 +1,7 @@
 #ifndef __GAME_H__
 #define __GAME_H__
 
-#define MIN_RENDER_DISTANCE 2
+#define MIN_RENDER_DISTANCE 3
 #define GPU_MAX_CHUNKS 256
 
 #include "chunk.h"
@@ -16,6 +16,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 #include <vmath.h>
 #include <windows.h>
 
@@ -60,7 +61,7 @@ public:
 	void render(float time);
 	void update_player_movement(const float dt);
 	vec4 prevent_collisions(const vec4 position_change);
-	vector<ivec4> get_intersecting_blocks(vec4 player_position);
+	std::vector<vmath::ivec4> get_intersecting_blocks(vec4 player_position);
 
 	// generate chunks near player
 	inline void gen_nearby_chunks() {
@@ -68,7 +69,7 @@ public:
 
 		for (int i = -MIN_RENDER_DISTANCE; i <= MIN_RENDER_DISTANCE; i++) {
 			for (int j = -(MIN_RENDER_DISTANCE - abs(i)); j <= MIN_RENDER_DISTANCE - abs(i); j++) {
-				get_chunk(chunk_coords[0] + i, chunk_coords[1] + j);
+				get_chunk_generate_if_required(chunk_coords[0] + i, chunk_coords[1] + j);
 			}
 		}
 	}
@@ -84,6 +85,9 @@ public:
 		}
 
 		// insert our chunk
+		if (chunk == nullptr || chunk->data == nullptr) {
+			throw "Wew";
+		}
 		chunk_map[{x, z}] = chunk;
 
 		/* ADD TO GPU */
@@ -104,13 +108,8 @@ public:
 		num_gpu_chunks++;
 	}
 
-	// generate chunk at (x, z) and add it
-	inline void gen_chunk_at(int x, int z) {
-		add_chunk(x, z, gen_chunk(x, z));
-	}
-
 	// get chunk (generate it if required)
-	inline Chunk* get_chunk(int x, int z) {
+	inline Chunk* get_chunk_generate_if_required(int x, int z) {
 		auto search = chunk_map.find({ x, z });
 
 		// if doesn't exist, generate it
@@ -120,6 +119,19 @@ public:
 
 		return chunk_map[{x, z}];
 	}
+
+	// get chunk or nullptr
+	inline Chunk* get_chunk(int x, int z) {
+		auto search = chunk_map.find({ x, z });
+
+		// if doesn't exist, return null
+		if (search == chunk_map.end()) {
+			return nullptr;
+		}
+
+		return (*search).second;
+	}
+
 
 	// get chunk that contains block at (x, _, z)
 	inline Chunk* get_chunk_containing_block(int x, int z) {
@@ -152,9 +164,67 @@ public:
 	inline Block get_type(int x, int y, int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 		ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
-		auto result = chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
 
-		return result;
+		if (!chunk) {
+			return Block::Air;
+		}
+
+		return chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
+	}
+
+	inline bool App::check_if_covered(MiniChunk* mini) {
+		auto directions = {
+			INORTH_0,
+			ISOUTH_0,
+			IEAST_0,
+			IWEST_0,
+			IUP_0,
+			IDOWN_0,
+		};
+
+		// simple way: just check every side of every cube
+		for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
+			for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
+				for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
+					for (auto direction : directions) {
+						int x = mini->coords[0] * CHUNK_WIDTH + miniX;
+						int y = mini->coords[1] + miniY;
+						int z = mini->coords[2] * CHUNK_DEPTH + miniZ;
+
+						ivec4 coords = ivec4(x, y, z, 0) + direction;
+
+						if (get_type(clamp_coords_to_world(coords)) == Block::Air) {
+							return false;
+						}
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
+	// generate chunk at (x, z) and add it
+	inline void gen_chunk_at(int x, int z) {
+		// generate it
+		Chunk* c = gen_chunk(x, z);
+
+		// set up its MiniChunks
+		for (auto mini : c->minis) {
+			mini->covered_on_all_sides = check_if_covered(mini);
+		}
+
+		// set up nearby MiniChunks
+		for (auto coords : c->surrounding_chunks()) {
+			Chunk* c2 = get_chunk(coords[0], coords[1]);
+			if (c2 == nullptr) continue;
+
+			for (auto mini : c2->minis) {
+				mini->covered_on_all_sides = check_if_covered(mini);
+			}
+		}
+
+		add_chunk(x, z, c);
 	}
 
 	inline Block get_type(ivec3 xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }

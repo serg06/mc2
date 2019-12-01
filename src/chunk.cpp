@@ -67,22 +67,6 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 	return chunk;
 };
 
-initializer_list<ivec2> surrounding_chunks(ivec2 chunk_coord) {
-	return {
-		// sides
-		chunk_coord + ivec2(1,  0),
-		chunk_coord + ivec2(0,  1),
-		chunk_coord + ivec2(-1,  0),
-		chunk_coord + ivec2(0, -1),
-
-		// corners
-		chunk_coord + ivec2(1,  1),
-		chunk_coord + ivec2(-1,  1),
-		chunk_coord + ivec2(-1, -1),
-		chunk_coord + ivec2(1,  -1),
-	};
-}
-
 // given player's coordinate, find all surrounding blocks (for collision detection) (TODO: Switch to array and add player_coord to each element. Or do for loop.)
 // TODO: Do velocity-based checking.
 //       - E.g.: Moving north-east = check all blocks on that side

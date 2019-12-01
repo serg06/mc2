@@ -83,6 +83,11 @@ inline ivec4 vec2ivec(vec4 v) {
 	return result;
 }
 
+inline ivec4 clamp_coords_to_world(ivec4 coords) {
+	coords[1] = std::clamp(coords[1], 0, BLOCK_MAX_HEIGHT);
+	return coords;
+}
+
 double noise2d(double x, double y);
 
 #endif // __UTIL_H__

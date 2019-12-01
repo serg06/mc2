@@ -30,9 +30,6 @@
 using namespace std;
 using namespace vmath;
 
-
-
-
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -150,6 +147,7 @@ void App::render(float time) {
 	// Draw ALL our chunks!
 	for (auto &[coords_p, chunk] : chunk_map) {
 		chunk->render(&glInfo);
+		OutputDebugString("");
 	}
 }
 
@@ -321,7 +319,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 }
 
 // given a player's position, what blocks does he intersect with?
-vector<ivec4> App::get_intersecting_blocks(vec4 player_position) {
+std::vector<ivec4> App::get_intersecting_blocks(vec4 player_position) {
 	// get x/y/z min/max
 	ivec3 xyzMin = { (int)floorf(player_position[0] - PLAYER_RADIUS), (int)floorf(player_position[1]), (int)floorf(player_position[2] - PLAYER_RADIUS) };
 	ivec3 xyzMax = { (int)floorf(player_position[0] + PLAYER_RADIUS), (int)floorf(player_position[1] + PLAYER_HEIGHT), (int)floorf(player_position[2] + PLAYER_RADIUS) };
@@ -329,7 +327,7 @@ vector<ivec4> App::get_intersecting_blocks(vec4 player_position) {
 	// TODO: use set for duplicate-removal
 
 	// get all blocks that our player intersects with
-	vector<ivec4> blocks;
+	std::vector<ivec4> blocks;
 	for (int x = xyzMin[0]; x <= xyzMax[0]; x++) {
 		for (int y = xyzMin[1]; y <= xyzMax[1]; y++) {
 			for (int z = xyzMin[2]; z <= xyzMax[2]; z++)

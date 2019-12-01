@@ -25,14 +25,28 @@
 *
 */
 
-
-
 static inline void chunk_set(Block* chunk, int x, int y, int z, Block val) {
 	chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
 }
 
 static inline Block chunk_get(Block* chunk, int x, int y, int z) {
 	return chunk[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
+}
+
+static inline std::vector<ivec2> surrounding_chunks_s(ivec2 chunk_coord) {
+	return {
+		// sides
+		chunk_coord + ivec2(1, 0),
+		chunk_coord + ivec2(0, 1),
+		chunk_coord + ivec2(-1, 0),
+		chunk_coord + ivec2(0, -1),
+
+		// corners
+		chunk_coord + ivec2(1, 1),
+		chunk_coord + ivec2(-1, 1),
+		chunk_coord + ivec2(-1, -1),
+		chunk_coord + ivec2(1, -1),
+	};
 }
 
 class Chunk {
@@ -99,6 +113,10 @@ public:
 		for (auto mini : minis) {
 			mini->render(glInfo);
 		}
+	}
+
+	inline std::vector<ivec2> surrounding_chunks() {
+		return surrounding_chunks_s(coords);
 	}
 };
 
