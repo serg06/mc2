@@ -40,10 +40,9 @@ void main(void)
 
 	/* CREATE OUR OFFSET VARIABLE */
 
-	// vec4 instance_offset = vec4(x + uni.base_coords.x * 16, y + uni.base_coords.y, z + uni.base_coords.z * 16, 0);
-	vec4 instance_offset = vec4(x + uni.base_coords.x * 16, y, z + uni.base_coords.y * 16, 0);
-	// vec4 instance_offset = vec4(x + chunk_coords[0] * 16, y, z + chunk_coords[1] * 16, 0);
-	// vec4 instance_offset = vec4(x, y, z, 0);
+	vec4 chunk_base = vec4(uni.base_coords.x * 16, uni.base_coords.y, uni.base_coords.z * 16, 0);
+	vec4 offset_in_chunk = vec4(x, y, z, 0);
+	vec4 instance_offset = chunk_base + offset_in_chunk;
 
 	/* ADD IT TO VERTEX */
 

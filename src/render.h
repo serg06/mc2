@@ -7,7 +7,7 @@
 
 #include <vmath.h>
 
-#define TRANSFORM_MATRIX_COORDS_OFFSET (2*sizeof(vmath::mat4))
+#define TRANSFORM_BUFFER_COORDS_OFFSET (2*sizeof(vmath::mat4))
 
 // all the GLFW info for our app
 struct GlfwInfo {

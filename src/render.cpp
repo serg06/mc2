@@ -120,7 +120,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_buf); // bind transformation buffer to uniform buffer binding point
 
 	// allocate
-	glNamedBufferStorage(glInfo->trans_buf, sizeof(mat4) * 2 + sizeof(vec2), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+	glNamedBufferStorage(glInfo->trans_buf, sizeof(mat4) * 2 + sizeof(ivec3), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
 	/* ETC */
 
