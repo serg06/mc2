@@ -1,3 +1,6 @@
+#ifndef __MINICHUNK_H__
+#define __MINICHUNK_H__
+
 #include "block.h"
 #include "util.h"
 
@@ -5,6 +8,7 @@ class MiniChunk {
 public:
 	Block * data; // 16x16x16, indexed same way as chunk
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
+	GLuint gl_buf; // each mini gets its own buf -- easy this way for now
 
 	// get block at these coordinates, relative to minichunk coords
 	inline Block get_block(int x, int y, int z) {
@@ -23,4 +27,16 @@ public:
 
 		data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
 	}
+
+	// render this minichunk!
+	void render() {
+
+	}
+
+	// prepare buf for drawing -- only need to call it when stuff (or nearby stuff) changes
+	void prepare_buf() {
+		
+	}
 };
+
+#endif // __MINICHUNK_H__

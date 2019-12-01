@@ -1,3 +1,6 @@
+#ifndef __BLOCK_H__
+#define __BLOCK_H__
+
 #include <assert.h>
 #include <string>
 #include <vmath.h>
@@ -34,4 +37,4 @@ inline vmath::vec3 block_color(Block b) {
 	}
 }
 
-
+#endif // __BLOCK_H__

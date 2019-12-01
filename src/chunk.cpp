@@ -28,16 +28,16 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 	char buf[256];
 	FastNoise fn;
 
-	// create new chunk
-	Chunk* result = new Chunk();
-	result->data = (Block*)malloc(sizeof(Block) * CHUNK_SIZE);
-	result->coords = { chunkX, chunkZ };
-	Block* data = result->data;
-	memset(data, (uint8_t)Block::Air, sizeof(Block) * CHUNK_SIZE);
+	// create chunk
+	Chunk* chunk = new Chunk();
+	chunk->data = (Block*)malloc(sizeof(Block) * CHUNK_SIZE);
+	chunk->coords = { chunkX, chunkZ };
+	
+	memset(chunk->data, (uint8_t)Block::Air, sizeof(Block) * CHUNK_SIZE);
 
 	// create its buffer
-	glCreateBuffers(1, &result->gl_buf);
-	glNamedBufferStorage(result->gl_buf, CHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
+	glCreateBuffers(1, &chunk->gl_buf);
+	glNamedBufferStorage(chunk->gl_buf, CHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
 	// fill data
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
@@ -52,16 +52,19 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 
 			// fill everything under that height
 			for (int i = 0; i < y; i++) {
-				chunk_set(data, x, i, z, Block::Stone);
+				chunk_set(chunk->data, x, i, z, Block::Stone);
 			}
-			chunk_set(data, x, (int)y, z, Block::Grass);
+			chunk_set(chunk->data, x, (int)y, z, Block::Grass);
 		}
 	}
 
 	// fill buffer
-	glNamedBufferSubData(result->gl_buf, 0, CHUNK_SIZE * sizeof(Block), data);
+	glNamedBufferSubData(chunk->gl_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->data);
 
-	return result;
+	// chunk is ready, generate mini-chunks
+	chunk->gen_minichunks();
+
+	return chunk;
 };
 
 initializer_list<ivec2> surrounding_chunks(ivec2 chunk_coord) {

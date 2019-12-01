@@ -3,6 +3,7 @@
 #define __CHUNK_H__
 
 #include "block.h"
+#include "minichunk.h"
 #include "util.h"
 
 #include "GL/gl3w.h" // OutputDebugString
@@ -35,13 +36,38 @@ static inline Block chunk_get(Block* chunk, int x, int y, int z) {
 
 class Chunk {
 public:
-	Block * data;
+	Block * data = nullptr;
 	vmath::ivec2 coords; // coordinates in chunk format
 	GLuint gl_buf; // opengl buffer with this chunk's data
+	MiniChunk * minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT]; // TODO: maybe array of non-pointers?
 
 	//inline vec4 coords_real() {
 	//	return coords * 16;
 	//}
+
+	Chunk() {}
+
+	Chunk(Block* data, vmath::ivec2 coords, GLuint gl_buf) {
+		this->data = data;
+		this->coords = coords;
+		this->gl_buf = gl_buf;
+	}
+
+	// split chunk into minichunks
+	inline void gen_minichunks() {
+		assert(data);
+
+		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
+			// create mini and populate it
+			MiniChunk* mini = new MiniChunk();
+			mini->data = data + i * MINICHUNK_SIZE;
+			mini->coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
+			glCreateBuffers(1, &mini->gl_buf);
+
+			// add it to our minis list
+			minis[i] = mini;
+		}
+	}
 
 	// get block at these coordinates
 	inline Block get_block(int x, int y, int z) {
@@ -59,6 +85,11 @@ public:
 		assert(0 <= z && z < CHUNK_DEPTH && "chunk set_block invalid z coordinate");
 
 		data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
+	}
+
+	// render this chunk
+	inline void render() {
+
 	}
 };
 
