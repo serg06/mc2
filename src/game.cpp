@@ -57,13 +57,13 @@ void App::run() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 	// disable MSAA
-	glfwWindowHint(GLFW_SAMPLES, info.msaa);
+	glfwWindowHint(GLFW_SAMPLES, appInfo.msaa);
 
 	// debug mode
-	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, info.debug);
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, appInfo.debug);
 
 	// create window
-	window = glfwCreateWindow(info.width, info.height, info.title.c_str(), nullptr, nullptr);
+	window = glfwCreateWindow(appInfo.width, appInfo.height, appInfo.title.c_str(), nullptr, nullptr);
 
 	if (!window) {
 		MessageBox(NULL, "Failed to create window.", "GLFW error", MB_OK);
@@ -91,7 +91,7 @@ void App::run() {
 	}
 
 	// set debug message callback
-	if (info.debug) {
+	if (appInfo.debug) {
 		if (gl3wIsSupported(4, 3))
 		{
 			glEnable(GL_DEBUG_OUTPUT);
@@ -154,62 +154,57 @@ void App::startup() {
 	};
 
 	// create program
-	rendering_program = compile_shaders(shader_fnames);
+	glInfo.rendering_program = compile_shaders(shader_fnames);
 
 	/* OPENGL SETUP */
 
-	// Set up our binding indices
-	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
-	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
-	const GLuint position_attr_idx = 0; // index of 'position' attribute
-	const GLuint chunk_coords_bidx = 2;
-	const GLuint chunk_types_attr_idx = 1; // index of 'block_type' attribute
+
 
 	/* HANDLE CUBES FIRST */
 
 	// vao: create VAO for cube[s], so we can tell OpenGL how to use it when it's bound
-	glCreateVertexArrays(1, &vao_cube);
+	glCreateVertexArrays(1, &glInfo.vao_cube);
 
 	// buffers: create
-	glCreateBuffers(1, &vert_buf);
+	glCreateBuffers(1, &glInfo.vert_buf);
 
 	// buffers: allocate space
-	glNamedBufferStorage(vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+	glNamedBufferStorage(glInfo.vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
 
 	// buffers: insert static data
-	glNamedBufferSubData(vert_buf, 0, sizeof(cube), cube); // vertex positions
+	glNamedBufferSubData(glInfo.vert_buf, 0, sizeof(cube), cube); // vertex positions
 
 	// vao: enable all cube's attributes, 1 at a time
-	glEnableVertexArrayAttrib(vao_cube, position_attr_idx);
-	glEnableVertexArrayAttrib(vao_cube, chunk_types_attr_idx);
+	glEnableVertexArrayAttrib(glInfo.vao_cube, glInfo.position_attr_idx);
+	glEnableVertexArrayAttrib(glInfo.vao_cube, glInfo.chunk_types_attr_idx);
 
 	// vao: set up formats for cube's attributes, 1 at a time
-	glVertexArrayAttribFormat(vao_cube, position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
-	glVertexArrayAttribIFormat(vao_cube, chunk_types_attr_idx, 1, GL_BYTE, 0);
+	glVertexArrayAttribFormat(glInfo.vao_cube, glInfo.position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
+	glVertexArrayAttribIFormat(glInfo.vao_cube, glInfo.chunk_types_attr_idx, 1, GL_BYTE, 0);
 
 	// vao: set binding points for all attributes, 1 at a time
 	//      - 1 buffer per binding point; for clarity, to keep it clear, I should only bind 1 attr per binding point
-	glVertexArrayAttribBinding(vao_cube, position_attr_idx, vert_buf_bidx);
-	glVertexArrayAttribBinding(vao_cube, chunk_types_attr_idx, chunk_types_bidx);
+	glVertexArrayAttribBinding(glInfo.vao_cube, glInfo.position_attr_idx, glInfo.vert_buf_bidx);
+	glVertexArrayAttribBinding(glInfo.vao_cube, glInfo.chunk_types_attr_idx, glInfo.chunk_types_bidx);
 
 	// vao: bind buffers to their binding points, 1 at a time
-	glVertexArrayVertexBuffer(vao_cube, vert_buf_bidx, vert_buf, 0, sizeof(vec3));
+	glVertexArrayVertexBuffer(glInfo.vao_cube, glInfo.vert_buf_bidx, glInfo.vert_buf, 0, sizeof(vec3));
 
 	// vao: extra properties
-	glBindVertexArray(vao_cube);
-	glVertexAttribDivisor(chunk_types_attr_idx, 1);
+	glBindVertexArray(glInfo.vao_cube);
+	glVertexAttribDivisor(glInfo.chunk_types_attr_idx, 1);
 	glBindVertexArray(0);
 
 	/* HANDLE UNIFORM NOW */
 
 	// create buffers
-	glCreateBuffers(1, &trans_buf);
+	glCreateBuffers(1, &glInfo.trans_buf);
 
 	// bind them
-	glBindBufferBase(GL_UNIFORM_BUFFER, trans_buf_uni_bidx, trans_buf); // bind transformation buffer to uniform buffer binding point
+	glBindBufferBase(GL_UNIFORM_BUFFER, glInfo.trans_buf_uni_bidx, glInfo.trans_buf); // bind transformation buffer to uniform buffer binding point
 
 	// allocate
-	glNamedBufferStorage(trans_buf, sizeof(mat4) * 2 + sizeof(vec2), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+	glNamedBufferStorage(glInfo.trans_buf, sizeof(mat4) * 2 + sizeof(vec2), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
 
 	/*
@@ -224,7 +219,7 @@ void App::startup() {
 	glDepthFunc(GL_LEQUAL);
 
 	// use our program object for rendering
-	glUseProgram(rendering_program);
+	glUseProgram(glInfo.rendering_program);
 
 	// generate one chunk
 	//gen_chunk_at(0, 0);
@@ -267,8 +262,8 @@ void App::render(float time) {
 	// Update projection matrix too, in case if width/height changed
 	// NOTE: Careful, if (nearplane/farplane) ratio is too small, things get fucky.
 	mat4 proj_matrix = perspective(
-		(float)info.vfov, // virtual fov
-		(float)info.width / (float)info.height, // aspect ratio
+		(float)appInfo.vfov, // virtual fov
+		(float)appInfo.width / (float)appInfo.height, // aspect ratio
 		PLAYER_RADIUS,  // blocks are always at least PLAYER_RADIUS away from camera
 		16 * CHUNK_WIDTH // only support 32 chunks for now
 	);
@@ -282,8 +277,8 @@ void App::render(float time) {
 	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // used for depth test somehow
 
 	// Update transformation buffer with matrices
-	glNamedBufferSubData(trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
-	glNamedBufferSubData(trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
+	glNamedBufferSubData(glInfo.trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
+	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 
 	char buf[256];
 	sprintf(buf, "Drawing (took %d ms)\n", (int)(dt * 1000));
@@ -293,14 +288,14 @@ void App::render(float time) {
 	//OutputDebugString(buf);
 
 	// Draw ALL our chunks!
-	glBindVertexArray(vao_cube);
+	glBindVertexArray(glInfo.vao_cube);
 	for (auto &[coords_p, chunk] : chunk_map) {
 		ivec2 coords = { coords_p.first , coords_p.second };
 
 		// now, instead of filling buffer, just switch to chunk's buffer!
-		glVertexArrayVertexBuffer(vao_cube, chunk_types_bidx, chunk->gl_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(glInfo.vao_cube, glInfo.chunk_types_bidx, chunk->gl_buf, 0, sizeof(Block));
 
-		glNamedBufferSubData(trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
+		glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 
 		sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
@@ -529,8 +524,8 @@ void App::onMouseMove(GLFWwindow* window, double x, double y)
 	double delta_y = y - last_mouse_y;
 
 	// update pitch/yaw
-	char_yaw += (float)(info.mouseX_Sensitivity * delta_x);
-	char_pitch += (float)(info.mouseY_Sensitivity * delta_y);
+	char_yaw += (float)(appInfo.mouseX_Sensitivity * delta_x);
+	char_pitch += (float)(appInfo.mouseY_Sensitivity * delta_y);
 
 	// cap pitch
 	char_pitch = clamp(char_pitch, -90.0f, 90.0f);
@@ -541,8 +536,8 @@ void App::onMouseMove(GLFWwindow* window, double x, double y)
 }
 
 void App::onResize(GLFWwindow* window, int width, int height) {
-	info.width = width;
-	info.height = height;
+	appInfo.width = width;
+	appInfo.height = height;
 
 	int px_width, px_height;
 	glfwGetFramebufferSize(window, &px_width, &px_height);

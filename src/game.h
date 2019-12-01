@@ -5,6 +5,7 @@
 #define GPU_MAX_CHUNKS 256
 
 #include "chunk.h"
+#include "render.h"
 #include "util.h"
 
 #include "GL/gl3w.h"
@@ -35,21 +36,11 @@ struct AppInfo {
 class App {
 public:
 	static App* app;
+	GLFWwindow* window;
 
-	// GLFW (window) stuff
-	AppInfo info;
-	GLFWwindow *window;
-
-	// OpenGL stuff
-	GLuint rendering_program;
-	GLuint vao_cube, vao2;
-
-	// buffers
-	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
-	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
-
-	// binding points
-	GLuint chunk_types_bidx = 1;
+	// settings
+	AppInfo appInfo;
+	OpenGLInfo glInfo;
 
 	// mouse inputs
 	double last_mouse_x;

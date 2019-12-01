@@ -87,9 +87,9 @@ public:
 		data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
 	}
 
-	// render this chunk
+	// render this chunk using info in vao
 	inline void render() {
-
+		
 	}
 };
 

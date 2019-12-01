@@ -168,8 +168,6 @@ initializer_list<vec4> north_blocks(vec4 player_coord) {
 	return {};
 }
 
-
-
 // transform a chunk's coords to real-world coords
 inline vec4 chunk_to_world(ivec2 chunk_coords) {
 	return vec4(chunk_coords[0] * 16.0f, chunk_coords[1] * 16.0f, 0.0f, 1.0f);
