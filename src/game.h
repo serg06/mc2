@@ -4,6 +4,7 @@
 #define GPU_MAX_CHUNKS 256
 
 #include "chunk.h"
+#include "chunkdata.h"
 #include "render.h"
 #include "util.h"
 

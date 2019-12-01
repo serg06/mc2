@@ -3,6 +3,7 @@
 #define __CHUNK_H__
 
 #include "block.h"
+#include "chunkdata.h"
 #include "minichunk.h"
 #include "render.h"
 #include "util.h"

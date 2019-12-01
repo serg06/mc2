@@ -1,3 +1,4 @@
+#include "chunkdata.h"
 #include "minichunk.h"
 
 #include <initializer_list>

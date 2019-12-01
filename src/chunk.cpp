@@ -1,5 +1,5 @@
 #include "chunk.h"
-
+#include "chunkdata.h"
 #include "kenp_noise.h"
 #include "util.h"
 

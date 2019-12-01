@@ -2,6 +2,7 @@
 #define __MINICHUNK_H__
 
 #include "block.h"
+#include "chunkdata.h"
 #include "render.h"
 #include "util.h"
 

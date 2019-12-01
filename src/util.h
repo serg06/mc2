@@ -27,18 +27,6 @@
 #define IUP_0 vmath::ivec4(0, 1, 0, 0)
 #define IDOWN_0 vmath::ivec4(0, -1, 0, 0)
 
-// Chunk size
-#define CHUNK_WIDTH 16
-#define CHUNK_DEPTH 16
-#define CHUNK_HEIGHT 256
-#define CHUNK_SIZE (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
-
-#define MINICHUNK_HEIGHT 16
-#define MINICHUNK_SIZE (CHUNK_WIDTH * CHUNK_DEPTH * MINICHUNK_HEIGHT)
-
-#define BLOCK_MAX_HEIGHT 255
-#define MINIS_PER_CHUNK (CHUNK_HEIGHT / MINICHUNK_HEIGHT)
-
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
@@ -71,21 +59,16 @@ GLuint link_program(GLuint);
 // Create rotation matrix given pitch and yaw
 inline mat4 rotate_pitch_yaw(float pitch, float yaw) {
 	return
-		rotate(pitch, vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
-		rotate(yaw, vec3(0.0f, 1.0f, 0.0f));    // rotate yaw   around Y
+		rotate(pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
+		rotate(yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw   around Y
 }
 
-inline ivec4 vec2ivec(vec4 v) {
-	ivec4 result;
+inline vmath::ivec4 vec2ivec(vmath::vec4 v) {
+	vmath::ivec4 result;
 	for (int i = 0; i < v.size(); i++) {
 		result[i] = (int)floorf(v[i]);
 	}
 	return result;
-}
-
-inline ivec4 clamp_coords_to_world(ivec4 coords) {
-	coords[1] = std::clamp(coords[1], 0, BLOCK_MAX_HEIGHT);
-	return coords;
 }
 
 double noise2d(double x, double y);
