@@ -34,6 +34,6 @@ struct OpenGLInfo {
 	const GLuint mini_relative_coords_attr_bidx = 2; // index of 'mini_relative_coords' attribute
 };
 
-void setup_opengl(OpenGLInfo);
+void setup_opengl(OpenGLInfo*);
 
 #endif /* __RENDER_H__ */
