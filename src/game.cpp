@@ -137,11 +137,11 @@ void App::run() {
 }
 
 void App::startup() {
-	const GLfloat(&cube)[108] = shapes::cube_full;
-
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
+
+	const GLfloat(&cube)[108] = shapes::cube_full;
 
 	// list of shaders to create program with
 	// TODO: Embed these into binary somehow - maybe generate header file with cmake.
@@ -149,16 +149,14 @@ void App::startup() {
 		{ "../src/simple.vs.glsl", GL_VERTEX_SHADER },
 		//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
 		//{"../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER },
-		{"../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
-		{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
+	{ "../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
+	{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
 	};
 
 	// create program
 	glInfo.rendering_program = compile_shaders(shader_fnames);
 
 	/* OPENGL SETUP */
-
-
 
 	/* HANDLE CUBES FIRST */
 
@@ -171,10 +169,10 @@ void App::startup() {
 	// buffers: allocate space
 	glNamedBufferStorage(glInfo.vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
 
-	// buffers: insert static data
+																					   // buffers: insert static data
 	glNamedBufferSubData(glInfo.vert_buf, 0, sizeof(cube), cube); // vertex positions
 
-	// vao: enable all cube's attributes, 1 at a time
+																  // vao: enable all cube's attributes, 1 at a time
 	glEnableVertexArrayAttrib(glInfo.vao_cube, glInfo.position_attr_idx);
 	glEnableVertexArrayAttrib(glInfo.vao_cube, glInfo.chunk_types_attr_idx);
 
@@ -203,13 +201,13 @@ void App::startup() {
 	// bind them
 	glBindBufferBase(GL_UNIFORM_BUFFER, glInfo.trans_buf_uni_bidx, glInfo.trans_buf); // bind transformation buffer to uniform buffer binding point
 
-	// allocate
+																					  // allocate
 	glNamedBufferStorage(glInfo.trans_buf, sizeof(mat4) * 2 + sizeof(vec2), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
 
-	/*
-	* ETC
-	*/
+																										   /*
+																										   * ETC
+																										   */
 
 	glPointSize(5.0f);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -220,15 +218,6 @@ void App::startup() {
 
 	// use our program object for rendering
 	glUseProgram(glInfo.rendering_program);
-
-	// generate one chunk
-	//gen_chunk_at(0, 0);
-	//gen_chunk_at(0, 1);
-
-
-	// load into memory pog
-	//glNamedBufferSubData(chunk_types_buf, 0, CHUNK_SIZE * sizeof(Block), get_chunk(0, 0)->data);
-
 }
 
 void App::render(float time) {
