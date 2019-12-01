@@ -131,6 +131,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
+
 	// use our program object for rendering
 	glUseProgram(glInfo->rendering_program);
 }

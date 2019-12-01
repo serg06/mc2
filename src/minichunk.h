@@ -12,7 +12,7 @@ public:
 	Block * data; // 16x16x16, indexed same way as chunk
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
 	GLuint gl_buf; // each mini gets its own buf -- easy this way for now
-	bool covered_on_all_sides = false;
+	bool invisible = false;
 	
 	// get block at these coordinates, relative to minichunk coords
 	inline Block get_block(int x, int y, int z) {
@@ -35,7 +35,7 @@ public:
 	// render this minichunk!
 	void render(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
-		if (covered_on_all_sides) {
+		if (invisible) {
 			return;
 		}
 
@@ -50,6 +50,16 @@ public:
 		
 		// draw!
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, MINICHUNK_SIZE);
+	}
+
+	// check if all blocks are air
+	bool all_air() {
+		for (int i = 0; i < MINICHUNK_SIZE; i++) {
+			if (data[i] != Block::Air) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	// prepare buf for drawing -- only need to call it when new, or when stuff (or nearby stuff) changes

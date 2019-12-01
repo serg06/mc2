@@ -17,8 +17,6 @@
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 #include <windows.h>
 
-
-
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
 // 3. TODO: Apply C++17 features

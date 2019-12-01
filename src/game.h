@@ -1,7 +1,7 @@
 #ifndef __GAME_H__
 #define __GAME_H__
 
-#define MIN_RENDER_DISTANCE 3
+#define MIN_RENDER_DISTANCE 8
 #define GPU_MAX_CHUNKS 256
 
 #include "chunk.h"
@@ -211,7 +211,7 @@ public:
 
 		// set up its MiniChunks
 		for (auto mini : c->minis) {
-			mini->covered_on_all_sides = check_if_covered(mini);
+			mini->invisible = mini->invisible || mini->all_air() || check_if_covered(mini);
 		}
 
 		// set up nearby MiniChunks
@@ -220,7 +220,7 @@ public:
 			if (c2 == nullptr) continue;
 
 			for (auto mini : c2->minis) {
-				mini->covered_on_all_sides = check_if_covered(mini);
+				mini->invisible = mini->invisible || mini->all_air() || check_if_covered(mini);
 			}
 		}
 
