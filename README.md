@@ -1,5 +1,7 @@
 # (In-progress): A Minecraft-like game using C++ and OpenGL.
 
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/32xDZ_fhXz4/0.jpg)](https://www.youtube.com/watch?v=32xDZ_fhXz4)
+
 This is a from-scratch creation of a Minecraft-like game, using C++ and OpenGL.
 
 OpenGL: No previous experience, learning it from *OpenGL Superbible*.
@@ -46,7 +48,7 @@ Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 1
 - Data chunking for easy map storage and drawing.
 	- Super efficient map storage, including smart algorithms to fit the job; no more 2GB save files like in Minecraft.
 
-- Skybox and clouds.
+- Skybox and butts.
 
 - Settings on settings on settings. Enough settings to allow even the slowest PC to run at a reasonable framerate.
 
