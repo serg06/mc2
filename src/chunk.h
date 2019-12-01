@@ -4,6 +4,7 @@
 
 #include "block.h"
 #include "minichunk.h"
+#include "render.h"
 #include "util.h"
 
 #include "GL/gl3w.h" // OutputDebugString
@@ -88,8 +89,18 @@ public:
 	}
 
 	// render this chunk using info in vao
-	inline void render() {
-		
+	inline void render(OpenGLInfo glInfo) {
+		// cube VAO
+		glBindVertexArray(glInfo.vao_cube);
+
+		// bind to chunk-types attribute binding point
+		glVertexArrayVertexBuffer(glInfo.vao_cube, glInfo.chunk_types_bidx, gl_buf, 0, sizeof(Block));
+
+		// write this chunk's coordinate to coordinates buffer
+		glNamedBufferSubData(glInfo.trans_buf, TRANSFORM_MATRIX_COORDS_OFFSET, sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
+
+		// draw!
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
 	}
 };
 

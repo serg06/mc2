@@ -4,6 +4,10 @@
 
 #include "GL/gl3w.h"
 
+#include <vmath.h>
+
+#define TRANSFORM_MATRIX_COORDS_OFFSET (2*sizeof(vmath::mat4))
+
 // all the opengl info for our game
 struct OpenGLInfo {
 	// progra

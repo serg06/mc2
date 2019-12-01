@@ -288,18 +288,8 @@ void App::render(float time) {
 	//OutputDebugString(buf);
 
 	// Draw ALL our chunks!
-	glBindVertexArray(glInfo.vao_cube);
 	for (auto &[coords_p, chunk] : chunk_map) {
-		ivec2 coords = { coords_p.first , coords_p.second };
-
-		// now, instead of filling buffer, just switch to chunk's buffer!
-		glVertexArrayVertexBuffer(glInfo.vao_cube, glInfo.chunk_types_bidx, chunk->gl_buf, 0, sizeof(Block));
-
-		glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(ivec2), coords); // Add base chunk coordinates to transformation data (temporary solution)
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
-
-		sprintf(buf, "Drawing at (%d, %d)\n", coords[0], coords[1]);
-		//OutputDebugString(buf);
+		chunk->render(glInfo);
 	}
 }
 
