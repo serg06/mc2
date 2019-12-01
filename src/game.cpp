@@ -142,7 +142,7 @@ void App::render(float time) {
 
 	char buf[256];
 	sprintf(buf, "Drawing (took %d ms)\n", (int)(dt * 1000));
-	//OutputDebugString(buf);
+	OutputDebugString(buf);
 	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
 	//OutputDebugString(buf);

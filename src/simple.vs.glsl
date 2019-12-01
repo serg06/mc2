@@ -46,7 +46,6 @@ void main(void)
 
 	/* ADD IT TO VERTEX */
 
-	//gl_Position = uni.proj_matrix * uni.mv_matrix * position;
 	gl_Position = uni.proj_matrix * uni.mv_matrix * (position + instance_offset);
 	vs_color = position * 2.0 + vec4(0.5, 0.5, 0.5, 1.0);
 

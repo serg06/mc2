@@ -63,7 +63,13 @@ public:
 			MiniChunk* mini = new MiniChunk();
 			mini->data = data + i * MINICHUNK_SIZE;
 			mini->coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
+
+			// create buffer
 			glCreateBuffers(1, &mini->gl_buf);
+			glNamedBufferStorage(mini->gl_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
+
+			// fill buffer
+			glNamedBufferSubData(mini->gl_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini->data);
 
 			// add it to our minis list
 			minis[i] = mini;
@@ -88,19 +94,11 @@ public:
 		data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
 	}
 
-	// render this chunk using info in vao
+	// render this chunk
 	inline void render(OpenGLInfo* glInfo) {
-		// cube VAO
-		glBindVertexArray(glInfo->vao_cube);
-
-		// bind to chunk-types attribute binding point
-		glVertexArrayVertexBuffer(glInfo->vao_cube, glInfo->chunk_types_bidx, gl_buf, 0, sizeof(Block));
-
-		// write this chunk's coordinate to coordinates buffer
-		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), ivec3(coords[0], 0, coords[1])); // Add base chunk coordinates to transformation data (temporary solution)
-
-		// draw!
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, CHUNK_SIZE);
+		for (auto mini : minis) {
+			mini->render(glInfo);
+		}
 	}
 };
 

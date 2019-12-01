@@ -2,6 +2,7 @@
 #define __MINICHUNK_H__
 
 #include "block.h"
+#include "render.h"
 #include "util.h"
 
 class MiniChunk {
@@ -29,13 +30,23 @@ public:
 	}
 
 	// render this minichunk!
-	void render() {
+	void render(OpenGLInfo* glInfo) {
+		// cube VAO
+		glBindVertexArray(glInfo->vao_cube);
 
+		// bind to chunk-types attribute binding point
+		glVertexArrayVertexBuffer(glInfo->vao_cube, glInfo->chunk_types_bidx, gl_buf, 0, sizeof(Block));
+
+		// write this chunk's coordinate to coordinates buffer
+		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords); // Add base chunk coordinates to transformation data
+		
+		// draw!
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, MINICHUNK_SIZE);
 	}
 
-	// prepare buf for drawing -- only need to call it when stuff (or nearby stuff) changes
+	// prepare buf for drawing -- only need to call it when new, or when stuff (or nearby stuff) changes
 	void prepare_buf() {
-		
+		// TODO
 	}
 };
 
