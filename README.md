@@ -12,13 +12,13 @@ Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 1
 
 ## Current features:
 
-- Basic chunk generation, with chunk data efficiently stored in a 65536-byte array.
+- Infinite world generation, world is split into 16x256x16 chunks, chunks are split into 16x16x16 mini-chunks. One mini-chunk is rendered per draw call.
 
-- Smooth player movement (flying), smooth-ish collisions (WIP), smooth looking around.
+- Culling: Mini-chunks are culled out when they're surrounded by blocks on all sides.
 
-- OpenGL draws each chunk (65536 blocks) with a single draw call, indexing into data using only a blockId.
+- Movement: Smooth player movement (flying).
 
-- Handles window resizing. 
+- Collisions: Super smooth and quite perfect (at reasonable refresh rates).
 
 ## Some planned features:
 
