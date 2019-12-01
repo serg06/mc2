@@ -2,12 +2,61 @@
 #include "shapes.h"
 #include "util.h"
 
+#include "GLFW/glfw3.h"
+
 #include <string>
 #include <tuple>
 #include <vector>
 #include <vmath.h>
 
 using namespace vmath;
+
+// setup glfw window
+// windowInfo -> info for setting up this window
+// window -> pointer to a window pointer, which we're gonna set up
+void setup_glfw(GlfwInfo* windowInfo, GLFWwindow** window) {
+	if (!glfwInit()) {
+		MessageBox(NULL, "Failed to initialize GLFW.", "GLFW error", MB_OK);
+		return;
+	}
+
+	// OpenGL 4.5
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+
+	// using OpenGL core profile
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	// remove deprecated functionality (might as well, 'cause I'm using gl3w)
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+	// disable MSAA
+	glfwWindowHint(GLFW_SAMPLES, windowInfo->msaa);
+
+	// debug mode
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, windowInfo->debug);
+
+	// create window
+	*window = glfwCreateWindow(windowInfo->width, windowInfo->height, windowInfo->title.c_str(), nullptr, nullptr);
+
+	if (!*window) {
+		MessageBox(NULL, "Failed to create window.", "GLFW error", MB_OK);
+		return;
+	}
+
+	// set this window as current window
+	glfwMakeContextCurrent(*window);
+
+	// lock mouse into screen, for camera controls
+	glfwSetInputMode(*window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(*window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+
+	// finally init gl3w
+	if (gl3wInit()) {
+		MessageBox(NULL, "Failed to initialize OpenGL.", "gl3w error", MB_OK);
+		return;
+	}
+}
 
 void setup_opengl(OpenGLInfo* glInfo) {
 	const GLfloat(&cube)[108] = shapes::cube_full;

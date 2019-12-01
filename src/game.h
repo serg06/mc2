@@ -22,24 +22,13 @@
 using namespace std;
 using namespace vmath;
 
-struct AppInfo {
-	std::string title = "OpenGL";
-	bool debug = GL_TRUE;
-	bool msaa = GL_FALSE;
-	int width = 800;
-	int height = 600;
-	float vfov = 59.0f; // vertical fov -- 59.0 vfov = 90.0 hfov
-	float mouseX_Sensitivity = 0.25f;
-	float mouseY_Sensitivity = 0.25f;
-};
-
 class App {
 public:
 	static App* app;
 	GLFWwindow* window;
 
 	// settings
-	AppInfo appInfo;
+	GlfwInfo windowInfo;
 	OpenGLInfo glInfo;
 
 	// mouse inputs

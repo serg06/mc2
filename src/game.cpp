@@ -1,6 +1,7 @@
 #include "game.h"
 
 #include "chunk.h"
+#include "render.h"
 #include "shapes.h"
 #include "util.h"
 
@@ -41,57 +42,18 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 }
 
 void App::run() {
-	if (!glfwInit()) {
-		MessageBox(NULL, "Failed to initialize GLFW.", "GLFW error", MB_OK);
-		return;
-	}
+	// create glfw window
+	setup_glfw(&windowInfo, &window);
 
-	// OpenGL 4.5
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-
-	// using OpenGL core profile
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	// remove deprecated functionality (might as well, 'cause I'm using gl3w)
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-	// disable MSAA
-	glfwWindowHint(GLFW_SAMPLES, appInfo.msaa);
-
-	// debug mode
-	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, appInfo.debug);
-
-	// create window
-	window = glfwCreateWindow(appInfo.width, appInfo.height, appInfo.title.c_str(), nullptr, nullptr);
-
-	if (!window) {
-		MessageBox(NULL, "Failed to create window.", "GLFW error", MB_OK);
-		return;
-	}
-
-	// set this window as current window
-	glfwMakeContextCurrent(window);
-
-	// lock mouse into screen, for camera controls
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-
-	//// TODO: set callbacks
+	// set callbacks
 	glfwSetWindowSizeCallback(window, glfw_onResize);
 	glfwSetKeyCallback(window, glfw_onKey);
-	//glfwSetMouseButtonCallback(window, glfw_onMouseButton);
+	glfwSetMouseButtonCallback(window, glfw_onMouseButton);
 	glfwSetCursorPosCallback(window, glfw_onMouseMove);
-	//glfwSetScrollCallback(window, glfw_onMouseWheel);
-
-	// finally init gl3w
-	if (gl3wInit()) {
-		MessageBox(NULL, "Failed to initialize OpenGL.", "gl3w error", MB_OK);
-		return;
-	}
+	glfwSetScrollCallback(window, glfw_onMouseWheel);
 
 	// set debug message callback
-	if (appInfo.debug) {
+	if (windowInfo.debug) {
 		if (gl3wIsSupported(4, 3))
 		{
 			glEnable(GL_DEBUG_OUTPUT);
@@ -101,24 +63,8 @@ void App::run() {
 		}
 	}
 
-	char buf[256];
-	GLint tmpi;
-
-	auto props = {
-		GL_MAX_VERTEX_UNIFORM_COMPONENTS,
-		GL_MAX_UNIFORM_LOCATIONS
-	};
-
-
-	for (auto prop : props) {
-		glGetIntegerv(prop, &tmpi);
-		sprintf(buf, "%x:\t%d\n", prop, tmpi);
-		OutputDebugString(buf);
-	}
-
 	// Start up app
 	startup();
-
 
 	// run until user presses ESC or tries to close window
 	last_render_time = (float)glfwGetTime(); // updated in render()
@@ -141,6 +87,7 @@ void App::startup() {
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 
+	// prepare opengl
 	setup_opengl(&glInfo);
 }
 
@@ -175,8 +122,8 @@ void App::render(float time) {
 	// Update projection matrix too, in case if width/height changed
 	// NOTE: Careful, if (nearplane/farplane) ratio is too small, things get fucky.
 	mat4 proj_matrix = perspective(
-		(float)appInfo.vfov, // virtual fov
-		(float)appInfo.width / (float)appInfo.height, // aspect ratio
+		(float)windowInfo.vfov, // virtual fov
+		(float)windowInfo.width / (float)windowInfo.height, // aspect ratio
 		PLAYER_RADIUS,  // blocks are always at least PLAYER_RADIUS away from camera
 		16 * CHUNK_WIDTH // only support 32 chunks for now
 	);
@@ -427,8 +374,8 @@ void App::onMouseMove(GLFWwindow* window, double x, double y)
 	double delta_y = y - last_mouse_y;
 
 	// update pitch/yaw
-	char_yaw += (float)(appInfo.mouseX_Sensitivity * delta_x);
-	char_pitch += (float)(appInfo.mouseY_Sensitivity * delta_y);
+	char_yaw += (float)(windowInfo.mouseX_Sensitivity * delta_x);
+	char_pitch += (float)(windowInfo.mouseY_Sensitivity * delta_y);
 
 	// cap pitch
 	char_pitch = clamp(char_pitch, -90.0f, 90.0f);
@@ -439,8 +386,8 @@ void App::onMouseMove(GLFWwindow* window, double x, double y)
 }
 
 void App::onResize(GLFWwindow* window, int width, int height) {
-	appInfo.width = width;
-	appInfo.height = height;
+	windowInfo.width = width;
+	windowInfo.height = height;
 
 	int px_width, px_height;
 	glfwGetFramebufferSize(window, &px_width, &px_height);
