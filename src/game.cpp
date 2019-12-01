@@ -365,6 +365,23 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 				min_render_distance--;
 			}
 		}
+
+		// p = cycle poylgon mode
+		if (key == GLFW_KEY_P) {
+			GLint mode;
+			glGetIntegerv(GL_POLYGON_MODE, &mode);
+			switch (mode) {
+			case GL_FILL:
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				break;
+			case GL_LINE:
+				glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+				break;
+			case GL_POINT:
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				break;
+			}
+		}
 	}
 
 	// handle key releases
