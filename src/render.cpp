@@ -67,8 +67,8 @@ void setup_opengl(OpenGLInfo* glInfo) {
 		{ "../src/simple.vs.glsl", GL_VERTEX_SHADER },
 		//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
 		//{"../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER },
-	{ "../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
-	{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
+		{ "../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
+		{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
 	};
 
 	// create program

@@ -1,7 +1,6 @@
 #ifndef __GAME_H__
 #define __GAME_H__
 
-#define MIN_RENDER_DISTANCE 10
 #define GPU_MAX_CHUNKS 256
 
 #include "chunk.h"
@@ -39,6 +38,7 @@ public:
 	// key inputs
 	bool held_keys[GLFW_KEY_LAST + 1];
 	bool noclip = false;
+	int min_render_distance = 4;
 
 	// movement
 	vec4 char_position = { 8.0f, 66.0f, 8.0f, 1.0f };
@@ -52,7 +52,7 @@ public:
 	unordered_map<pair<int, int>, Chunk*, pair_hash> chunk_map;
 	float last_render_time;
 	int num_chunks = 0;
-	unordered_map<pair<int, int>, int, pair_hash> chunk_indices_map;
+
 
 	App() {}
 	void run();
@@ -67,8 +67,8 @@ public:
 	inline void gen_nearby_chunks() {
 		ivec2 chunk_coords = get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
 
-		for (int i = -MIN_RENDER_DISTANCE; i <= MIN_RENDER_DISTANCE; i++) {
-			for (int j = -(MIN_RENDER_DISTANCE - abs(i)); j <= MIN_RENDER_DISTANCE - abs(i); j++) {
+		for (int i = -min_render_distance; i <= min_render_distance; i++) {
+			for (int j = -(min_render_distance - abs(i)); j <= min_render_distance - abs(i); j++) {
 				get_chunk_generate_if_required(chunk_coords[0] + i, chunk_coords[1] + j);
 			}
 		}
@@ -161,15 +161,6 @@ public:
 	}
 
 	inline bool App::check_if_covered(MiniChunk* mini) {
-		auto directions = {
-			INORTH_0,
-			ISOUTH_0,
-			IEAST_0,
-			IWEST_0,
-			IUP_0,
-			IDOWN_0,
-		};
-
 		// if contains any air blocks, don't know how to handle that yet
 		if (mini->any_air()) {
 			return false;
@@ -190,25 +181,25 @@ public:
 						if (get_type(clamp_coords_to_world(coords + IEAST_0)) == Block::Air) return false;
 					}
 					// if along west wall, check west
-					else if (miniX == 0) {
+					if (miniX == 0) {
 						if (get_type(clamp_coords_to_world(coords + IWEST_0)) == Block::Air) return false;
 					}
 
 					// if along north wall, check north
-					else if (miniZ == 0) {
+					if (miniZ == 0) {
 						if (get_type(clamp_coords_to_world(coords + INORTH_0)) == Block::Air) return false;
 					}
 					// if along south wall, check south
-					else if (miniZ == CHUNK_DEPTH - 1) {
+					if (miniZ == CHUNK_DEPTH - 1) {
 						if (get_type(clamp_coords_to_world(coords + ISOUTH_0)) == Block::Air) return false;
 					}
 
 					// if along bottom wall, check bottom
-					else if (miniY == 0) {
+					if (miniY == 0) {
 						if (get_type(clamp_coords_to_world(coords + IDOWN_0)) == Block::Air) return false;
 					}
 					// if along top wall, check top
-					else if (miniY == MINICHUNK_HEIGHT - 1) {
+					if (miniY == MINICHUNK_HEIGHT - 1) {
 						if (get_type(clamp_coords_to_world(coords + IUP_0)) == Block::Air) return false;
 					}
 				}

@@ -140,7 +140,7 @@ void App::render(float time) {
 	OutputDebugString(buf);
 	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
-	OutputDebugString(buf);
+	//OutputDebugString(buf);
 
 	// Draw ALL our chunks!
 	for (auto &[coords_p, chunk] : chunk_map) {
@@ -352,6 +352,18 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 		// N = toggle noclip
 		if (key == GLFW_KEY_N) {
 			noclip = !noclip;
+		}
+
+		// + = increase render distance
+		if (key == GLFW_KEY_KP_ADD) {
+			min_render_distance++;
+		}
+
+		// - = decrease render distance
+		if (key == GLFW_KEY_KP_SUBTRACT) {
+			if (min_render_distance > 0) {
+				min_render_distance--;
+			}
 		}
 	}
 

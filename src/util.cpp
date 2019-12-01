@@ -52,6 +52,7 @@ namespace {
 
 layout (location = 0) in vec4 position;
 layout (location = 1) in uint block_type; // fed in via instance array!
+layout (location = 2) in ivec3 chunk_coords;
 
 out vec4 vs_color;
 out uint vs_block_type;
@@ -60,7 +61,7 @@ layout (std140, binding = 0) uniform UNI_IN
 {
 	mat4 mv_matrix; // takes up 16? bytes
 	mat4 proj_matrix; // takes up 16? bytes
-	ivec2 base_coords; // takes up ? bytes
+	ivec3 base_coords; // takes up ? bytes
 } uni;
 
 float rand(float seed) {
@@ -84,11 +85,12 @@ void main(void)
 
 	/* CREATE OUR OFFSET VARIABLE */
 
-	vec4 instance_offset = vec4(x + uni.base_coords[0] * 16, y, z + uni.base_coords[1] * 16, 0);
+	vec4 chunk_base = vec4(uni.base_coords.x * 16, uni.base_coords.y, uni.base_coords.z * 16, 0);
+	vec4 offset_in_chunk = vec4(x, y, z, 0);
+	vec4 instance_offset = chunk_base + offset_in_chunk;
 
 	/* ADD IT TO VERTEX */
 
-	//gl_Position = uni.proj_matrix * uni.mv_matrix * position;
 	gl_Position = uni.proj_matrix * uni.mv_matrix * (position + instance_offset);
 	vs_color = position * 2.0 + vec4(0.5, 0.5, 0.5, 1.0);
 
