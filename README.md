@@ -1,14 +1,12 @@
 # (In-progress): A Minecraft-like game using C++ and OpenGL.
 
-Video: 
+This is a from-scratch creation of a Minecraft-like game, using C++ and OpenGL.
+
+Progress video (December 1, 2019):
 
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/32xDZ_fhXz4/0.jpg)](https://www.youtube.com/watch?v=32xDZ_fhXz4)
 
-This is a from-scratch creation of a Minecraft-like game, using C++ and OpenGL.
-
-OpenGL: No previous experience, learning it from *OpenGL Superbible*.
-
-C++: No previous experience, learning it on-the-fly, from *OpenGL Superbible*, and from my existing expertise with Java and C.
+Learning both languages from *OpenGL Superbible*.
 
 ## Wanna try it out?
 
