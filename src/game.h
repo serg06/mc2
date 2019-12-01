@@ -161,9 +161,9 @@ public:
 		return chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
 	}
 
-	inline bool App::check_if_covered(MiniChunk* mini) {
+	inline bool App::check_if_covered(MiniChunk mini) {
 		// if contains any air blocks, don't know how to handle that yet
-		if (mini->any_air()) {
+		if (mini.any_air()) {
 			return false;
 		}
 
@@ -171,9 +171,9 @@ public:
 		for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
 			for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
 				for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
-					int x = mini->coords[0] * CHUNK_WIDTH + miniX;
-					int y = mini->coords[1] + miniY;
-					int z = mini->coords[2] * CHUNK_DEPTH + miniZ;
+					int x = mini.coords[0] * CHUNK_WIDTH + miniX;
+					int y = mini.coords[1] + miniY;
+					int z = mini.coords[2] * CHUNK_DEPTH + miniZ;
 
 					ivec4 coords = ivec4(x, y, z, 0);
 
@@ -216,8 +216,8 @@ public:
 		Chunk* c = gen_chunk(x, z);
 
 		// set up its MiniChunks
-		for (auto mini : c->minis) {
-			mini->invisible = mini->invisible || mini->all_air() || check_if_covered(mini);
+		for (auto &mini : c->minis) {
+			mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 		}
 
 		// set up nearby MiniChunks
@@ -225,8 +225,8 @@ public:
 			Chunk* c2 = get_chunk(coords[0], coords[1]);
 			if (c2 == nullptr) continue;
 
-			for (auto mini : c2->minis) {
-				mini->invisible = mini->invisible || mini->all_air() || check_if_covered(mini);
+			for (auto &mini : c2->minis) {
+				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 			}
 		}
 

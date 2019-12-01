@@ -61,7 +61,6 @@ public:
 	// check if any blocks are air
 	bool any_air() {
 		return std::find(data, data + MINICHUNK_SIZE, Block::Air) < (data + MINICHUNK_SIZE);
-
 	}
 
 	// prepare buf for drawing -- only need to call it when new, or when stuff (or nearby stuff) changes

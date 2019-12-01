@@ -52,10 +52,10 @@ static inline std::vector<ivec2> surrounding_chunks_s(ivec2 chunk_coord) {
 
 class Chunk {
 public:
-	Block * data = nullptr;
+	Block* data = nullptr;
 	vmath::ivec2 coords; // coordinates in chunk format
 	GLuint gl_buf; // opengl buffer with this chunk's data
-	MiniChunk * minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT]; // TODO: maybe array of non-pointers?
+	MiniChunk minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT]; // TODO: maybe array of non-pointers?
 
 	//inline vec4 coords_real() {
 	//	return coords * 16;
@@ -75,16 +75,16 @@ public:
 
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
 			// create mini and populate it
-			MiniChunk* mini = new MiniChunk();
-			mini->data = data + i * MINICHUNK_SIZE;
-			mini->coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
+			MiniChunk mini;
+			mini.data = data + i * MINICHUNK_SIZE;
+			mini.coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
 
 			// create buffer
-			glCreateBuffers(1, &mini->gl_buf);
-			glNamedBufferStorage(mini->gl_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
+			glCreateBuffers(1, &mini.gl_buf);
+			glNamedBufferStorage(mini.gl_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
 			// fill buffer
-			glNamedBufferSubData(mini->gl_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini->data);
+			glNamedBufferSubData(mini.gl_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
 
 			// add it to our minis list
 			minis[i] = mini;
@@ -112,7 +112,7 @@ public:
 	// render this chunk
 	inline void render(OpenGLInfo* glInfo) {
 		for (auto mini : minis) {
-			mini->render(glInfo);
+			mini.render(glInfo);
 		}
 	}
 
