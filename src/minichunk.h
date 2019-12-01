@@ -5,7 +5,7 @@
 #include "render.h"
 #include "util.h"
 
-class MiniChunk;
+#include <algorithm> // std::find
 
 class MiniChunk {
 public:
@@ -54,12 +54,13 @@ public:
 
 	// check if all blocks are air
 	bool all_air() {
-		for (int i = 0; i < MINICHUNK_SIZE; i++) {
-			if (data[i] != Block::Air) {
-				return false;
-			}
-		}
-		return true;
+		return std::find_if(data, data + MINICHUNK_SIZE, [](Block b) {return b != Block::Air; }) == (data + MINICHUNK_SIZE);
+	}
+
+	// check if any blocks are air
+	bool any_air() {
+		return std::find(data, data + MINICHUNK_SIZE, Block::Air) < (data + MINICHUNK_SIZE);
+
 	}
 
 	// prepare buf for drawing -- only need to call it when new, or when stuff (or nearby stuff) changes

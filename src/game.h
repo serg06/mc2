@@ -1,7 +1,7 @@
 #ifndef __GAME_H__
 #define __GAME_H__
 
-#define MIN_RENDER_DISTANCE 8
+#define MIN_RENDER_DISTANCE 10
 #define GPU_MAX_CHUNKS 256
 
 #include "chunk.h"
@@ -51,7 +51,7 @@ public:
 	// misc
 	unordered_map<pair<int, int>, Chunk*, pair_hash> chunk_map;
 	float last_render_time;
-	int num_gpu_chunks = 0;
+	int num_chunks = 0;
 	unordered_map<pair<int, int>, int, pair_hash> chunk_indices_map;
 
 	App() {}
@@ -90,22 +90,10 @@ public:
 		}
 		chunk_map[{x, z}] = chunk;
 
-		/* ADD TO GPU */
-
-		if (num_gpu_chunks >= GPU_MAX_CHUNKS) {
-			throw "ERROR: Cannot add new chunk, we've fully filled up the chunk buffer.";
-		}
-
-		ivec2 coord_data[CHUNK_SIZE];
-		for (int i = 0; i < CHUNK_SIZE; i++) {
-			coord_data[i] = ivec2(x, z);
-		}
-
-		//glNamedBufferSubData(chunk_types_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(Block), CHUNK_SIZE * sizeof(Block), chunk->data);
-		//glNamedBufferSubData(coords_buf_yuge, num_gpu_chunks * CHUNK_SIZE * sizeof(ivec2), CHUNK_SIZE * sizeof(ivec2), coord_data);
-		chunk_indices_map[{x, z}] = num_gpu_chunks;
-
-		num_gpu_chunks++;
+		num_chunks++;
+		char buf[256];
+		sprintf(buf, "Loaded chunks: %d\n", num_chunks);
+		OutputDebugString(buf);
 	}
 
 	// get chunk (generate it if required)
@@ -182,20 +170,46 @@ public:
 			IDOWN_0,
 		};
 
-		// simple way: just check every side of every cube
+		// if contains any air blocks, don't know how to handle that yet
+		if (mini->any_air()) {
+			return false;
+		}
+
+		// none are air, so only check outside blocks
 		for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
 			for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
 				for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
-					for (auto direction : directions) {
-						int x = mini->coords[0] * CHUNK_WIDTH + miniX;
-						int y = mini->coords[1] + miniY;
-						int z = mini->coords[2] * CHUNK_DEPTH + miniZ;
+					int x = mini->coords[0] * CHUNK_WIDTH + miniX;
+					int y = mini->coords[1] + miniY;
+					int z = mini->coords[2] * CHUNK_DEPTH + miniZ;
 
-						ivec4 coords = ivec4(x, y, z, 0) + direction;
+					ivec4 coords = ivec4(x, y, z, 0);
 
-						if (get_type(clamp_coords_to_world(coords)) == Block::Air) {
-							return false;
-						}
+					// if along east wall, check east
+					if (miniX == CHUNK_WIDTH - 1) {
+						if (get_type(clamp_coords_to_world(coords + IEAST_0)) == Block::Air) return false;
+					}
+					// if along west wall, check west
+					else if (miniX == 0) {
+						if (get_type(clamp_coords_to_world(coords + IWEST_0)) == Block::Air) return false;
+					}
+
+					// if along north wall, check north
+					else if (miniZ == 0) {
+						if (get_type(clamp_coords_to_world(coords + INORTH_0)) == Block::Air) return false;
+					}
+					// if along south wall, check south
+					else if (miniZ == CHUNK_DEPTH - 1) {
+						if (get_type(clamp_coords_to_world(coords + ISOUTH_0)) == Block::Air) return false;
+					}
+
+					// if along bottom wall, check bottom
+					else if (miniY == 0) {
+						if (get_type(clamp_coords_to_world(coords + IDOWN_0)) == Block::Air) return false;
+					}
+					// if along top wall, check top
+					else if (miniY == MINICHUNK_HEIGHT - 1) {
+						if (get_type(clamp_coords_to_world(coords + IUP_0)) == Block::Air) return false;
 					}
 				}
 			}
