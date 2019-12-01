@@ -5,6 +5,9 @@ cmake_minimum_required(VERSION 3.14.7)
 set(SOLUTION_NAME mc2)
 set(PROJECT_NAME game)
 
+file(GLOB_RECURSE sources src/*.cpp src/*.h)
+file(GLOB_RECURSE data src/*.glsl)
+
 # set the project name
 project(${SOLUTION_NAME})
 
@@ -33,8 +36,8 @@ add_library(fastnoise include/FastNoise/FastNoise.cpp)
 # include kenp's shitty code in compilation -- just keeping it here 'til I better understand noise and decide on an implementation
 add_library(kenp_noise src/kenp_noise.h src/kenp_noise.cpp)
 
-# add source files
-add_executable(${PROJECT_NAME} WIN32 src/game.h src/game.cpp src/util.h src/util.cpp src/shapes.h src/chunk.h src/chunk.cpp src/minichunk.h src/minichunk.cpp src/block.h src/block.cpp src/render.h src/render.cpp src/chunkdata.h src/chunkdata.cpp)
+# add source files (so they compile) and data (so we see it in IDE)
+add_executable(${PROJECT_NAME} WIN32 ${sources} ${data})
 
 # link executable to libraries
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
