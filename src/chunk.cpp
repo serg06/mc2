@@ -30,10 +30,10 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 
 	// create chunk
 	Chunk* chunk = new Chunk();
-	chunk->data = (Block*)malloc(sizeof(Block) * CHUNK_SIZE);
+	ChunkData* cdata = new ChunkData(CHUNK_SIZE);
+	cdata->set_all_air();
+	chunk->set_chunk_data(cdata);
 	chunk->coords = { chunkX, chunkZ };
-	
-	memset(chunk->data, (uint8_t)Block::Air, sizeof(Block) * CHUNK_SIZE);
 
 	// create its buffer
 	glCreateBuffers(1, &chunk->gl_buf);
@@ -52,14 +52,14 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 
 			// fill everything under that height
 			for (int i = 0; i < y; i++) {
-				chunk_set(chunk->data, x, i, z, Block::Stone);
+				chunk->set_block(x, i, z, Block::Stone);
 			}
-			chunk_set(chunk->data, x, (int)y, z, Block::Grass);
+			chunk->set_block(x, (int)floor(y), z, Block::Grass);
 		}
 	}
 
 	// fill buffer
-	glNamedBufferSubData(chunk->gl_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->data);
+	glNamedBufferSubData(chunk->gl_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->raw_data());
 
 	// chunk is ready, generate mini-chunks
 	chunk->gen_minichunks();

@@ -9,8 +9,9 @@
 #include <algorithm> // std::find
 
 class MiniChunk {
+private:
+	ChunkData * cdata = nullptr; // 16x16x16, indexed same way as chunk
 public:
-	Block * data; // 16x16x16, indexed same way as chunk
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
 	GLuint gl_buf; // each mini gets its own buf -- easy this way for now
 	bool invisible = false;
@@ -21,7 +22,7 @@ public:
 		assert(0 <= y && y < MINICHUNK_HEIGHT && "minichunk get_block invalid y coordinate");
 		assert(0 <= z && z < CHUNK_DEPTH && "minichunk get_block invalid z coordinate");
 
-		return data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH];
+		return cdata->get_block(x, y, z);
 	}
 
 	// set block at these coordinates
@@ -30,7 +31,7 @@ public:
 		assert(0 <= y && y < MINICHUNK_HEIGHT && "minichunk set_block invalid y coordinate");
 		assert(0 <= z && z < CHUNK_DEPTH && "minichunk set_block invalid z coordinate");
 
-		data[x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH] = val;
+		cdata->set_block(x, y, z, val);
 	}
 
 	// render this minichunk!
@@ -54,18 +55,30 @@ public:
 	}
 
 	// check if all blocks are air
-	bool all_air() {
-		return std::find_if(data, data + MINICHUNK_SIZE, [](Block b) {return b != Block::Air; }) == (data + MINICHUNK_SIZE);
+	inline bool all_air() {
+		return cdata->all_air();
 	}
 
 	// check if any blocks are air
-	bool any_air() {
-		return std::find(data, data + MINICHUNK_SIZE, Block::Air) < (data + MINICHUNK_SIZE);
+	inline bool any_air() {
+		return cdata->any_air();
 	}
 
 	// prepare buf for drawing -- only need to call it when new, or when stuff (or nearby stuff) changes
 	void prepare_buf() {
 		// TODO
+	}
+
+	inline void set_chunk_data(ChunkData* data) {
+		if (this->cdata != nullptr) {
+			delete this->cdata;
+		}
+
+		this->cdata = data;
+	}
+
+	inline Block* raw_data() {
+		return this->cdata->data;
 	}
 };
 

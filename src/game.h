@@ -71,6 +71,7 @@ public:
 		for (int i = -min_render_distance; i <= min_render_distance; i++) {
 			for (int j = -(min_render_distance - abs(i)); j <= min_render_distance - abs(i); j++) {
 				get_chunk_generate_if_required(chunk_coords[0] + i, chunk_coords[1] + j);
+				OutputDebugString("");
 			}
 		}
 	}
@@ -86,7 +87,7 @@ public:
 		}
 
 		// insert our chunk
-		if (chunk == nullptr || chunk->data == nullptr) {
+		if (chunk == nullptr) {
 			throw "Wew";
 		}
 		chunk_map[{x, z}] = chunk;

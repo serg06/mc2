@@ -26,17 +26,25 @@ static inline ivec4 clamp_coords_to_world(ivec4 coords) {
 
 // Chunk Data is always stored as CHUNK_WIDTH wide and CHUNK_DEPTH deep
 class ChunkData {
+public:
 	Block* data;
 	int size;
 	int height;
 
-	ChunkData(Block* data, int size) {
-		this->data = data;
-		this->size = size;
-		this->height = size / (CHUNK_WIDTH * CHUNK_DEPTH);
+	ChunkData(int size) : ChunkData((Block*)malloc(sizeof(Block) * size), size) {}
 
+	ChunkData(Block* data, int size) : data(data), size(size), height(size / (CHUNK_WIDTH * CHUNK_DEPTH)) {
 		assert(0 < size && size <= CHUNK_SIZE && "invalid chunk size");
 		assert(0 < height && height <= CHUNK_HEIGHT && "invalid chunk height somehow");
+	}
+
+	// get a ChunkData object pointing to a sub-piece of this chunk's data
+	ChunkData* get_piece(unsigned offset, unsigned size) {
+		assert(data != nullptr && "data is null");
+		assert(offset < this->size && "invalid offset");
+		assert(offset + size <= this->size && "invalid offset/size");
+
+		return new ChunkData(data + offset, size);
 	}
 
 	// get block at these coordinates
@@ -62,6 +70,18 @@ class ChunkData {
 
 	inline void set_block(vmath::ivec3 xyz, Block val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
 	inline void set_block(vmath::ivec4 xyz_, Block val) { return set_block(xyz_[0], xyz_[1], xyz_[2], val); }
+
+	inline bool all_air() {
+		return std::find_if(data, data + MINICHUNK_SIZE, [](Block b) {return b != Block::Air; }) == (data + MINICHUNK_SIZE);
+	}
+
+	inline bool any_air() {
+		return std::find(data, data + MINICHUNK_SIZE, Block::Air) < (data + MINICHUNK_SIZE);
+	}
+
+	inline void set_all_air() {
+		memset(this->data, (uint8_t)Block::Air, sizeof(Block) * size);
+	}
 };
 
 
