@@ -14,6 +14,11 @@
 #include <cstdint>
 #include <vmath.h>
 
+#define CHUNK_WIDTH 16
+#define CHUNK_HEIGHT 256
+#define CHUNK_DEPTH 16
+#define CHUNK_SIZE (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
+
 /*
 *
 * CHUNK FORMAT
@@ -42,9 +47,7 @@ static inline std::vector<ivec2> surrounding_chunks_s(ivec2 chunk_coord) {
 	};
 }
 
-class Chunk {
-private:
-	ChunkData * cdata = nullptr;
+class Chunk : public ChunkData {
 public:
 	vmath::ivec2 coords; // coordinates in chunk format
 	GLuint gl_buf; // opengl buffer with this chunk's data
@@ -54,22 +57,18 @@ public:
 	//	return coords * 16;
 	//}
 
-	Chunk() {}
+	Chunk() : ChunkData(CHUNK_WIDTH, CHUNK_HEIGHT, CHUNK_DEPTH) {}
 
-	Chunk(ChunkData* data, vmath::ivec2 coords, GLuint gl_buf) {
-		this->cdata = data;
-		this->coords = coords;
-		this->gl_buf = gl_buf;
-	}
+	Chunk(Block* data, vmath::ivec2 coords, GLuint gl_buf) : ChunkData(data, CHUNK_WIDTH, CHUNK_HEIGHT, CHUNK_DEPTH), coords(coords), gl_buf(gl_buf) {}
 
 	// split chunk into minichunks
 	inline void gen_minichunks() {
-		assert(cdata);
+		assert(data != nullptr);
 
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
 			// create mini and populate it
 			MiniChunk mini;
-			mini.set_chunk_data(cdata->get_piece(i*MINICHUNK_SIZE, MINICHUNK_SIZE));
+			mini.data = data + i*MINICHUNK_SIZE;
 			mini.coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
 
 			// create buffer
@@ -77,29 +76,11 @@ public:
 			glNamedBufferStorage(mini.gl_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
 			// fill buffer
-			glNamedBufferSubData(mini.gl_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.raw_data());
+			glNamedBufferSubData(mini.gl_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
 
 			// add it to our minis list
 			minis[i] = mini;
 		}
-	}
-
-	// get block at these coordinates
-	inline Block get_block(int x, int y, int z) {
-		assert(0 <= x && x < CHUNK_WIDTH && "chunk get_block invalid x coordinate");
-		assert(0 <= y && y < CHUNK_HEIGHT && "chunk get_block invalid y coordinate");
-		assert(0 <= z && z < CHUNK_DEPTH && "chunk get_block invalid z coordinate");
-
-		return cdata->get_block(x, y, z);
-	}
-
-	// set block at these coordinates
-	inline void set_block(int x, int y, int z, Block val) {
-		assert(0 <= x && x < CHUNK_WIDTH && "chunk set_block invalid x coordinate");
-		assert(0 <= y && y < CHUNK_HEIGHT && "chunk set_block invalid y coordinate");
-		assert(0 <= z && z < CHUNK_DEPTH && "chunk set_block invalid z coordinate");
-
-		cdata->set_block(x, y, z, val);
 	}
 
 	// render this chunk
@@ -111,22 +92,6 @@ public:
 
 	inline std::vector<ivec2> surrounding_chunks() {
 		return surrounding_chunks_s(coords);
-	}
-
-	inline void set_chunk_data(ChunkData* data) {
-		if (this->cdata != nullptr) {
-			delete this->cdata;
-		}
-
-		this->cdata = data;
-	}
-
-	inline void set_all_air() {
-		this->cdata->set_all_air();
-	}
-
-	inline Block* raw_data() {
-		return this->cdata->data;
 	}
 };
 

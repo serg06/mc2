@@ -30,9 +30,7 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 
 	// create chunk
 	Chunk* chunk = new Chunk();
-	ChunkData* cdata = new ChunkData(CHUNK_SIZE);
-	cdata->set_all_air();
-	chunk->set_chunk_data(cdata);
+	chunk->set_all_air();
 	chunk->coords = { chunkX, chunkZ };
 
 	// create its buffer
@@ -59,7 +57,7 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 	}
 
 	// fill buffer
-	glNamedBufferSubData(chunk->gl_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->raw_data());
+	glNamedBufferSubData(chunk->gl_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->data);
 
 	// chunk is ready, generate mini-chunks
 	chunk->gen_minichunks();
