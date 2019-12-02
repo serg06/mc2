@@ -356,12 +356,12 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 		}
 
 		// + = increase render distance
-		if (key == GLFW_KEY_KP_ADD) {
+		if (key == GLFW_KEY_KP_ADD || key == GLFW_KEY_EQUAL) {
 			min_render_distance++;
 		}
 
 		// - = decrease render distance
-		if (key == GLFW_KEY_KP_SUBTRACT) {
+		if (key == GLFW_KEY_KP_SUBTRACT || key == GLFW_KEY_MINUS) {
 			if (min_render_distance > 0) {
 				min_render_distance--;
 			}
