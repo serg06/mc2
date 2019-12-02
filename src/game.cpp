@@ -146,6 +146,36 @@ void App::render(float time) {
 
 	// Draw ALL our chunks!
 	world->render(&glInfo);
+
+	//// TEST SOMETHING -- TODO: REMOVE
+	//MiniChunk* mini = new MiniChunk();
+	//mini->coords = { 512, 128, 512 }; // super far away from us, def not loaded
+	//mini->set_all_air();
+	//mini->set_block(0, 0, 0, Block::Stone);
+
+	//OutputDebugString("JIC\n");
+
+	////MiniChunkMesh* mesh = world->gen_minichunk_mesh2(mini); // doesn't work cuz chunk not loaded yet
+	//// One of these HAS to make a mesh!
+	//MiniChunk mini3 = world->chunk_map[{0, 0}]->minis[3];
+	//MiniChunk mini4 = world->chunk_map[{0, 0}]->minis[4];
+
+	//OutputDebugString("Printing mini3 from TOP TO BOTTOM: ");
+	//for (int i = 0; i < 16; i++) {
+	//	char* result = mini3.print_layer(16 - 1 - i);
+	//	char buf[256];
+	//	sprintf(buf, "Layer %d :\n", 16 - 1 - i);
+	//	OutputDebugString(buf);
+	//	OutputDebugString(result);
+	//	OutputDebugString("\n");
+
+	//	free(result);
+	//}
+
+	//MiniChunkMesh* mesh3 = world->gen_minichunk_mesh2(&mini3);
+	//MiniChunkMesh* mesh4 = world->gen_minichunk_mesh2(&mini4);
+
+	//OutputDebugString("Wait\n");
 }
 
 // update player's movement based on how much time has passed since we last did it

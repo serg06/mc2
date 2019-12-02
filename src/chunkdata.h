@@ -8,6 +8,7 @@
 // Chunk size
 
 
+#define BLOCK_MIN_HEIGHT 0
 #define BLOCK_MAX_HEIGHT 255
 #define MINIS_PER_CHUNK (CHUNK_HEIGHT / MINICHUNK_HEIGHT)
 
@@ -57,8 +58,12 @@ public:
 	// get block at these coordinates
 	inline Block get_block(int x, int y, int z) {
 		assert(0 <= x && x < width && "get_block invalid x coordinate");
-		assert(0 <= y && y < height && "get_block invalid y coordinate");
 		assert(0 <= z && z < depth && "get_block invalid z coordinate");
+
+		// Outside of height range is just air
+		if (y < BLOCK_MIN_HEIGHT || y > BLOCK_MAX_HEIGHT) {
+			return Block::Air;
+		}
 
 		return data[x + z * width + y * width * depth];
 	}
@@ -88,6 +93,25 @@ public:
 
 	inline void set_all_air() {
 		memset(this->data, (uint8_t)Block::Air, sizeof(Block) * size());
+	}
+
+	inline char* print_layer(int layer) {
+		assert(layer < height && "cannot print this layer, too high");
+
+		char* result = (char*)malloc(sizeof(char) * 16 * 16 * 8); // up to 8 chars per block type
+		char* tmp = result;
+
+		for (int x = 0; x < width; x++) {
+			tmp += sprintf(tmp, "[ ");
+
+			for (int z = 0; z < depth; z++) {
+				tmp += sprintf(tmp, "%d ", (uint8_t)get_block(x, layer, z));
+			}
+
+			tmp += sprintf(tmp, "]\n");
+		}
+
+		return result;
 	}
 };
 

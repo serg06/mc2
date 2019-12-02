@@ -72,11 +72,11 @@ public:
 			mini.coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
 
 			// create buffer
-			glCreateBuffers(1, &mini.gl_buf);
-			glNamedBufferStorage(mini.gl_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
+			glCreateBuffers(1, &mini.block_types_buf);
+			glNamedBufferStorage(mini.block_types_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
 			// fill buffer
-			glNamedBufferSubData(mini.gl_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
+			glNamedBufferSubData(mini.block_types_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
 
 			// add it to our minis list
 			minis[i] = mini;
