@@ -82,6 +82,7 @@ void App::startup() {
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
+	world = new World();
 
 	// prepare opengl
 	setup_opengl(&glInfo);
@@ -98,7 +99,7 @@ void App::render(float time) {
 	update_player_movement(dt);
 
 	// generate nearby chunks
-	gen_nearby_chunks();
+	world->gen_nearby_chunks(char_position, min_render_distance);
 
 	/* TRANSFORMATION MATRICES */
 
@@ -144,10 +145,7 @@ void App::render(float time) {
 	//OutputDebugString(buf);
 
 	// Draw ALL our chunks!
-	for (auto &[coords_p, chunk] : chunk_map) {
-		chunk->render(&glInfo);
-		OutputDebugString("");
-	}
+	world->render(&glInfo);
 }
 
 // update player's movement based on how much time has passed since we last did it
@@ -260,7 +258,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	auto blocks = get_intersecting_blocks(char_position + position_change);
 
 	// if all blocks are air, we done
-	if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block) == Block::Air; })) {
+	if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return world->get_type(block) == Block::Air; })) {
 		return position_change;
 	}
 
@@ -282,7 +280,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return world->get_type(block[0], block[1], block[2]) == Block::Air; })) {
 			return position_change_fixed;
 		}
 	}
@@ -307,7 +305,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return get_type(block[0], block[1], block[2]) == Block::Air; })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return world->get_type(block[0], block[1], block[2]) == Block::Air; })) {
 			return position_change_fixed;
 		}
 	}
