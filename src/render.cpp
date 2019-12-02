@@ -56,6 +56,9 @@ void setup_glfw(GlfwInfo* windowInfo, GLFWwindow** window) {
 		MessageBox(NULL, "Failed to initialize OpenGL.", "gl3w error", MB_OK);
 		return;
 	}
+
+	// disable vsync
+	glfwSwapInterval(0);
 }
 
 void setup_opengl(OpenGLInfo* glInfo) {
