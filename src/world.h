@@ -21,10 +21,22 @@
 
 using namespace std;
 
-struct Quad2D {
+class Quad2D {
+public:
 	Block block;
 	ivec2 corners[2];
 };
+inline bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
+	auto &lc1 = lhs.corners[0];
+	auto &lc2 = lhs.corners[1];
+
+	auto &rc1 = rhs.corners[0];
+	auto &rc2 = rhs.corners[1];
+
+	return lhs.block == rhs.block &&
+		((lc1[0] == rc1[0] && lc1[1] == rc1[1] && lc2[0] == rc2[0] && lc2[1] == rc2[1]) ||
+		(lc2[0] == rc1[0] && lc2[1] == rc1[1] && lc1[0] == rc2[0] && lc1[1] == rc2[1]));
+}
 
 namespace WorldTests {
 	void test_gen_quads();
@@ -439,6 +451,7 @@ public:
 	// given a layer and start point, find its best dimensions
 	static inline ivec2 get_max_size(Block layer[16][16], bool merged[16][16], ivec2 start_point, Block block_type) {
 		assert(block_type != Block::Air);
+		assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
 		// TODO: Start max size at {1,1}, and for loops at +1.
 		// TODO: Search width with find() instead of a for loop.
@@ -464,13 +477,19 @@ public:
 		// maximize height
 
 		// for each height
+		bool stop = false;
 		for (int j = start_point[1]; j < 16; j++) {
 			// check if entire width is correct
 			for (int i = start_point[0]; i < start_point[0] + max_size[0]; i++) {
 				// if wrong block type, give up on extending height
 				if (layer[i][j] != block_type || merged[i][j]) {
+					stop = true;
 					break;
 				}
+			}
+
+			if (stop) {
+				break;
 			}
 
 			// yep, entire width is correct! Extend max height and keep going

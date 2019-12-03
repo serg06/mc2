@@ -10,6 +10,7 @@ namespace WorldTests {
 		test_gen_quads();
 		test_mark_as_merged();
 		test_get_max_size();
+		OutputDebugString("WorldTests completed successfully.\n");
 	}
 
 	void test_gen_quads() {
@@ -23,37 +24,60 @@ namespace WorldTests {
 				layer[i][j] = Block::Stone;
 			}
 		}
+		// expected result
+		Quad2D q1;
+		q1.block = Block::Stone;
+		q1.corners[0] = { 1, 3 };
+		q1.corners[1] = { 4, 7 };
 
-		//// 2. Add plus symbol - line from (7,7)->(7,11), and (5,7)->(9,7)
-		//for (int i = 7; i <= 7; i++) {
-		//	for (int j = 7; j <= 11; j++) {
-		//		layer[i][j] = Block::Stone;
-		//	}
-		//}
-		//for (int i = 5; i <= 9; i++) {
-		//	for (int j = 7; j <= 7; j++) {
-		//		layer[i][j] = Block::Stone;
-		//	}
-		//}
-		//// expected result
-		//Quad2D q2;
-		//q2.block = Block::Stone;
-		//q2.corners[0] = { 0, 15 };
-		//q2.corners[1] = { 16, 16 };
+		// 2. Add plus symbol - line from (7,5)->(7,9), and (5,7)->(9,7)
+		for (int i = 7; i <= 7; i++) {
+			for (int j = 5; j <= 9; j++) {
+				layer[i][j] = Block::Stone;
+			}
+		}
+		for (int i = 5; i <= 9; i++) {
+			for (int j = 7; j <= 7; j++) {
+				layer[i][j] = Block::Stone;
+			}
+		}
+		// expected result
+		vector<Quad2D> vq2;
+		Quad2D q2;
+		q2.block = Block::Stone;
 
-		//// Finally, add line all along bottom
-		//for (int i = 0; i <= 15; i++) {
-		//	for (int j = 15; j <= 15; j++) {
-		//		layer[i][j] = Block::Grass;
-		//	}
-		//}
-		//// expected result
-		//Quad2D q3;
-		//q3.block = Block::Grass;
-		//q3.corners[0] = { 0, 15 };
-		//q3.corners[1] = { 16, 16 };
+		q2.corners[0] = { 5, 7 };
+		q2.corners[1] = { 10, 8 };
+		vq2.push_back(q2);
+
+		q2.corners[0] = { 7, 5 };
+		q2.corners[1] = { 8, 7 };
+		vq2.push_back(q2);
+
+		q2.corners[0] = { 7, 8 };
+		q2.corners[1] = { 8, 10 };
+		vq2.push_back(q2);
+
+		// Finally, add line all along bottom
+		for (int i = 0; i <= 15; i++) {
+			for (int j = 15; j <= 15; j++) {
+				layer[i][j] = Block::Grass;
+			}
+		}
+		// expected result
+		Quad2D q3;
+		q3.block = Block::Grass;
+		q3.corners[0] = { 0, 15 };
+		q3.corners[1] = { 16, 16 };
 
 		vector<Quad2D> result = World::gen_quads(layer);
+
+		assert(result.size() == 5 && "wrong number of results");
+		assert(find(begin(result), end(result), q1) != end(result) && "q1 not in results list");
+		for (auto q : vq2) {
+			assert(find(begin(result), end(result), q) != end(result) && "q2's element not in results list");
+		}
+		assert(find(begin(result), end(result), q3) != end(result) && "q3 not in results list");
 
 		OutputDebugString("");
 	}
@@ -102,9 +126,9 @@ namespace WorldTests {
 			}
 		}
 
-		// 2. Add plus symbol - line from (7,7)->(7,11), and (5,7)->(9,7)
+		// 2. Add plus symbol - line from (7,5)->(7,9), and (5,7)->(9,7)
 		for (int i = 7; i <= 7; i++) {
-			for (int j = 7; j <= 11; j++) {
+			for (int j = 5; j <= 9; j++) {
 				layer[i][j] = Block::Stone;
 			}
 		}
@@ -114,32 +138,37 @@ namespace WorldTests {
 			}
 		}
 
-		// Finally, add line all along bottom
+		// 3. Add line all along bottom
 		for (int i = 0; i <= 15; i++) {
 			for (int j = 15; j <= 15; j++) {
 				layer[i][j] = Block::Grass;
 			}
 		}
 
-		// Now let's try to get max size for all of them
+		// Get max size for rectangle top-left-corner
 		ivec2 max_size1 = World::get_max_size(layer, merged, { 1, 3 }, Block::Stone);
 		if (max_size1[0] != 3 || max_size1[1] != 4) {
 			throw "wrong max_size1";
 		}
 
-		OutputDebugString("");
+		// Get max size for plus center
+		ivec2 max_size2 = World::get_max_size(layer, merged, { 7, 7 }, Block::Stone);
+		if (max_size2[0] != 3 || max_size2[1] != 1) {
+			throw "wrong max_size2";
+		}
+
 	}
 
 	// given a layer and start point, find its best dimensions
 	inline ivec2 get_max_size(Block layer[16][16], ivec2 start_point, Block block_type) {
 		assert(block_type != Block::Air);
-	
+
 		// TODO: Start max size at {1,1}, and for loops at +1.
 		// TODO: Search width with find() instead of a for loop.
-	
+
 		// "max width and height"
 		ivec2 max_size = { 0, 0 };
-	
+
 		// maximize width
 		for (int i = start_point[0], j = start_point[1]; i < 16; i++) {
 			// if extended by 1, add 1 to max width
@@ -151,12 +180,12 @@ namespace WorldTests {
 				break;
 			}
 		}
-	
+
 		assert(max_size[0] > 0 && "WTF? Max width is 0? Doesn't make sense.");
-	
+
 		// now that we've maximized width, need to
 		// maximize height
-	
+
 		// for each height
 		for (int j = start_point[1]; j < 16; j++) {
 			// check if entire width is correct
@@ -166,11 +195,11 @@ namespace WorldTests {
 					break;
 				}
 			}
-	
+
 			// yep, entire width is correct! Extend max height and keep going
 			max_size[1]++;
 		}
-	
+
 		assert(max_size[1] > 0 && "WTF? Max height is 0? Doesn't make sense.");
 	}
 
