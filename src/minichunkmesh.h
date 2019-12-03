@@ -2,6 +2,7 @@
 #define __MINICHUNK_MESH__
 
 #include "block.h"
+#include "render.h"
 #include "util.h"
 
 #include <vector>
@@ -16,17 +17,17 @@
 //	uint8_t mini_coords[4];
 //};
 
-struct Quad {
-	// for debugging
-	int size;
-
-	// block face
-	bool is_back_face;
-	Block block;
-
-	// coordinates of corners of quad
-	ivec3 corners[4];
-};
+//struct Quad {
+//	// for debugging
+//	int size;
+//
+//	// block face
+//	bool is_back_face;
+//	Block block;
+//
+//	// coordinates of corners of quad
+//	ivec3 corners[4];
+//};
 
 // A mesh of a minichunk, consisting of a bunch of quads & minichunk coordinates
 class MiniChunkMesh {

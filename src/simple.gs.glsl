@@ -11,9 +11,10 @@ out vec4 gs_color;
 void main(void)
 {
 	// don't draw air
-	if (vs_block_type[0] == 0) {
-		return;
-	}
+	// if (vs_block_type[0] == 0) {
+	// 	return; 
+	// }
+	// DEBUG: DRAWING AIR
 
 	// // don't draw stone
 	// if (vs_block_type[0] == 2) {

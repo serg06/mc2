@@ -32,6 +32,8 @@ using namespace vmath;
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	WorldTests::run_all_tests();
+
 	glfwSetErrorCallback(glfw_onError);
 	App::app = new App();
 	App::app->run();
@@ -104,7 +106,6 @@ void App::render(float time) {
 	/* TRANSFORMATION MATRICES */
 
 	// Create Model->World matrix
-	float f = (float)time * (float)M_PI * 0.1f;
 	mat4 model_world_matrix =
 		translate(0.0f, -PLAYER_HEIGHT * 0.9f, 0.0f);
 
@@ -139,10 +140,10 @@ void App::render(float time) {
 
 	char buf[256];
 	sprintf(buf, "Drawing (took %d ms)\n", (int)(dt * 1000));
-	OutputDebugString(buf);
+	//OutputDebugString(buf);
 	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
-	//OutputDebugString(buf);
+	OutputDebugString(buf);
 
 	// Draw ALL our chunks!
 	world->render(&glInfo);

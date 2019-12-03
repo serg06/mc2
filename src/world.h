@@ -21,11 +21,24 @@
 
 using namespace std;
 
+struct Quad2D {
+	Block block;
+	ivec2 corners[2];
+};
+
+namespace WorldTests {
+	void test_gen_quads();
+	void run_all_tests();
+	void test_mark_as_merged();
+	void test_get_max_size();
+}
+
 // represents an in-game world
 class World {
 public:
 	// map of (chunk coordinate) -> chunk
 	unordered_map<pair<int, int>, Chunk*, pair_hash> chunk_map;
+	int rendered = 0;
 
 	World() {
 
@@ -78,9 +91,14 @@ public:
 
 	// generate chunks near player
 	inline void gen_nearby_chunks(vmath::vec4 position, int distance) {
-		assert(distance > 0 && "invalid distance");
+		assert(distance >= 0 && "invalid distance");
 
 		ivec2 chunk_coords = get_chunk_coords((int)floorf(position[0]), (int)floorf(position[2]));
+
+		// DEBUG: don't generate anything but (0,_,0)
+		if (chunk_coords[0] != 0 || chunk_coords[1] != 0) {
+			return;
+		}
 
 		for (int i = -distance; i <= distance; i++) {
 			for (int j = -(distance - abs(i)); j <= distance - abs(i); j++) {
@@ -131,7 +149,6 @@ public:
 	inline Block get_type(vmath::ivec3 xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
 	inline Block get_type(vmath::ivec4 xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
 
-
 	// generate chunk at (x, z) and add it
 	inline void gen_chunk_at(int x, int z) {
 		// generate it
@@ -142,6 +159,7 @@ public:
 			mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 			if (!mini.invisible) {
 				mini.mesh = gen_minichunk_mesh(&mini);
+				mini.update_quads_buf();
 			}
 		}
 
@@ -154,6 +172,7 @@ public:
 				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 				if (!mini.invisible) {
 					mini.mesh = gen_minichunk_mesh(&mini);
+					mini.update_quads_buf();
 				}
 			}
 		}
@@ -211,12 +230,22 @@ public:
 	}
 
 	inline void render(OpenGLInfo* glInfo) {
+		char buf[256];
+		sprintf(buf, "[%d] Rendering all chunks\n", rendered);
+		//OutputDebugString(buf);
+
 		for (auto &[coords_p, chunk] : chunk_map) {
 			chunk->render(glInfo);
 		}
+
+		rendered++;
 	}
 
 	inline MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini) {
+		// DEBUG: Check why mesh at (0,0,0) is fucking awful
+		if (mini->coords[0] == 0 && mini->coords[1] == 0 && mini->coords[2] == 0) {
+			OutputDebugString("");
+		}
 		MiniChunkMesh* mesh = new MiniChunkMesh();
 
 		bool merged[16][16];
@@ -244,6 +273,10 @@ public:
 				for (startPos[workAxis1] = 0; startPos[workAxis1] < 16; startPos[workAxis1]++) {
 					for (startPos[workAxis2] = 0; startPos[workAxis2] < 16; startPos[workAxis2]++) {
 						startBlock = mini->get_block(startPos);
+
+						if (startPos[0] == 1 && startPos[1] == 0 && startPos[2] == 0) {
+							OutputDebugString("");
+						}
 
 						bool already_merged = merged[startPos[workAxis1]][startPos[workAxis2]];
 						bool air = startBlock == Block::Air;
@@ -294,10 +327,10 @@ public:
 
 						Quad q;
 						q.is_back_face = isBackFace;
-						for (int i = 0; i < sizeof(vertices)/sizeof(vertices[0]); i++) {
+						for (int i = 0; i < sizeof(vertices) / sizeof(vertices[0]); i++) {
 							q.corners[i] = vertices[i];
 						}
-						q.block = startBlock;
+						q.block = (uint8_t)startBlock;
 
 						q.size = 1;
 						for (int i = 0; i < 3; i++) {
@@ -321,11 +354,19 @@ public:
 			}
 		}
 
+		OutputDebugString("Printing mesh:\n");
+		char buf[256];
+
+		for (int i = 0; i < mesh->quads.size(); i++) {
+			sprintf(buf, "\t(%d, %d, %d) -> (%d, %d, %d) [%d]\n", mesh->quads[i].corners[0][0], mesh->quads[i].corners[0][1], mesh->quads[i].corners[0][2], mesh->quads[i].corners[2][0], mesh->quads[i].corners[2][1], mesh->quads[i].corners[2][2], mesh->quads[i].block);
+			OutputDebugString(buf);
+		}
+
 		return mesh;
 	}
 
 	inline bool IsBlockFaceVisible(MiniChunk* mini, vmath::ivec3 startPos, int direction, bool isBackFace) {
-		vmath::ivec3 dir_vec = { 0 };
+		vmath::ivec3 dir_vec = { 0, 0, 0 };
 		dir_vec[direction] = isBackFace ? -1 : 1;
 
 		return get_type(mini->real_coords() + startPos + dir_vec) == Block::Air;
@@ -338,91 +379,108 @@ public:
 		return blockA == blockB && blockB != Block::Air && IsBlockFaceVisible(mini, b, direction, backFace);
 	}
 
-	//// given a mini, generate a minichunk for it
-	//inline MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini) {
-	//	// don't wanna do it for an invisible one
-	//	if (mini->invisible) {
-	//		OutputDebugString("Skipping minichunk cuz invisible.\n");
-	//		return nullptr;
-	//	}
+	inline MiniChunkMesh* gen_minichunk_mesh2(MiniChunk* mini) {
+		// DEBUG: Check why mesh at (0,0,0) is fucking awful
+		if (mini->coords[0] == 0 && mini->coords[1] == 0 && mini->coords[2] == 0) {
+			OutputDebugString("");
+		}
+		MiniChunkMesh* mesh = new MiniChunkMesh();
 
-	//	// TODO: Make first 3 faces +xyz, last 3 -xyz.
 
-	//	// go through face types
-	//	for (int face = 0; face < 6; face++) {
-	//		// odd faces are backfaces (e.g. 0 = EAST (front face), 1 = WEST (back face), etc
-	//		bool backface = face % 2;
+		return mesh;
+	}
 
-	//		// go through layers
-	//		for (int layer = 0; layer < 16; layer++) {
-	//			// record merged faces in this layer
-	//			bool merged[16][16];
-	//			memset(merged, false, 16 * 16 * sizeof(bool));
+	// given 2D array of block numbers, generate optimal quads
+	static inline vector<Quad2D> gen_quads(Block(&layer)[16][16]) {
+		bool merged[16][16];
+		memset(merged, false, 16 * 16 * sizeof(bool));
 
-	//			// size of quad we're currently creating
-	//			int quadsize = 0;
+		vector<Quad2D> result;
 
-	//			int startU = 0, startV = 0;
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 16; j++) {
+				// skip merged blocks
+				if (merged[i][j]) continue;
 
-	//			// go through every block in this layer
-	//			for (int u = 0; u < 16; u++) {
-	//				for (int v = 0; v < 16; v++) {
-	//					int x, y, z;
+				Block block = layer[i][j];
 
-	//					// get actual block coordinates
-	//					switch (face) {
-	//					case 0:
-	//					case 1:
-	//						// first two faces are EAST/WEST (x axis)
-	//						x = layer;
-	//						y = u;
-	//						z = v;
-	//						break;
-	//					case 2:
-	//					case 3:
-	//						// next  two faces are SOUTH/NORTH (z axis)
-	//						x = u;
-	//						y = v;
-	//						z = layer;
-	//						break;
-	//					case 4:
-	//					case 5:
-	//						// last  two faces are UP/DOWN (y axis)
-	//						x = u;
-	//						y = layer;
-	//						z = v;
-	//						break;
-	//					}
+				// skip air
+				if (block == Block::Air) continue;
 
-	//					// if block has been merged already, skip it
-	//					if (merged[u][v]) {
-	//						continue;
-	//					}
+				// get max size of this quad
+				ivec2 max_size = get_max_size(layer, merged, { i, j }, block);
 
-	//					// if block is air, skip it
-	//					if (get_type(x, y, z) == Block::Air) {
-	//						continue;
-	//					}
+				// add it to results
+				ivec2 start = { i, j };
+				Quad2D q;
+				q.block = block;
+				q.corners[0] = start;
+				q.corners[1] = start + max_size;
 
-	//					// if face is invisible, skip it
-	//					if (!is_face_visible(x, y, z, face)) {
-	//						continue;
-	//					}
+				// mark all as merged
+				mark_as_merged(merged, start, max_size);
 
-	//					// we're good to go -- record as big of a square as you can
-	//					int uMin = u;
-	//					int uMax = u;
-	//					Block block = get_type(x, y, z);
+				// wew
+				result.push_back(q);
+			}
+		}
 
-	//					// first make width as wide as possible
-	//					for (int u2 = uMin; u2 < 16; u2++) {
-	//						// ...
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
+		return result;
+	}
+
+	static inline void mark_as_merged(bool(&merged)[16][16], ivec2 &start, ivec2 &max_size) {
+		for (int i = start[0]; i < start[0] + max_size[0]; i++) {
+			for (int j = start[1]; j < start[1] + max_size[1]; j++) {
+				merged[i][j] = true;
+			}
+		}
+	}
+
+	// given a layer and start point, find its best dimensions
+	static inline ivec2 get_max_size(Block layer[16][16], bool merged[16][16], ivec2 start_point, Block block_type) {
+		assert(block_type != Block::Air);
+
+		// TODO: Start max size at {1,1}, and for loops at +1.
+		// TODO: Search width with find() instead of a for loop.
+
+		// "max width and height"
+		ivec2 max_size = { 0, 0 };
+
+		// maximize width
+		for (int i = start_point[0], j = start_point[1]; i < 16; i++) {
+			// if extended by 1, add 1 to max width
+			if (layer[i][j] == block_type && !merged[i][j]) {
+				max_size[0]++;
+			}
+			// else give up
+			else {
+				break;
+			}
+		}
+
+		assert(max_size[0] > 0 && "WTF? Max width is 0? Doesn't make sense.");
+
+		// now that we've maximized width, need to
+		// maximize height
+
+		// for each height
+		for (int j = start_point[1]; j < 16; j++) {
+			// check if entire width is correct
+			for (int i = start_point[0]; i < start_point[0] + max_size[0]; i++) {
+				// if wrong block type, give up on extending height
+				if (layer[i][j] != block_type || merged[i][j]) {
+					break;
+				}
+			}
+
+			// yep, entire width is correct! Extend max height and keep going
+			max_size[1]++;
+		}
+
+		assert(max_size[1] > 0 && "WTF? Max height is 0? Doesn't make sense.");
+
+		return max_size;
+	}
 
 	// check if a block's face is visible
 	inline bool is_face_visible(vmath::ivec4 block_coords, int face) {

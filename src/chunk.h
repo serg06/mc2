@@ -71,14 +71,24 @@ public:
 			mini.data = data + i*MINICHUNK_SIZE;
 			mini.coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
 
-			// create buffer
+			// create CUBE buffer
 			glCreateBuffers(1, &mini.block_types_buf);
 			glNamedBufferStorage(mini.block_types_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
-			// fill buffer
+			// create QUAD buffer
+			glCreateBuffers(1, &mini.quads_buf);
+			glNamedBufferStorage(mini.quads_buf, (MINICHUNK_SIZE / 8) * sizeof(Quad) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // 172KB, huge amount of data, need to improve this somehow
+
+			// create SIMPLE QUAD buffers
+			glCreateBuffers(1, &mini.quad_block_type_buf);
+			glCreateBuffers(1, &mini.quad_corner_buf);
+			glNamedBufferStorage(mini.quad_block_type_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
+			glNamedBufferStorage(mini.quad_corner_buf, MINICHUNK_SIZE * sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // 294KB, huge amount of data, need to improve this somehow
+
+			// fill CUBE buffer, cuz we already have all the data we need
 			glNamedBufferSubData(mini.block_types_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
 
-			// add it to our minis list
+			// add mini to our minis list
 			minis[i] = mini;
 		}
 	}
@@ -86,7 +96,9 @@ public:
 	// render this chunk
 	inline void render(OpenGLInfo* glInfo) {
 		for (auto mini : minis) {
-			mini.render(glInfo);
+			//mini.render(glInfo);
+			//mini.render_meshes(glInfo);
+			mini.render_meshes_simple(glInfo);
 		}
 	}
 

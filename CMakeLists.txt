@@ -4,9 +4,11 @@ cmake_minimum_required(VERSION 3.14.7)
 # vars
 set(SOLUTION_NAME mc2)
 set(PROJECT_NAME game)
+set(TEST_PROJECT_NAME test)
 
 file(GLOB_RECURSE sources src/*.cpp src/*.h)
 file(GLOB_RECURSE data src/*.glsl)
+file(GLOB_RECURSE tests test/*.cpp test/*.h)
 
 # set the project name
 project(${SOLUTION_NAME})
@@ -34,7 +36,7 @@ add_library(gl3w src/gl3w.c)
 add_library(fastnoise include/FastNoise/FastNoise.cpp)
 
 # include kenp's shitty code in compilation -- just keeping it here 'til I better understand noise and decide on an implementation
-add_library(kenp_noise src/kenp_noise.h src/kenp_noise.cpp)
+add_library(kenp_noise include/kenp_noise/kenp_noise.h include/kenp_noise/kenp_noise.cpp)
 
 # add source files (so they compile) and data (so we see it in IDE)
 add_executable(${PROJECT_NAME} WIN32 ${sources} ${data})

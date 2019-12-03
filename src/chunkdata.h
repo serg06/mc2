@@ -6,8 +6,6 @@
 #include "vmath.h"
 
 // Chunk size
-
-
 #define BLOCK_MIN_HEIGHT 0
 #define BLOCK_MAX_HEIGHT 255
 #define MINIS_PER_CHUNK (CHUNK_HEIGHT / MINICHUNK_HEIGHT)

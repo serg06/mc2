@@ -1,6 +1,6 @@
 #include "chunk.h"
 #include "chunkdata.h"
-#include "kenp_noise.h"
+#include "kenp_noise/kenp_noise.h"
 #include "util.h"
 
 #include "GL/gl3w.h"
@@ -37,24 +37,36 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 	glCreateBuffers(1, &chunk->gl_buf);
 	glNamedBufferStorage(chunk->gl_buf, CHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
-	// fill data
-	for (int x = 0; x < CHUNK_WIDTH; x++) {
-		for (int z = 0; z < CHUNK_DEPTH; z++) {
+	//// fill data
+	//for (int x = 0; x < CHUNK_WIDTH; x++) {
+	//	for (int z = 0; z < CHUNK_DEPTH; z++) {
 
-			// get height at this location
-			double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
+	//		// get height at this location
+	//		double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
 
-			y = (y + 1.0) / 2.0; // normalize to [0.0, 1.0]
-			y *= 12; // variation of around 6
-			y += 55; // minimum height 60
+	//		y = (y + 1.0) / 2.0; // normalize to [0.0, 1.0]
+	//		y *= 12; // variation of around 6
+	//		y += 55; // minimum height 60
 
-			// fill everything under that height
-			for (int i = 0; i < y; i++) {
-				chunk->set_block(x, i, z, Block::Stone);
-			}
-			chunk->set_block(x, (int)floor(y), z, Block::Grass);
-		}
-	}
+	//		// fill everything under that height
+	//		for (int i = 0; i < y; i++) {
+	//			chunk->set_block(x, i, z, Block::Stone);
+	//		}
+	//		chunk->set_block(x, (int)floor(y), z, Block::Grass);
+	//	}
+	//}
+
+	// DEBUG: Custom chunks.
+	chunk->set_block(0, 0, 0, Block::Stone);
+	chunk->set_block(0, 0, 1, Block::Stone);
+	chunk->set_block(1, 0, 0, Block::Stone);
+	chunk->set_block(1, 0, 1, Block::Stone);
+
+	chunk->set_block(0, 1, 0, Block::Stone);
+	chunk->set_block(0, 1, 1, Block::Stone);
+	chunk->set_block(1, 1, 0, Block::Stone);
+	chunk->set_block(1, 1, 1, Block::Stone);
+
 
 	// fill buffer
 	glNamedBufferSubData(chunk->gl_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->data);

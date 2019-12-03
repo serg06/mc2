@@ -27,7 +27,7 @@ struct OpenGLInfo {
 	GLuint rendering_program;
 
 	// VAOs
-	GLuint vao_cube, vao2;
+	GLuint vao_cube, vao_quad;
 
 	// buffers
 	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
@@ -37,6 +37,10 @@ struct OpenGLInfo {
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint chunk_types_bidx = 1;
 	const GLuint mini_relative_coords_bidx = 2;
+	const GLuint quad_buf_bidx = 3;
+
+	const GLuint quad_block_type_bidx = 4;
+	const GLuint quad_corner_bidx = 5;
 
 	// uniform binding points
 	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
@@ -45,6 +49,31 @@ struct OpenGLInfo {
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
 	const GLuint chunk_types_attr_idx = 1; // index of 'block_type' attribute
 	const GLuint mini_relative_coords_attr_bidx = 2; // index of 'mini_relative_coords' attribute
+
+	const GLuint q_size_attr_idx = 3;
+	const GLuint q_is_back_face_attr_idx = 4;
+	const GLuint q_block_type_attr_idx = 5;
+	//const GLuint q_corners_attr_idx = 6;
+
+	const GLuint q_corner1_attr_idx = 6;
+	const GLuint q_corner2_attr_idx = 7;
+	const GLuint q_corner3_attr_idx = 8;
+	const GLuint q_corner4_attr_idx = 9;
+
+	const GLuint q_corner_attr_idx = 10;
+};
+
+struct Quad {
+	// for debugging
+	int size;
+
+	// block face
+	bool is_back_face;
+	uint8_t block;
+
+	// coordinates of corners of quad
+	//vmath::ivec3 corners[4];
+	vmath::ivec3 corners[4]; // only uses ivec4 so we can feed it into a matrix
 };
 
 void setup_glfw(GlfwInfo*, GLFWwindow**);
