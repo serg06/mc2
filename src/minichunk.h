@@ -78,25 +78,13 @@ public:
 		//glDrawArraysInstanced(GL_TRIANGLES, 0, 12, 1);
 		//glDrawArraysInstanced(GL_TRIANGLES, 0, 6*96, 1);
 		for (int i = 0; i < quads.size(); i++) {
-			glDrawArraysInstancedBaseInstance(GL_TRIANGLES, i * 6, 6, 1, 0);
+			glDrawArraysInstancedBaseInstance(GL_TRIANGLES, i * 6, 6, 1, i);
 		}
 
 		Block* blocks = (Block*)malloc(sizeof(Block) * quads.size());
 
 		// get blocks from buffer
 		glGetNamedBufferSubData(quad_block_type_buf, 0, quads.size(), blocks);
-
-		for (int i = 0; i < quads.size(); i++) {
-			// update blocks
-			blocks[i] = (Block)quads[i].block;
-		}
-
-		for (int i = 0; i < quads.size(); i++) {
-			Block b = blocks[i];
-			if (b == Block::Grass) {
-				OutputDebugString("");
-			}
-		}
 
 		//OutputDebugString("Buffer's types:\n\t");
 		for (int i = 0; i < quads.size(); i++) {
@@ -105,11 +93,12 @@ public:
 			if (blocks[i] != (Block) quads[i].block) {
 				throw "wew";
 			}
+			if (blocks[i] == Block::Air) {
+				throw "wew2";
+			}
 		}
 
 		free(blocks);
-		//glGetBufferSubData
-
 
 		// unbind VAO jic
 		glBindVertexArray(0);
@@ -125,7 +114,7 @@ public:
 		return { coords[0] * 16, coords[1], coords[2] * 16 };
 	}
 
-	void update_quads_buf2() {
+	void update_quads_buf() {
 		if (mesh == nullptr) {
 			throw "bad";
 		}

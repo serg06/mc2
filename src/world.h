@@ -181,8 +181,8 @@ public:
 				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 
 				if (!mini.invisible) {
-					mini.mesh = gen_minichunk_mesh2(&mini);
-					mini.update_quads_buf2();
+					mini.mesh = gen_minichunk_mesh(&mini);
+					mini.update_quads_buf();
 				}
 			}
 		}
@@ -290,8 +290,8 @@ public:
 					OutputDebugString("");
 				}
 
-				mini.mesh = gen_minichunk_mesh2(&mini);
-				mini.update_quads_buf2();
+				mini.mesh = gen_minichunk_mesh(&mini);
+				mini.update_quads_buf();
 			}
 		}
 
@@ -306,8 +306,8 @@ public:
 					// DEBUG
 					//mini.mesh = gen_minichunk_mesh(&mini);
 					//mini.update_quads_buf();
-					mini.mesh = gen_minichunk_mesh2(&mini);
-					mini.update_quads_buf2();
+					mini.mesh = gen_minichunk_mesh(&mini);
+					mini.update_quads_buf();
 				}
 			}
 		}
@@ -380,7 +380,7 @@ public:
 		working_idx_2 = layers_idx == 2 ? 1 : 2;
 	}
 
-	inline MiniChunkMesh* gen_minichunk_mesh2(MiniChunk* mini) {
+	inline MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini) {
 		// got our mesh
 		MiniChunkMesh* mesh = new MiniChunkMesh();
 

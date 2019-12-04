@@ -139,7 +139,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	// vao: extra properties
 	glBindVertexArray(glInfo->vao_quad);
 
-	//glVertexAttribDivisor(glInfo->q_block_type_attr_idx, 1); // instance attribute
+	glVertexAttribDivisor(glInfo->q_block_type_attr_idx, 1); // instance attribute
 	//glVertexAttribDivisor(glInfo->q_size_attr_idx, 1); // instance attribute
 
 	glBindVertexArray(0);
