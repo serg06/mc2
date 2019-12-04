@@ -10,7 +10,12 @@ namespace WorldTests {
 		test_gen_quads();
 		test_mark_as_merged();
 		test_get_max_size();
+		test_gen_layer();
 		OutputDebugString("WorldTests completed successfully.\n");
+	}
+
+	void test_gen_layer() {
+		// fuck this is too hard
 	}
 
 	void test_gen_quads() {

@@ -76,6 +76,11 @@ struct Quad {
 	vmath::ivec3 corners[4]; // only uses ivec4 so we can feed it into a matrix
 };
 
+struct Quad3D {
+	uint8_t block;
+	vmath::ivec3 corners[2];
+};
+
 void setup_glfw(GlfwInfo*, GLFWwindow**);
 void setup_opengl(OpenGLInfo*);
 

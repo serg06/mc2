@@ -54,9 +54,9 @@ void main2(void)
 	// Given gl_InstanceID, calculate 3D coordinate relative to chunk origin
 	int remainder = gl_InstanceID;
 	int y = remainder / CHUNK_HEIGHT;
-	remainder -= y * CHUNK_WIDTH * CHUNK_DEPTH;
+	remainder -= y * CHUNK_WIDTH * CHUNK_DEPTH; // TODO: I think this should be y * CHUNK_HEIGHT
 	int z = remainder / CHUNK_DEPTH;
-	remainder -= z * CHUNK_WIDTH;
+	remainder -= z * CHUNK_WIDTH; // TODO: I think this should be z * CHUNK_DEPTH
 	int x = remainder;
 
 	/* CREATE OUR OFFSET VARIABLE */

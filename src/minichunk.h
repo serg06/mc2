@@ -88,15 +88,15 @@ public:
 			return;
 		}
 
-		// DEBUG: only render the one at position 0,0,0!
-		if (coords[0] || coords[1] || coords[2]) {
-			//return;
-		}
+		//// DEBUG: only render the one at position 0,0,0!
+		//if (coords[0] || coords[1] || coords[2]) {
+		//	return;
+		//}
 
-		// DEBUG: only render the one at position 0,64,0!
-		if (coords[0] || coords[1] != 64 || coords[2]) {
-			return;
-		}
+		//// DEBUG: only render the one at position 0,64,0!
+		//if (coords[0] || coords[1] != 64 || coords[2]) {
+		//	return;
+		//}
 
 		char buf[256];
 		sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads.\n", coords[0] * 16, coords[1], coords[2] * 16, mesh->quads.size());
@@ -148,6 +148,80 @@ public:
 		}
 
 		free(blocks);
+		//glGetBufferSubData
+
+
+		// unbind VAO jic
+		glBindVertexArray(0);
+	}
+
+	void render_meshes_simple2(OpenGLInfo* glInfo) {
+		// don't draw if covered in all sides
+		if (invisible) {
+			return;
+		}
+
+		//// DEBUG: only render the one at position 0,0,0!
+		//if (coords[0] || coords[1] || coords[2]) {
+		//	return;
+		//}
+
+		//// DEBUG: only render the one at position 0,64,0!
+		//if (coords[0] || coords[1] != 64 || coords[2]) {
+		//	return;
+		//}
+
+		auto &quads = mesh->quads3d;
+
+		char buf[256];
+		sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads3d.\n", coords[0] * 16, coords[1], coords[2] * 16, quads.size());
+		OutputDebugString(buf);
+
+		//int not_air = 0;
+		//for (int i = 0; i < MINICHUNK_SIZE; i++) {
+		//	if (data[i] != Block::Air) {
+		//		not_air++;
+		//	}
+		//}
+		//sprintf(buf, "Num not air: %d\n", not_air);
+		//OutputDebugString(buf);
+
+
+		// quad VAO
+		glBindVertexArray(glInfo->vao_quad);
+
+		// bind to quads attribute binding point
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_corner_bidx, quad_corner_buf, 0, sizeof(ivec3));
+
+		// write this chunk's coordinate to coordinates buffer
+		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords);
+
+		// DRAW!
+		//glDrawArraysInstanced(GL_TRIANGLES, 0, 6, quads.size());
+		//glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 1);
+		//glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
+		//glDrawArraysInstanced(GL_TRIANGLES, 0, 12, 1);
+		//glDrawArraysInstanced(GL_TRIANGLES, 0, 6*96, 1);
+		for (int i = 0; i < quads.size(); i++) {
+			glDrawArraysInstancedBaseInstance(GL_TRIANGLES, i * 6, 6, 1, i);
+		}
+
+		//Block* blocks = (Block*)malloc(sizeof(Block) * quads.size());
+
+		//for (int i = 0; i < quads.size(); i++) {
+		//	// update blocks
+		//	blocks[i] = (Block)quads[i].block;
+		//}
+
+		//for (int i = 0; i < quads.size(); i++) {
+		//	Block b = blocks[i];
+		//	if (b == Block::Grass) {
+		//		OutputDebugString("");
+		//	}
+		//}
+
+		//free(blocks);
 		//glGetBufferSubData
 
 
@@ -210,6 +284,75 @@ public:
 
 		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * mesh->quads.size(), blocks);
 		glNamedBufferSubData(quad_corner_buf, 0, sizeof(ivec3) * mesh->quads.size() * 6, corners);
+	}
+
+	void update_quads_buf2() {
+		if (mesh == nullptr) {
+			throw "bad";
+		}
+
+		auto &quads = mesh->quads3d;
+
+		ivec3* corners = (ivec3*)malloc(sizeof(ivec3) * quads.size() * 6);
+		Block* blocks = (Block*)malloc(sizeof(Block) * quads.size());
+
+		for (int i = 0; i < quads.size(); i++) {
+			// update blocks
+			blocks[i] = (Block)quads[i].block;
+
+			ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
+
+			// make sure at least one dimension is killed - i.e, it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
+			int num_diffs_0 = 0;
+			int zero_idx = 0;
+
+			for (int i = 0; i < 3; i++) {
+				if (diffs[i] == 0) {
+					num_diffs_0 += 1;
+					zero_idx = i;
+				}
+			}
+
+			assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
+
+			// working indices are always gonna be xy, xz, or yz.
+			int working_idx_1, working_idx_2;
+			gen_working_indices(zero_idx, working_idx_1, working_idx_2);
+
+			char buf[256];
+
+			// update corners
+			for (int j = 0; j < 6; j++) {
+				switch (j) {
+				case 0:
+					// top-left corner
+					corners[i * 6 + j] = quads[i].corners[0];
+					sprintf(buf, "Set corners[%d] to (%d, %d, %d)\n", i * 6 + j, quads[i].corners[0][0], quads[i].corners[0][1], quads[i].corners[0][2]);
+					OutputDebugString(buf);
+					break;
+				case 1:
+				case 4:
+					// bottom-left corner
+					corners[i * 6 + j] = quads[i].corners[0];
+					corners[i * 6 + j][working_idx_1] += diffs[working_idx_1];
+					break;
+				case 2:
+				case 3:
+					// top-right corner
+					corners[i * 6 + j] = quads[i].corners[0];
+					corners[i * 6 + j][working_idx_2] += diffs[working_idx_2];
+					break;
+				case 5:
+					// bottom-right corner
+					corners[i * 6 + j] = quads[i].corners[1];
+					break;
+				}
+			}
+		}
+
+		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * quads.size(), blocks);
+		glNamedBufferSubData(quad_corner_buf, 0, sizeof(ivec3) * quads.size() * 6, corners);
+		OutputDebugString("");
 	}
 };
 

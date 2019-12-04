@@ -43,6 +43,7 @@ namespace WorldTests {
 	void run_all_tests();
 	void test_mark_as_merged();
 	void test_get_max_size();
+	void test_gen_layer();
 }
 
 // represents an in-game world
@@ -108,9 +109,9 @@ public:
 		ivec2 chunk_coords = get_chunk_coords((int)floorf(position[0]), (int)floorf(position[2]));
 
 		// DEBUG: don't generate anything but (0,_,0)
-		if (chunk_coords[0] != 0 || chunk_coords[1] != 0) {
-			return;
-		}
+		//if (chunk_coords[0] != 0 || chunk_coords[1] != 0) {
+		//	return;
+		//}
 
 		for (int i = -distance; i <= distance; i++) {
 			for (int j = -(distance - abs(i)); j <= distance - abs(i); j++) {
@@ -166,12 +167,24 @@ public:
 		// generate it
 		Chunk* c = gen_chunk(x, z);
 
+		// DEBUG: add it NOW so that we can use get_type immediately..
+		add_chunk(x, z, c);
+
 		// set up its MiniChunks
 		for (auto &mini : c->minis) {
 			mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 			if (!mini.invisible) {
-				mini.mesh = gen_minichunk_mesh(&mini);
-				mini.update_quads_buf();
+				// DEBUG
+				//mini.mesh = gen_minichunk_mesh(&mini);
+				//mini.update_quads_buf();
+
+				// (0, 64, 0)
+				if (mini.coords[0] == 0 && mini.coords[1] == 64 && mini.coords[2] == 0) {
+					OutputDebugString("");
+				}
+
+				mini.mesh = gen_minichunk_mesh2(&mini);
+				mini.update_quads_buf2();
 			}
 		}
 
@@ -183,13 +196,14 @@ public:
 			for (auto &mini : c2->minis) {
 				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 				if (!mini.invisible) {
-					mini.mesh = gen_minichunk_mesh(&mini);
-					mini.update_quads_buf();
+					// DEBUG
+					//mini.mesh = gen_minichunk_mesh(&mini);
+					//mini.update_quads_buf();
+					mini.mesh = gen_minichunk_mesh2(&mini);
+					mini.update_quads_buf2();
 				}
 			}
 		}
-
-		add_chunk(x, z, c);
 	}
 
 	inline bool check_if_covered(MiniChunk mini) {
@@ -254,10 +268,11 @@ public:
 	}
 
 	inline MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini) {
-		// DEBUG: Check why mesh at (0,0,0) is fucking awful
-		if (mini->coords[0] == 0 && mini->coords[1] == 0 && mini->coords[2] == 0) {
-			OutputDebugString("");
-		}
+		//// DEBUG: Check why mesh at (0,0,0) is fucking awful
+		//if (mini->coords[0] == 0 && mini->coords[1] == 0 && mini->coords[2] == 0) {
+		//	OutputDebugString("");
+		//}
+
 		MiniChunkMesh* mesh = new MiniChunkMesh();
 
 		bool merged[16][16];
@@ -391,15 +406,172 @@ public:
 		return blockA == blockB && blockB != Block::Air && IsBlockFaceVisible(mini, b, direction, backFace);
 	}
 
+	static inline void gen_working_indices(int &layers_idx, int &working_idx_1, int &working_idx_2) {
+		// working indices are always gonna be xy, xz, or yz.
+		working_idx_1 = layers_idx == 0 ? 1 : 0;
+		working_idx_2 = layers_idx == 2 ? 1 : 2;
+	}
+
 	inline MiniChunkMesh* gen_minichunk_mesh2(MiniChunk* mini) {
-		// DEBUG: Check why mesh at (0,0,0) is fucking awful
-		if (mini->coords[0] == 0 && mini->coords[1] == 0 && mini->coords[2] == 0) {
-			OutputDebugString("");
-		}
+		// got our mesh
 		MiniChunkMesh* mesh = new MiniChunkMesh();
 
+		int num_air_total = mini->count_air();
+
+		// for all 6 sides
+		for (int i = 0; i < 6; i++) {
+			bool backface = i < 3;
+			int layers_idx = i % 3;
+			
+			// working indices are always gonna be xy, xz, or yz.
+			int working_idx_1, working_idx_2;
+			gen_working_indices(layers_idx, working_idx_1, working_idx_2);
+
+			// generate face variable
+			ivec3 face = { 0, 0, 0 };
+			// I don't think it matters whether we start with front or back face, as long as we switch halfway through.
+			face[layers_idx] = backface ? -1 : 1;
+
+
+			// for each layer
+			for (int i = 0; i < 16; i++) {
+				Block layer[16][16];
+
+				// extract it from the data
+				gen_layer(mini, layers_idx, i, face, layer);
+
+				int num_air = 0;
+				for (int i = 0; i < 16; i++) {
+					for (int j = 0; j < 16; j++) {
+						if (layer[i][j] == Block::Air) {
+							num_air++;
+						}
+					}
+				}
+				int num_not_air = 16 * 16 - num_air;
+
+				// wew
+				assert((uint8_t) layer[0][0] != 204);
+
+				// get quads from layer
+				vector<Quad2D> quads2d = gen_quads(layer);
+				
+				// convert quads back to 3D coordinates
+				vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
+
+				// append quads
+				for (auto quad : quads) {
+					mesh->quads3d.push_back(quad);
+				}
+			}
+		}
 
 		return mesh;
+	}
+
+	// convert 2D quads to 3D quads
+	// face: for offset
+	static inline vector<Quad3D> quads_2d_3d(vector<Quad2D> quads2d, int layers_idx, int layer_no, ivec3 face) {
+		vector<Quad3D> result;
+
+		// working variable
+		Quad3D quad3d;
+
+		// working indices are always gonna be xy, xz, or yz.
+		int working_idx_1, working_idx_2;
+		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
+
+		// for each quad
+		for (auto quad2d : quads2d) {
+			// set block
+			quad3d.block = (uint8_t)quad2d.block;
+
+			// for each corner in the quad
+			for (int i = 0; i < 2; i++) {
+				// set 3D coordinates
+				quad3d.corners[i][layers_idx] = layer_no;
+				quad3d.corners[i][working_idx_1] = quad2d.corners[i][0];
+				quad3d.corners[i][working_idx_2] = quad2d.corners[i][1];
+			}
+
+			result.push_back(quad3d);
+		}
+
+		return result;
+	}
+
+	// extract a layer from data, replacing covered faces with air, and checking covered faces via `face` variable
+	// layers_idx: The index of the coordinate in {x, y, z} that we're currently traversing, layer by layer.
+	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
+		// NOTE: Regardless of what order we're doing layers,
+		//       `face` = face that we wanna check. So e.g. if you wanna check face on -x side, need to pass (-1, 0, 0);
+		assert(length(face) == 1);
+
+		// error check
+		assert(face[layers_idx] && "wrong face, fool");
+
+		// working indices are always gonna be xy, xz, or yz.
+		int working_idx_1, working_idx_2;
+		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
+
+		assert(layers_idx != working_idx_1 && working_idx_1 != working_idx_2 && working_idx_2 != layers_idx);
+		assert(layers_idx + working_idx_1 + working_idx_2 == 3);
+
+		// TODO: Use mini.get_block() whenever possible, it's way faster then world.get_type()!
+		// TODO: Maybe make this method static by passing in surrounding minis.
+
+		ivec3 minichunk_offset = { mini->coords[0] * 16, mini->coords[1], mini->coords[2] * 16 };
+
+		if (mini->coords[0] == 0 && mini->coords[1] == 64 && mini->coords[2] == 0) {
+			char buf[256];
+			int num_not_air = 16*16*16-mini->count_air();
+
+			for (int x = 0; x < 16; x++) {
+				for (int y = 0; y < 16; y++) {
+					for (int z = 0; z < 16; z++) {
+						ivec3 coordz = mini->coords + ivec3(x, y, z);
+						Block b = get_type(coordz);
+						if (b != Block::Air) {
+							sprintf(buf, "Block at (%d, %d, %d) = %s!\n", coordz[0], coordz[1], coordz[2], b == Block::Grass ? "Grass" : "Stone");
+							OutputDebugString(buf);
+						}
+					}
+				}
+			}
+
+			for (int i = 0; i < 16 * 16 * 16; i++) {
+				if (mini->data[i] != Block::Air) {
+					sprintf(buf, "Block at idx [%d] = %s!\n", i, mini->data[i] == Block::Grass ? "Grass" : "Stone");
+					OutputDebugString(buf);
+				}
+			}
+
+			OutputDebugString("");
+		}
+
+
+		for (int u = 0; u < 16; u++) {
+			for (int v = 0; v < 16; v++) {
+				ivec3 coords;
+				coords[layers_idx] = layer_no;
+				coords[working_idx_1] = u;
+				coords[working_idx_2] = v;
+
+				ivec3 world_coords = minichunk_offset + coords;
+				Block block = get_type(world_coords);
+				Block face_block = get_type(world_coords + face);
+
+				// if invisible, set to air
+				// BIG DEBUG: draw covered faces
+				if (block == Block::Air || face_block != Block::Air) {
+				//if (block == Block::Air) {
+					result[u][v] = Block::Air;
+				}
+				else {
+					result[u][v] = block;
+				}
+			}
+		}
 	}
 
 	// given 2D array of block numbers, generate optimal quads

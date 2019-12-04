@@ -33,6 +33,7 @@
 class MiniChunkMesh {
 public:
 	std::vector<Quad> quads;
+	std::vector<Quad3D> quads3d;
 
 	inline int size() {
 		return quads.size();
@@ -42,11 +43,11 @@ public:
 inline vmath::ivec4 face_to_direction(int face) {
 	switch (face) {
 	case 0: return IEAST_0;
-	case 1: return IWEST_0;
+	case 1: return IUP_0;
 	case 2: return ISOUTH_0;
-	case 3: return INORTH_0;
-	case 4: return IUP_0;
-	case 5: return IDOWN_0;
+	case 3: return IWEST_0;
+	case 4: return IDOWN_0;
+	case 5: return INORTH_0;
 	}
 }
 

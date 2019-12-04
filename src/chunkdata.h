@@ -93,6 +93,10 @@ public:
 		memset(this->data, (uint8_t)Block::Air, sizeof(Block) * size());
 	}
 
+	inline int count_air() {
+		return std::count(data, data + size(), Block::Air);
+	}
+
 	inline char* print_layer(int layer) {
 		assert(layer < height && "cannot print this layer, too high");
 
