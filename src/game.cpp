@@ -483,7 +483,7 @@ void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity,
 	bufp += sprintf(bufp, "\n");
 
 	OutputDebugString(buf);
-	//exit(-1);
+	exit(-1);
 }
 
 void App::onMouseButton(int button, int action) {}

@@ -717,7 +717,6 @@ public:
 		// DRAW!
 		glDisable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glLineWidth(100.0f);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 6);
 		glEnable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
