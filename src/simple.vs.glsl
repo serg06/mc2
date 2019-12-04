@@ -84,9 +84,11 @@ void main(void)
 			break;
 		case 1: // grass
 			vs_color = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // green
+			// vs_color = vec4(0.2, 0.6, 0.0, 1.0); // green
 			break;
 		case 2: // stone
 			vs_color = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // grey
+			// vs_color = vec4(0.4, 0.4, 0.4, 1.0); // grey
 			break;
 		default:
 			vs_color = vec4(1.0, 0.0, 1.0, 1.0); // SUPER NOTICEABLE (for debugging)
