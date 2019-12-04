@@ -85,10 +85,8 @@ public:
 	// render this chunk
 	inline void render(OpenGLInfo* glInfo) {
 		for (auto mini : minis) {
-			//mini.render(glInfo);
-			//mini.render_meshes(glInfo);
-			//mini.render_meshes_simple(glInfo);
-			mini.render_meshes_simple(glInfo);
+			//mini.render_cubes(glInfo);
+			mini.render_meshes(glInfo);
 		}
 	}
 

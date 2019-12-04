@@ -28,8 +28,8 @@ public:
 		glCreateBuffers(1, &quad_corner_buf);
 	}
 
-	// render this minichunk!
-	void render(OpenGLInfo* glInfo) {
+	// render this minichunk's cubes (that's 4096 cubes, with 12 triangles per cube.)
+	void render_cubes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
 		if (invisible) {
 			return;
@@ -51,7 +51,8 @@ public:
 		glBindVertexArray(0);
 	}
 
-	void render_meshes_simple(OpenGLInfo* glInfo) {
+	// render this minichunk's meshes
+	void render_meshes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
 		if (invisible) {
 			return;

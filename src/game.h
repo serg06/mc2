@@ -40,7 +40,7 @@ public:
 	// key inputs
 	bool held_keys[GLFW_KEY_LAST + 1];
 	bool noclip = false;
-	unsigned min_render_distance = 8;
+	unsigned min_render_distance = 3;
 
 	// movement
 	vec4 char_position = { 8.0f, 66.0f, 8.0f, 1.0f }; // DEBUG: lower player
