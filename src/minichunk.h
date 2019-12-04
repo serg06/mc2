@@ -100,11 +100,9 @@ public:
 
 		auto &quads = mesh->quads3d;
 
-		ivec3* corners = (ivec3*)malloc(sizeof(ivec3) * quads.size() * 6);
-		Block* blocks = (Block*)malloc(sizeof(Block) * quads.size());
-
-		ivec3* corner1s = (ivec3*)malloc(sizeof(ivec3) * quads.size());
-		ivec3* corner2s = (ivec3*)malloc(sizeof(ivec3) * quads.size());
+		Block* blocks = new Block[quads.size()];
+		ivec3* corner1s = new ivec3[quads.size()];
+		ivec3* corner2s = new ivec3[quads.size()];
 
 		for (int i = 0; i < quads.size(); i++) {
 			// update blocks
@@ -131,34 +129,6 @@ public:
 
 			char buf[256];
 
-			// update corners
-			for (int j = 0; j < 6; j++) {
-				switch (j) {
-				case 0:
-					// top-left corner
-					corners[i * 6 + j] = quads[i].corners[0];
-					//sprintf(buf, "Set corners[%d] to (%d, %d, %d)\n", i * 6 + j, quads[i].corners[0][0], quads[i].corners[0][1], quads[i].corners[0][2]);
-					//OutputDebugString(buf);
-					break;
-				case 1:
-				case 4:
-					// bottom-left corner
-					corners[i * 6 + j] = quads[i].corners[0];
-					corners[i * 6 + j][working_idx_1] += diffs[working_idx_1];
-					break;
-				case 2:
-				case 3:
-					// top-right corner
-					corners[i * 6 + j] = quads[i].corners[0];
-					corners[i * 6 + j][working_idx_2] += diffs[working_idx_2];
-					break;
-				case 5:
-					// bottom-right corner
-					corners[i * 6 + j] = quads[i].corners[1];
-					break;
-				}
-			}
-
 			corner1s[i] = quads[i].corners[0];
 			corner2s[i] = quads[i].corners[1];
 		}
@@ -183,7 +153,8 @@ public:
 		glNamedBufferSubData(quad_corner1_buf, 0, sizeof(ivec3) * quads.size(), corner1s);
 		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * quads.size(), corner2s);
 
-		OutputDebugString("");
+		// delete malloc'd stuff
+		delete blocks, corner1s, corner2s;
 	}
 };
 

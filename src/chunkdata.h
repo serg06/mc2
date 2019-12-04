@@ -26,7 +26,8 @@ public:
 	int height;
 	int depth;
 
-	ChunkData(int width, int height, int depth) : ChunkData((Block*)malloc(sizeof(Block) * width * height * depth), width, height, depth) {}
+	// Memory leak, delete this when un-loading chunk from world.
+	ChunkData(int width, int height, int depth) : ChunkData(new Block[width * height * depth], width, height, depth) {}
 
 	ChunkData(Block* data, int width, int height, int depth) : data(data), width(width), height(height), depth(depth) {
 		assert(0 < width && "invalid chunk width");

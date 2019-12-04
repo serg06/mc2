@@ -105,6 +105,7 @@ static inline bool in_range(vecN<T, len> vec, vecN<T, len> min, vecN<T, len> max
 	return true;
 }
 
+// Memory leak, delete returned result.
 template <typename T, const int len>
 static inline char* vec2str(vecN<T, len> vec) {
 	char* result = new char[vec.size() * 16 + 4];

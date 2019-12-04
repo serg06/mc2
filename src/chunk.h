@@ -75,8 +75,6 @@ public:
 			//// fill CUBE buffer, cuz we already have all the data we need
 			//glNamedBufferSubData(mini.block_types_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
 
-
-
 			// add mini to our minis list
 			minis[i] = mini;
 		}
