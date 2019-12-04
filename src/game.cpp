@@ -143,7 +143,7 @@ void App::render(float time) {
 	//OutputDebugString(buf);
 	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
-	OutputDebugString(buf);
+	//OutputDebugString(buf);
 
 	// Draw ALL our chunks!
 	world->render(&glInfo);
@@ -410,6 +410,17 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 			case GL_POINT:
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				break;
+			}
+		}
+
+		// c = toggle face culling
+		if (key == GLFW_KEY_C) {
+			GLboolean is_enabled = glIsEnabled(GL_CULL_FACE);
+			if (is_enabled) {
+				glDisable(GL_CULL_FACE);
+			}
+			else {
+				glEnable(GL_CULL_FACE);
 			}
 		}
 	}

@@ -399,7 +399,7 @@ public:
 			ivec3 face = { 0, 0, 0 };
 			// I don't think it matters whether we start with front or back face, as long as we switch halfway through.
 			// BACKFACE => +X/+Y/+Z SIDE. 
-			face[layers_idx] = backface ? 1 : -1;
+			face[layers_idx] = backface ? -1 : 1;
 
 
 			// for each layer
@@ -425,17 +425,25 @@ public:
 				// get quads from layer
 				vector<Quad2D> quads2d = gen_quads(layer);
 
-				//// if backface, do flippy
-				//if (backface) {
-				//	for (int i = 0; i < quads2d.size(); i++) {
-				//		ivec2 diffs = quads2d[i].corners[1] - quads2d[i].corners[0];
-				//		quads2d[i].corners[1] = quads2d[i].corners[0] + ivec2(0, diffs[1]);
-				//		quads2d[i].corners[0] = quads2d[i].corners[0] + ivec2(diffs[0], 0);
-				//	}
-				//}
+				// if +x, -y, or +z, flip triangles around so that we're not drawing them backwards
+				if (face[0] > 0 || face[1] < 0 || face[2] > 0) {
+					for (int i = 0; i < quads2d.size(); i++) {
+						ivec2 diffs = quads2d[i].corners[1] - quads2d[i].corners[0];
+						quads2d[i].corners[1] = quads2d[i].corners[0] + ivec2(0, diffs[1]);
+						quads2d[i].corners[0] = quads2d[i].corners[0] + ivec2(diffs[0], 0);
+					}
+				}
 
 				// convert quads back to 3D coordinates
 				vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
+
+				// if -x, -y, or -z, move 1 forwards
+				if (face[0] > 0 || face[1] > 0 || face[2] > 0) {
+					for (int i = 0; i < quads.size(); i++) {
+						quads[i].corners[0] += face;
+						quads[i].corners[1] += face;
+					}
+				}
 
 				//// if backface
 				//if (!backface) {
@@ -530,7 +538,7 @@ public:
 						Block b = get_type(coordz);
 						if (b != Block::Air) {
 							sprintf(buf, "Block at (%d, %d, %d) = %s!\n", coordz[0], coordz[1], coordz[2], b == Block::Grass ? "Grass" : "Stone");
-							OutputDebugString(buf);
+							//OutputDebugString(buf);
 						}
 					}
 				}
@@ -539,7 +547,7 @@ public:
 			for (int i = 0; i < 16 * 16 * 16; i++) {
 				if (mini->data[i] != Block::Air) {
 					sprintf(buf, "Block at idx [%d] = %s!\n", i, mini->data[i] == Block::Grass ? "Grass" : "Stone");
-					OutputDebugString(buf);
+					//OutputDebugString(buf);
 				}
 			}
 

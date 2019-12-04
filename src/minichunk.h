@@ -59,7 +59,7 @@ public:
 
 		char buf[256];
 		sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads3d.\n", coords[0] * 16, coords[1], coords[2] * 16, quads.size());
-		OutputDebugString(buf);
+		//OutputDebugString(buf);
 
 		// quad VAO
 		glBindVertexArray(glInfo->vao_quad);
@@ -156,7 +156,7 @@ public:
 					// top-left corner
 					corners[i * 6 + j] = quads[i].corners[0];
 					sprintf(buf, "Set corners[%d] to (%d, %d, %d)\n", i * 6 + j, quads[i].corners[0][0], quads[i].corners[0][1], quads[i].corners[0][2]);
-					OutputDebugString(buf);
+					//OutputDebugString(buf);
 					break;
 				case 1:
 				case 4:
