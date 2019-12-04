@@ -121,22 +121,16 @@ void setup_opengl(OpenGLInfo* glInfo) {
 
 	// vao: enable all Quad's attributes, 1 at a time
 	glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_block_type_attr_idx);
-	glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner_attr_idx);
-
 	glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner1_attr_idx);
 	glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner2_attr_idx);
 
 	// vao: set up formats for cube's attributes, 1 at a time
 	glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_block_type_attr_idx, 1, GL_BYTE, 0);
-	glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner_attr_idx, 3, GL_INT, 0);
-
 	glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner1_attr_idx, 3, GL_INT, 0);
 	glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner2_attr_idx, 3, GL_INT, 0);
 
 	// vao: match attributes to binding indices
 	glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_block_type_attr_idx, glInfo->quad_block_type_bidx);
-	glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner_attr_idx, glInfo->quad_corner_bidx);
-
 	glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner1_attr_idx, glInfo->q_corner1_bidx);
 	glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner2_attr_idx, glInfo->q_corner2_bidx);
 

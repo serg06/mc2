@@ -25,8 +25,6 @@ public:
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
 		// Fix a bug when rendering too quickly.
 		glCreateBuffers(1, &quad_block_type_buf);
-		glCreateBuffers(1, &quad_corner_buf);
-
 		glCreateBuffers(1, &quad_corner1_buf);
 		glCreateBuffers(1, &quad_corner2_buf);
 	}
@@ -72,8 +70,6 @@ public:
 
 		// bind to quads attribute binding point
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_corner_bidx, quad_corner_buf, 0, sizeof(ivec3));
-
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
 
@@ -169,29 +165,21 @@ public:
 
 		// delete buffers if exist
 		glDeleteBuffers(1, &quad_block_type_buf);
-		glDeleteBuffers(1, &quad_corner_buf);
-
 		glDeleteBuffers(1, &quad_corner1_buf);
 		glDeleteBuffers(1, &quad_corner2_buf);
 
 		// create new ones with just the right sizes
 		glCreateBuffers(1, &quad_block_type_buf);
-		glCreateBuffers(1, &quad_corner_buf);
-
 		glCreateBuffers(1, &quad_corner1_buf);
 		glCreateBuffers(1, &quad_corner2_buf);
 
 		// allocate them just enough space
 		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_corner_buf, sizeof(ivec3) * quads.size() * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-
 		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
 		// fill 'em up!
 		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * quads.size(), blocks);
-		glNamedBufferSubData(quad_corner_buf, 0, sizeof(ivec3) * quads.size() * 6, corners);
-
 		glNamedBufferSubData(quad_corner1_buf, 0, sizeof(ivec3) * quads.size(), corner1s);
 		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * quads.size(), corner2s);
 
