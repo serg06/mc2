@@ -114,57 +114,6 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	glVertexAttribDivisor(glInfo->chunk_types_attr_idx, 1);
 	glBindVertexArray(0);
 
-	///* HANDLE QUADS NOW */
-
-	//// vao: create VAO for Quads, so we can tell OpenGL how to use it when it's bound
-	//glCreateVertexArrays(1, &glInfo->vao_quad);
-
-	//// vao: enable all Quad's attributes, 1 at a time
-	//glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_size_attr_idx);
-	//glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_is_back_face_attr_idx);
-	//glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_block_type_attr_idx);
-
-	//glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner1_attr_idx);
-	//glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner2_attr_idx);
-	//glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner3_attr_idx);
-	//glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner4_attr_idx);
-
-	//// vao: set up formats for cube's attributes, 1 at a time
-	//glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_size_attr_idx, 1, GL_INT, offsetof(Quad, size)); // size = int
-	//glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_is_back_face_attr_idx, 1, GL_BYTE, offsetof(Quad, is_back_face)); // is_back_face = bool
-	//glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_block_type_attr_idx, 1, GL_BYTE, offsetof(Quad, block)); // block_type = bool
-
-	//// TODO: Improve
-	//glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner1_attr_idx, 3, GL_INT, offsetof(Quad, corners[0]));
-	//glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner2_attr_idx, 3, GL_INT, offsetof(Quad, corners[1]));
-	//glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner3_attr_idx, 3, GL_INT, offsetof(Quad, corners[2]));
-	//glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner4_attr_idx, 3, GL_INT, offsetof(Quad, corners[3]));
-
-	//// vao: tell all attributes to read from a single buffer binding index
-	//glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_size_attr_idx, glInfo->quad_buf_bidx);
-	//glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_is_back_face_attr_idx, glInfo->quad_buf_bidx);
-	//glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_block_type_attr_idx, glInfo->quad_buf_bidx);
-
-	//glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner1_attr_idx, glInfo->quad_buf_bidx);
-	//glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner2_attr_idx, glInfo->quad_buf_bidx);
-	//glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner3_attr_idx, glInfo->quad_buf_bidx);
-	//glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner4_attr_idx, glInfo->quad_buf_bidx);
-
-	//// vao: extra properties
-	//glBindVertexArray(glInfo->vao_quad);
-
-	//glVertexAttribDivisor(glInfo->q_size_attr_idx, 1);
-	//glVertexAttribDivisor(glInfo->q_is_back_face_attr_idx, 1);
-	//glVertexAttribDivisor(glInfo->q_block_type_attr_idx, 1);
-
-	//glVertexAttribDivisor(glInfo->q_corner1_attr_idx, 1);
-	//glVertexAttribDivisor(glInfo->q_corner2_attr_idx, 1);
-	//glVertexAttribDivisor(glInfo->q_corner3_attr_idx, 1);
-	//glVertexAttribDivisor(glInfo->q_corner4_attr_idx, 1);
-
-	//glBindVertexArray(0);
-
-
 
 
 
@@ -194,7 +143,6 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	//glVertexAttribDivisor(glInfo->q_size_attr_idx, 1); // instance attribute
 
 	glBindVertexArray(0);
-
 
 
 

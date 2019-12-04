@@ -76,10 +76,6 @@ public:
 			glCreateBuffers(1, &mini.block_types_buf);
 			glNamedBufferStorage(mini.block_types_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
-			// create QUAD buffer
-			glCreateBuffers(1, &mini.quads_buf);
-			glNamedBufferStorage(mini.quads_buf, (MINICHUNK_SIZE / 8) * sizeof(Quad) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // 172KB, huge amount of data, need to improve this somehow
-
 			// create SIMPLE QUAD buffers
 			glCreateBuffers(1, &mini.quad_block_type_buf);
 			glCreateBuffers(1, &mini.quad_corner_buf);
