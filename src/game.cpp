@@ -91,6 +91,8 @@ void App::startup() {
 }
 
 void App::render(float time) {
+	char buf[256];
+
 	// change in time
 	const float dt = time - last_render_time;
 	last_render_time = time;
@@ -138,11 +140,13 @@ void App::render(float time) {
 	glNamedBufferSubData(glInfo.trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 
-	char buf[256];
+	// PRINT FPS
 	sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
 	OutputDebugString(buf);
-	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
-	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
+
+	//// PRINT POSITION/ORIENTATION
+	//vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
+	//sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
 	//OutputDebugString(buf);
 
 	// Draw ALL our chunks!

@@ -85,7 +85,7 @@ public:
 
 		// if doesn't exist, generate it
 		if (search == chunk_map.end()) {
-			gen_chunk_at(x, z);
+			gen_chunk(x, z);
 		}
 
 		return chunk_map[{x, z}];
@@ -141,7 +141,7 @@ public:
 		int i = 0;
 		for (auto coords : to_generate) {
 			// generate it
-			Chunk* c = gen_chunk(coords);
+			Chunk* c = gen_chunk_data(coords);
 
 			// add it to world so that we can use get_type in following code
 			add_chunk(coords[0], coords[1], c);
@@ -217,13 +217,10 @@ public:
 
 		for (int i = -distance; i <= distance; i++) {
 			for (int j = -(distance - abs(i)); j <= distance - abs(i); j++) {
-				// DEBUG: Faster!
-				//get_chunk_generate_if_required(chunk_coords[0] + i, chunk_coords[1] + j);
 				coords.push_back({ chunk_coords[0] + i, chunk_coords[1] + j });
 			}
 		}
-
-		// DEBUG: Faster!
+		
 		gen_chunks_if_required(coords);
 	}
 
@@ -270,47 +267,10 @@ public:
 	inline Block get_type(vmath::ivec4 xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// generate chunk at (x, z) and add it
-	inline void gen_chunk_at(int x, int z) {
-		// generate it
-		Chunk* c = gen_chunk(x, z);
-
-		// DEBUG: add it NOW so that we can use get_type immediately..
-		add_chunk(x, z, c);
-
-		// set up its MiniChunks
-		for (auto &mini : c->minis) {
-			mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
-			if (!mini.invisible) {
-				// DEBUG
-				//mini.mesh = gen_minichunk_mesh(&mini);
-				//mini.update_quads_buf();
-
-				// (0, 64, 0)
-				if (mini.coords[0] == 0 && mini.coords[1] == 64 && mini.coords[2] == 0) {
-					OutputDebugString("");
-				}
-
-				mini.mesh = gen_minichunk_mesh(&mini);
-				mini.update_quads_buf();
-			}
-		}
-
-		// set up nearby MiniChunks
-		for (auto coords : c->surrounding_chunks()) {
-			Chunk* c2 = get_chunk(coords[0], coords[1]);
-			if (c2 == nullptr) continue;
-
-			for (auto &mini : c2->minis) {
-				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
-				if (!mini.invisible) {
-					// DEBUG
-					//mini.mesh = gen_minichunk_mesh(&mini);
-					//mini.update_quads_buf();
-					mini.mesh = gen_minichunk_mesh(&mini);
-					mini.update_quads_buf();
-				}
-			}
-		}
+	inline void gen_chunk(int x, int z) {
+		vector<ivec2> coords;
+		coords.push_back({ x, z });
+		gen_chunks(coords);
 	}
 
 	inline bool check_if_covered(MiniChunk mini) {
@@ -364,7 +324,7 @@ public:
 
 	inline void render(OpenGLInfo* glInfo) {
 		char buf[256];
-		sprintf(buf, "[%d] Rendering all chunks\n", rendered);
+		//sprintf(buf, "[%d] Rendering all chunks\n", rendered);
 		//OutputDebugString(buf);
 
 		for (auto &[coords_p, chunk] : chunk_map) {
@@ -537,7 +497,7 @@ public:
 						ivec3 coordz = mini->coords + ivec3(x, y, z);
 						Block b = get_type(coordz);
 						if (b != Block::Air) {
-							sprintf(buf, "Block at (%d, %d, %d) = %s!\n", coordz[0], coordz[1], coordz[2], b == Block::Grass ? "Grass" : "Stone");
+							//sprintf(buf, "Block at (%d, %d, %d) = %s!\n", coordz[0], coordz[1], coordz[2], b == Block::Grass ? "Grass" : "Stone");
 							//OutputDebugString(buf);
 						}
 					}
@@ -546,12 +506,10 @@ public:
 
 			for (int i = 0; i < 16 * 16 * 16; i++) {
 				if (mini->data[i] != Block::Air) {
-					sprintf(buf, "Block at idx [%d] = %s!\n", i, mini->data[i] == Block::Grass ? "Grass" : "Stone");
+					//sprintf(buf, "Block at idx [%d] = %s!\n", i, mini->data[i] == Block::Grass ? "Grass" : "Stone");
 					//OutputDebugString(buf);
 				}
 			}
-
-			OutputDebugString("");
 		}
 
 
@@ -566,10 +524,8 @@ public:
 				Block block = get_type(world_coords);
 				Block face_block = get_type(world_coords + face);
 
-				// if invisible, set to air
-				// BIG DEBUG: draw covered faces
+				// if block invisible or face not visible, set to air
 				if (block == Block::Air || face_block != Block::Air) {
-				//if (block == Block::Air) {
 					result[u][v] = Block::Air;
 				}
 				else {

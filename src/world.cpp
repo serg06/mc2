@@ -83,8 +83,6 @@ namespace WorldTests {
 			assert(find(begin(result), end(result), q) != end(result) && "q2's element not in results list");
 		}
 		assert(find(begin(result), end(result), q3) != end(result) && "q3 not in results list");
-
-		OutputDebugString("");
 	}
 
 	void test_mark_as_merged() {

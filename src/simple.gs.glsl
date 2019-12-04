@@ -14,7 +14,6 @@ void main(void)
 	// if (vs_block_type[0] == 0) {
 	// 	return; 
 	// }
-	// DEBUG: DRAWING AIR
 
 	// // don't draw stone
 	// if (vs_block_type[0] == 2) {

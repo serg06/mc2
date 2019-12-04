@@ -58,7 +58,7 @@ public:
 		auto &quads = mesh->quads3d;
 
 		char buf[256];
-		sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads3d.\n", coords[0] * 16, coords[1], coords[2] * 16, quads.size());
+		//sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads3d.\n", coords[0] * 16, coords[1], coords[2] * 16, quads.size());
 		//OutputDebugString(buf);
 
 		// quad VAO
@@ -136,7 +136,7 @@ public:
 				case 0:
 					// top-left corner
 					corners[i * 6 + j] = quads[i].corners[0];
-					sprintf(buf, "Set corners[%d] to (%d, %d, %d)\n", i * 6 + j, quads[i].corners[0][0], quads[i].corners[0][1], quads[i].corners[0][2]);
+					//sprintf(buf, "Set corners[%d] to (%d, %d, %d)\n", i * 6 + j, quads[i].corners[0][0], quads[i].corners[0][1], quads[i].corners[0][2]);
 					//OutputDebugString(buf);
 					break;
 				case 1:
@@ -159,9 +159,21 @@ public:
 			}
 		}
 
+		//// delete buffers if exist
+		//if (glIsBuffer(quad_block_type_buf)) glDeleteBuffers(1, &quad_block_type_buf);
+		//if (glIsBuffer(quad_corner_buf)) glDeleteBuffers(1, &quad_corner_buf);
+
+		//// create new ones with just the right sizes
+		//glCreateBuffers(1, &quad_block_type_buf);
+		//glCreateBuffers(1, &quad_corner_buf);
+
+		//// allocate them just enough space
+		//glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		//glNamedBufferStorage(quad_corner_buf, sizeof(ivec3) * quads.size() * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+
+		// fill 'em up!
 		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * quads.size(), blocks);
 		glNamedBufferSubData(quad_corner_buf, 0, sizeof(ivec3) * quads.size() * 6, corners);
-		OutputDebugString("");
 	}
 };
 

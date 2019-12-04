@@ -24,7 +24,7 @@ double noise22(float vec[2]) {
 	return result;
 }
 
-Chunk* gen_chunk(int chunkX, int chunkZ) {
+Chunk* gen_chunk_data(int chunkX, int chunkZ) {
 	char buf[256];
 	FastNoise fn;
 
@@ -32,10 +32,6 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 	Chunk* chunk = new Chunk();
 	chunk->set_all_air();
 	chunk->coords = { chunkX, chunkZ };
-
-	// create its buffer
-	glCreateBuffers(1, &chunk->gl_buf);
-	glNamedBufferStorage(chunk->gl_buf, CHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
 
 	// fill data
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
@@ -55,21 +51,6 @@ Chunk* gen_chunk(int chunkX, int chunkZ) {
 			chunk->set_block(x, (int)floor(y), z, Block::Grass);
 		}
 	}
-
-	//// DEBUG: Custom chunks.
-	//chunk->set_block(0, 0, 0, Block::Stone);
-	//chunk->set_block(0, 0, 1, Block::Stone);
-	//chunk->set_block(1, 0, 0, Block::Stone);
-	//chunk->set_block(1, 0, 1, Block::Stone);
-
-	//chunk->set_block(0, 1, 0, Block::Stone);
-	//chunk->set_block(0, 1, 1, Block::Stone);
-	//chunk->set_block(1, 1, 0, Block::Stone);
-	//chunk->set_block(1, 1, 1, Block::Stone);
-
-
-	// fill buffer
-	glNamedBufferSubData(chunk->gl_buf, 0, CHUNK_SIZE * sizeof(Block), chunk->data);
 
 	// chunk is ready, generate mini-chunks
 	chunk->gen_minichunks();
