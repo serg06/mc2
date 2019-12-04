@@ -107,7 +107,7 @@ static inline bool in_range(vecN<T, len> vec, vecN<T, len> min, vecN<T, len> max
 
 template <typename T, const int len>
 static inline char* vec2str(vecN<T, len> vec) {
-	char* result = (char*)malloc((vec.size() * 16 + 4) * sizeof(char));
+	char* result = new char[vec.size() * 16 + 4];
 	char* tmp = result;
 
 	tmp += sprintf(tmp, "(");
