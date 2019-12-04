@@ -23,7 +23,9 @@ public:
 	GLuint quad_block_type_buf, quad_corner_buf;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
-
+		// Fix a bug when rendering too quickly.
+		glCreateBuffers(1, &quad_block_type_buf);
+		glCreateBuffers(1, &quad_corner_buf);
 	}
 
 	// render this minichunk!

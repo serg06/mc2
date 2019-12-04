@@ -75,10 +75,7 @@ public:
 			//// fill CUBE buffer, cuz we already have all the data we need
 			//glNamedBufferSubData(mini.block_types_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
 
-			/* DON'T REMOVE! */
-			/* I don't know HOW or WHY, but this fixes a really strange graphical issue on my PC when rapidly increasing render distance. */
-			glCreateBuffers(1, &mini.quad_block_type_buf);
-			glCreateBuffers(1, &mini.quad_corner_buf);
+
 
 			// add mini to our minis list
 			minis[i] = mini;

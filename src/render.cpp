@@ -114,11 +114,6 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	glVertexAttribDivisor(glInfo->chunk_types_attr_idx, 1);
 	glBindVertexArray(0);
 
-
-
-
-
-
 	/* HANDLE QUADS (EASY VERSION) NOW */
 
 	// vao: create VAO for Quads, so we can tell OpenGL how to use it when it's bound
@@ -143,10 +138,6 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	//glVertexAttribDivisor(glInfo->q_size_attr_idx, 1); // instance attribute
 
 	glBindVertexArray(0);
-
-
-
-
 
 	/* HANDLE UNIFORM NOW */
 
