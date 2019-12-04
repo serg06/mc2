@@ -15,11 +15,6 @@ void main(void)
 	// 	return; 
 	// }
 
-	// // don't draw stone
-	// if (vs_block_type[0] == 2) {
-	// 	return;
-	// }
-
 	for (int i = 0; i < 3; i++) {		
 		gl_Position = gl_in[i].gl_Position;
 		gs_color = vs_color[i];
