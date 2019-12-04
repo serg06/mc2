@@ -13,6 +13,9 @@ layout (location = 999) in ivec3 chunk_coords;
 layout (location = 2) in uint q_block_type;
 layout (location = 3) in ivec3 q_corner;
 
+layout (location = 4) in ivec3 q_corner1;
+layout (location = 5) in ivec3 q_corner2;
+
 out vec4 vs_color;
 out uint vs_block_type;
 
@@ -40,7 +43,38 @@ void main(void)
 	/* CREATE OUR OFFSET VARIABLE */
 
 	vec4 chunk_base = vec4(uni.base_coords.x * 16, uni.base_coords.y, uni.base_coords.z * 16, 0);
+
 	vec4 offset_in_chunk = vec4(q_corner, 0);
+
+	// TRYING NEW STRAT:
+	offset_in_chunk = vec4(q_corner1, 0);
+	ivec3 diffs = q_corner2 - q_corner1;
+
+	int zero_idx = diffs[0] == 0 ? 0 : diffs[1] == 0 ? 1 : 2;
+	int working_idx_1 = zero_idx == 0 ? 1 : 0;
+	int working_idx_2 = zero_idx == 2 ? 1 : 2;
+
+	switch(gl_VertexID) {
+	case 0:
+		// top-left corner
+		break;
+	case 1:
+	case 4:
+		// bottom-left corner
+		offset_in_chunk[working_idx_1] += diffs[working_idx_1];
+		break;
+	case 2:
+	case 3:
+		// top-right corner
+		offset_in_chunk[working_idx_2] += diffs[working_idx_2];
+		break;
+	case 5:
+		// bottom-right corner
+		offset_in_chunk = vec4(q_corner2, 0);
+		break;
+	}
+
+
 	vec4 instance_offset = chunk_base + offset_in_chunk;
 
 	/* ADD IT TO VERTEX */

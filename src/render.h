@@ -40,6 +40,9 @@ struct OpenGLInfo {
 	const GLuint quad_block_type_bidx = 2;
 	const GLuint quad_corner_bidx = 3;
 
+	const GLuint q_corner1_bidx = 4;
+	const GLuint q_corner2_bidx = 5;
+
 	// uniform binding points
 	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
 
@@ -49,6 +52,9 @@ struct OpenGLInfo {
 
 	const GLuint q_block_type_attr_idx = 2;
 	const GLuint q_corner_attr_idx = 3;
+
+	const GLuint q_corner1_attr_idx = 4;
+	const GLuint q_corner2_attr_idx = 5;
 };
 
 struct Quad3D {

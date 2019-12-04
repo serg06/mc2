@@ -20,12 +20,15 @@ public:
 	GLuint block_types_buf; // each mini gets its own buf -- easy this way for now
 	bool invisible = false;
 	MiniChunkMesh* mesh;
-	GLuint quad_block_type_buf, quad_corner_buf;
+	GLuint quad_block_type_buf, quad_corner_buf, quad_corner1_buf, quad_corner2_buf;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
 		// Fix a bug when rendering too quickly.
 		glCreateBuffers(1, &quad_block_type_buf);
 		glCreateBuffers(1, &quad_corner_buf);
+
+		glCreateBuffers(1, &quad_corner1_buf);
+		glCreateBuffers(1, &quad_corner2_buf);
 	}
 
 	// render this minichunk's cubes (that's 4096 cubes, with 12 triangles per cube.)
@@ -71,18 +74,14 @@ public:
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_corner_bidx, quad_corner_buf, 0, sizeof(ivec3));
 
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
+
 		// write this chunk's coordinate to coordinates buffer
 		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords);
 
 		// DRAW!
-		//glDrawArraysInstanced(GL_TRIANGLES, 0, 6, quads.size());
-		//glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 1);
-		//glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
-		//glDrawArraysInstanced(GL_TRIANGLES, 0, 12, 1);
-		//glDrawArraysInstanced(GL_TRIANGLES, 0, 6*96, 1);
-		for (int i = 0; i < quads.size(); i++) {
-			glDrawArraysInstancedBaseInstance(GL_TRIANGLES, i * 6, 6, 1, i);
-		}
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, quads.size());
 
 		// unbind VAO jic
 		glBindVertexArray(0);
@@ -107,6 +106,9 @@ public:
 
 		ivec3* corners = (ivec3*)malloc(sizeof(ivec3) * quads.size() * 6);
 		Block* blocks = (Block*)malloc(sizeof(Block) * quads.size());
+
+		ivec3* corner1s = (ivec3*)malloc(sizeof(ivec3) * quads.size());
+		ivec3* corner2s = (ivec3*)malloc(sizeof(ivec3) * quads.size());
 
 		for (int i = 0; i < quads.size(); i++) {
 			// update blocks
@@ -160,27 +162,40 @@ public:
 					break;
 				}
 			}
+
+			corner1s[i] = quads[i].corners[0];
+			corner2s[i] = quads[i].corners[1];
 		}
 
 		// delete buffers if exist
 		glDeleteBuffers(1, &quad_block_type_buf);
 		glDeleteBuffers(1, &quad_corner_buf);
 
+		glDeleteBuffers(1, &quad_corner1_buf);
+		glDeleteBuffers(1, &quad_corner2_buf);
+
 		// create new ones with just the right sizes
 		glCreateBuffers(1, &quad_block_type_buf);
 		glCreateBuffers(1, &quad_corner_buf);
+
+		glCreateBuffers(1, &quad_corner1_buf);
+		glCreateBuffers(1, &quad_corner2_buf);
 
 		// allocate them just enough space
 		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 		glNamedBufferStorage(quad_corner_buf, sizeof(ivec3) * quads.size() * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
-		//// allocate them a FUCKTON of space, to see if it fixes our bug.
-		//glNamedBufferStorage(quad_block_type_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
-		//glNamedBufferStorage(quad_corner_buf, MINICHUNK_SIZE * sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // 294KB, huge amount of data, need to improve this somehow
+		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
 		// fill 'em up!
 		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * quads.size(), blocks);
 		glNamedBufferSubData(quad_corner_buf, 0, sizeof(ivec3) * quads.size() * 6, corners);
+
+		glNamedBufferSubData(quad_corner1_buf, 0, sizeof(ivec3) * quads.size(), corner1s);
+		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * quads.size(), corner2s);
+
+		OutputDebugString("");
 	}
 };
 
