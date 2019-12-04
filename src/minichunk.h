@@ -159,17 +159,21 @@ public:
 			}
 		}
 
-		//// delete buffers if exist
-		//if (glIsBuffer(quad_block_type_buf)) glDeleteBuffers(1, &quad_block_type_buf);
-		//if (glIsBuffer(quad_corner_buf)) glDeleteBuffers(1, &quad_corner_buf);
+		// delete buffers if exist
+		glDeleteBuffers(1, &quad_block_type_buf);
+		glDeleteBuffers(1, &quad_corner_buf);
 
-		//// create new ones with just the right sizes
-		//glCreateBuffers(1, &quad_block_type_buf);
-		//glCreateBuffers(1, &quad_corner_buf);
+		// create new ones with just the right sizes
+		glCreateBuffers(1, &quad_block_type_buf);
+		glCreateBuffers(1, &quad_corner_buf);
 
-		//// allocate them just enough space
-		//glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-		//glNamedBufferStorage(quad_corner_buf, sizeof(ivec3) * quads.size() * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		// allocate them just enough space
+		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_corner_buf, sizeof(ivec3) * quads.size() * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+
+		//// allocate them a FUCKTON of space, to see if it fixes our bug.
+		//glNamedBufferStorage(quad_block_type_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
+		//glNamedBufferStorage(quad_corner_buf, MINICHUNK_SIZE * sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // 294KB, huge amount of data, need to improve this somehow
 
 		// fill 'em up!
 		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * quads.size(), blocks);
