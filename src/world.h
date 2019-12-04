@@ -776,9 +776,9 @@ public:
 		// tMaxX, tMaxY, and tMaxZ
 
 		// Cube containing origin point.
-		int x = floor(origin[0]);
-		int y = floor(origin[1]);
-		int z = floor(origin[2]);
+		int x = (int)floorf(origin[0]);
+		int y = (int)floorf(origin[1]);
+		int z = (int)floorf(origin[2]);
 		// Break out direction vector.
 		float dx = direction[0];
 		float dy = direction[1];
@@ -794,9 +794,9 @@ public:
 		float tMaxY = intbound(origin[1], dy);
 		float tMaxZ = intbound(origin[2], dz);
 		// The change in t when taking a step (always positive).
-		float tDeltaX = (float)stepX / dx;
-		float tDeltaY = (float)stepY / dy;
-		float tDeltaZ = (float)stepZ / dz;
+		float tDeltaX = stepX / dx;
+		float tDeltaY = stepY / dy;
+		float tDeltaZ = stepZ / dz;
 		// Buffer for reporting faces to the callback.
 		ivec3 face = { 0, 0, 0 };
 
