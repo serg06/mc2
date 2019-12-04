@@ -220,7 +220,7 @@ public:
 				coords.push_back({ chunk_coords[0] + i, chunk_coords[1] + j });
 			}
 		}
-		
+
 		gen_chunks_if_required(coords);
 	}
 
@@ -487,32 +487,6 @@ public:
 
 		ivec3 minichunk_offset = { mini->coords[0] * 16, mini->coords[1], mini->coords[2] * 16 };
 
-		if (mini->coords[0] == 0 && mini->coords[1] == 64 && mini->coords[2] == 0) {
-			char buf[256];
-			int num_not_air = 16 * 16 * 16 - mini->count_air();
-
-			for (int x = 0; x < 16; x++) {
-				for (int y = 0; y < 16; y++) {
-					for (int z = 0; z < 16; z++) {
-						ivec3 coordz = mini->coords + ivec3(x, y, z);
-						Block b = get_type(coordz);
-						if (b != Block::Air) {
-							//sprintf(buf, "Block at (%d, %d, %d) = %s!\n", coordz[0], coordz[1], coordz[2], b == Block::Grass ? "Grass" : "Stone");
-							//OutputDebugString(buf);
-						}
-					}
-				}
-			}
-
-			for (int i = 0; i < 16 * 16 * 16; i++) {
-				if (mini->data[i] != Block::Air) {
-					//sprintf(buf, "Block at idx [%d] = %s!\n", i, mini->data[i] == Block::Grass ? "Grass" : "Stone");
-					//OutputDebugString(buf);
-				}
-			}
-		}
-
-
 		for (int u = 0; u < 16; u++) {
 			for (int v = 0; v < 16; v++) {
 				ivec3 coords;
@@ -520,9 +494,20 @@ public:
 				coords[working_idx_1] = u;
 				coords[working_idx_2] = v;
 
-				ivec3 world_coords = minichunk_offset + coords;
-				Block block = get_type(world_coords);
-				Block face_block = get_type(world_coords + face);
+				ivec3 face_coords = coords + face;
+
+				Block block = mini->get_block(coords);
+				Block face_block;
+
+				// if in range of mini, get face block via mini's data
+				if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
+					face_block = mini->get_block(face_coords);
+				}
+				else {
+					ivec3 world_coords = minichunk_offset + coords;
+					face_block = get_type(world_coords + face);
+				}
+
 
 				// if block invisible or face not visible, set to air
 				if (block == Block::Air || face_block != Block::Air) {
