@@ -96,7 +96,7 @@ public:
 			//mini.render(glInfo);
 			//mini.render_meshes(glInfo);
 			//mini.render_meshes_simple(glInfo);
-			mini.render_meshes_simple2(glInfo);
+			mini.render_meshes_simple(glInfo);
 		}
 	}
 

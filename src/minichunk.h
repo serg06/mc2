@@ -49,7 +49,7 @@ public:
 		glBindVertexArray(0);
 	}
 
-	void render_meshes_simple2(OpenGLInfo* glInfo) {
+	void render_meshes_simple(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
 		if (invisible) {
 			return;
@@ -80,25 +80,6 @@ public:
 		for (int i = 0; i < quads.size(); i++) {
 			glDrawArraysInstancedBaseInstance(GL_TRIANGLES, i * 6, 6, 1, i);
 		}
-
-		Block* blocks = (Block*)malloc(sizeof(Block) * quads.size());
-
-		// get blocks from buffer
-		glGetNamedBufferSubData(quad_block_type_buf, 0, quads.size(), blocks);
-
-		//OutputDebugString("Buffer's types:\n\t");
-		for (int i = 0; i < quads.size(); i++) {
-			sprintf(buf, "\t[%d]: buffer says %d, quad says %d.\n", i, (uint8_t)blocks[i], (uint8_t)quads[i].block);
-			//OutputDebugString(buf);
-			if (blocks[i] != (Block) quads[i].block) {
-				throw "wew";
-			}
-			if (blocks[i] == Block::Air) {
-				throw "wew2";
-			}
-		}
-
-		free(blocks);
 
 		// unbind VAO jic
 		glBindVertexArray(0);

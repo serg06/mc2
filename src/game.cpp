@@ -139,44 +139,14 @@ void App::render(float time) {
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 
 	char buf[256];
-	sprintf(buf, "Drawing (took %d ms)\n", (int)(dt * 1000));
-	//OutputDebugString(buf);
+	sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
+	OutputDebugString(buf);
 	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
 	//OutputDebugString(buf);
 
 	// Draw ALL our chunks!
 	world->render(&glInfo);
-
-	//// TEST SOMETHING -- TODO: REMOVE
-	//MiniChunk* mini = new MiniChunk();
-	//mini->coords = { 512, 128, 512 }; // super far away from us, def not loaded
-	//mini->set_all_air();
-	//mini->set_block(0, 0, 0, Block::Stone);
-
-	//OutputDebugString("JIC\n");
-
-	////MiniChunkMesh* mesh = world->gen_minichunk_mesh2(mini); // doesn't work cuz chunk not loaded yet
-	//// One of these HAS to make a mesh!
-	//MiniChunk mini3 = world->chunk_map[{0, 0}]->minis[3];
-	//MiniChunk mini4 = world->chunk_map[{0, 0}]->minis[4];
-
-	//OutputDebugString("Printing mini3 from TOP TO BOTTOM: ");
-	//for (int i = 0; i < 16; i++) {
-	//	char* result = mini3.print_layer(16 - 1 - i);
-	//	char buf[256];
-	//	sprintf(buf, "Layer %d :\n", 16 - 1 - i);
-	//	OutputDebugString(buf);
-	//	OutputDebugString(result);
-	//	OutputDebugString("\n");
-
-	//	free(result);
-	//}
-
-	//MiniChunkMesh* mesh3 = world->gen_minichunk_mesh2(&mini3);
-	//MiniChunkMesh* mesh4 = world->gen_minichunk_mesh2(&mini4);
-
-	//OutputDebugString("Wait\n");
 }
 
 // update player's movement based on how much time has passed since we last did it
