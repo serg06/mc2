@@ -14,6 +14,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <vmath.h>
@@ -90,6 +91,105 @@ public:
 		return chunk_map[{x, z}];
 	}
 
+	// get multiple chunks -- much faster than get_chunk_generate_if_required when n > 1
+	inline std::unordered_set<Chunk*, chunk_hash> get_chunks_generate_if_required(vector<vmath::ivec2> chunk_coords) {
+		// don't wanna get duplicates
+		std::unordered_set<Chunk*, chunk_hash> result;
+
+		// gen if required
+		gen_chunks_if_required(chunk_coords);
+
+		// fetch
+		for (auto coords : chunk_coords) {
+			result.insert(chunk_map[{coords[0], coords[1]}]);
+		}
+
+		return result;
+	}
+
+	// generate chunks if they don't exist yet
+	inline void gen_chunks_if_required(vector<vmath::ivec2> chunk_coords) {
+		// don't wanna generate duplicates
+		std::unordered_set<ivec2, vecN_hash> to_generate;
+
+		for (auto coords : chunk_coords) {
+			auto search = chunk_map.find({ coords[0], coords[1] });
+
+			// if doesn't exist, need to generate it
+			if (search == chunk_map.end()) {
+				to_generate.insert(coords);
+			}
+		}
+
+		gen_chunks(to_generate);
+	}
+
+	inline void gen_chunks(vector<ivec2> to_generate) {
+		std::unordered_set<ivec2, vecN_hash> set;
+		for (auto coords : to_generate) {
+			set.insert(coords);
+		}
+		return gen_chunks(set);
+	}
+
+	// generate chunk at (x, z) and add it
+	inline void gen_chunks(std::unordered_set<ivec2, vecN_hash> to_generate) {
+		// get pointers ready
+		Chunk** chunks = (Chunk**)malloc(sizeof(Chunk*) * to_generate.size());
+
+		// generate chunks and set pointers
+		int i = 0;
+		for (auto coords : to_generate) {
+			// generate it
+			Chunk* c = gen_chunk(coords);
+
+			// add it to world so that we can use get_type in following code
+			add_chunk(coords[0], coords[1], c);
+
+			// add it to our pointers
+			chunks[i] = c;
+
+			i++;
+		}
+
+		// chunks we need to generate minis for
+		std::unordered_set<Chunk*, chunk_hash> to_generate_minis;
+
+		// for every chunk we just generated
+		for (int i = 0; i < to_generate.size(); i++) {
+			// get chunk
+			Chunk* chunk = chunks[i];
+
+			// need to generate minis for it
+			to_generate_minis.insert(chunk);
+
+			// and need to regenerate minis for its neighbors
+			for (auto coords : chunk->surrounding_chunks()) {
+				// get the neighbor
+				Chunk* neighbor = get_chunk(coords[0], coords[1]);
+
+				// if neighbor exists, add it to lists of chunks we need to regenerate minis in
+				if (neighbor != nullptr) {
+					to_generate_minis.insert(neighbor);
+				}
+			}
+		}
+
+		// now that we know everyone who needs new minis, let's do it
+		for (auto chunk : to_generate_minis) {
+			for (auto &mini : chunk->minis) {
+				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
+
+				if (!mini.invisible) {
+					mini.mesh = gen_minichunk_mesh2(&mini);
+					mini.update_quads_buf2();
+				}
+			}
+		}
+	}
+
+
+
 	// get chunk or nullptr
 	inline Chunk* get_chunk(int x, int z) {
 		auto search = chunk_map.find({ x, z });
@@ -113,11 +213,18 @@ public:
 		//	return;
 		//}
 
+		vector<ivec2> coords;
+
 		for (int i = -distance; i <= distance; i++) {
 			for (int j = -(distance - abs(i)); j <= distance - abs(i); j++) {
-				get_chunk_generate_if_required(chunk_coords[0] + i, chunk_coords[1] + j);
+				// DEBUG: Faster!
+				//get_chunk_generate_if_required(chunk_coords[0] + i, chunk_coords[1] + j);
+				coords.push_back({ chunk_coords[0] + i, chunk_coords[1] + j });
 			}
 		}
+
+		// DEBUG: Faster!
+		gen_chunks_if_required(coords);
 	}
 
 	// get chunk that contains block at (x, _, z)
@@ -422,7 +529,7 @@ public:
 		for (int i = 0; i < 6; i++) {
 			bool backface = i < 3;
 			int layers_idx = i % 3;
-			
+
 			// working indices are always gonna be xy, xz, or yz.
 			int working_idx_1, working_idx_2;
 			gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -430,7 +537,8 @@ public:
 			// generate face variable
 			ivec3 face = { 0, 0, 0 };
 			// I don't think it matters whether we start with front or back face, as long as we switch halfway through.
-			face[layers_idx] = backface ? -1 : 1;
+			// BACKFACE => +X/+Y/+Z SIDE. 
+			face[layers_idx] = backface ? 1 : -1;
 
 
 			// for each layer
@@ -451,13 +559,41 @@ public:
 				int num_not_air = 16 * 16 - num_air;
 
 				// wew
-				assert((uint8_t) layer[0][0] != 204);
+				assert((uint8_t)layer[0][0] != 204);
 
 				// get quads from layer
 				vector<Quad2D> quads2d = gen_quads(layer);
-				
+
+				//// if backface, do flippy
+				//if (backface) {
+				//	for (int i = 0; i < quads2d.size(); i++) {
+				//		ivec2 diffs = quads2d[i].corners[1] - quads2d[i].corners[0];
+				//		quads2d[i].corners[1] = quads2d[i].corners[0] + ivec2(0, diffs[1]);
+				//		quads2d[i].corners[0] = quads2d[i].corners[0] + ivec2(diffs[0], 0);
+				//	}
+				//}
+
 				// convert quads back to 3D coordinates
 				vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
+
+				//// if backface
+				//if (!backface) {
+				//	// for each quad
+				//	for (int i = 0; i < quads.size(); i++) {
+				//		//// add offset
+				//		//quads[i].corners[0] + face;
+				//		//quads[i].corners[1] + face;
+
+				//		// do flippy
+				//		//ivec3 tmp = quads[i].corners[0];
+				//		//quads[i].corners[0] = quads[i].corners[1];
+				//		//quads[i].corners[1] = tmp;
+
+				//		ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
+				//		quads[i].corners[1] = quads[i].corners[0] + ivec2(0, diffs[1]);
+				//		quads[i].corners[0] = quads[i].corners[0] + ivec3( diffs[0];
+				//	}
+				//}
 
 				// append quads
 				for (auto quad : quads) {
@@ -524,7 +660,7 @@ public:
 
 		if (mini->coords[0] == 0 && mini->coords[1] == 64 && mini->coords[2] == 0) {
 			char buf[256];
-			int num_not_air = 16*16*16-mini->count_air();
+			int num_not_air = 16 * 16 * 16 - mini->count_air();
 
 			for (int x = 0; x < 16; x++) {
 				for (int y = 0; y < 16; y++) {

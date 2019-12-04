@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <cstdint>
+#include <stdio.h> 
 #include <vmath.h>
 
 #define CHUNK_WIDTH 16
@@ -108,7 +109,19 @@ public:
 	}
 };
 
+// simple chunk hash function
+struct chunk_hash
+{
+	std::size_t operator() (const Chunk* chunk) const
+	{
+		return std::hash<int>()(chunk->coords[0]) ^ std::hash<int>()(chunk->coords[1]);
+	}
+};
+
+
 Chunk* gen_chunk(int, int);
+
+inline Chunk* gen_chunk(ivec2 vec) { return gen_chunk(vec[0], vec[1]); }
 
 // TODO: This maybe?
 //#define EL_TYPE uint8_t

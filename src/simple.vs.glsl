@@ -116,10 +116,10 @@ void main(void)
 	gl_Position = uni.proj_matrix * uni.mv_matrix * (position + instance_offset);
 
 	// set color
-	int seed = gl_VertexID * gl_InstanceID;
+	int seed = int(instance_offset[0]) ^ int(instance_offset[1]) ^ int(instance_offset[2]);
 	switch(q_block_type) {
 		case 0: // air (just has a color for debugging purposes)
-			vs_color = vec4(0.7, 0.7, 0.7, 1.0);
+			vs_color = vec4(0.8 + rand(seed)*0.2, 0.0, 0.0, 1.0); // bright red
 			break;
 		case 1: // grass
 			vs_color = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // green

@@ -207,21 +207,33 @@ public:
 			glDrawArraysInstancedBaseInstance(GL_TRIANGLES, i * 6, 6, 1, i);
 		}
 
-		//Block* blocks = (Block*)malloc(sizeof(Block) * quads.size());
+		Block* blocks = (Block*)malloc(sizeof(Block) * quads.size());
 
-		//for (int i = 0; i < quads.size(); i++) {
-		//	// update blocks
-		//	blocks[i] = (Block)quads[i].block;
-		//}
+		// get blocks from buffer
+		glGetNamedBufferSubData(quad_block_type_buf, 0, quads.size(), blocks);
 
-		//for (int i = 0; i < quads.size(); i++) {
-		//	Block b = blocks[i];
-		//	if (b == Block::Grass) {
-		//		OutputDebugString("");
-		//	}
-		//}
+		for (int i = 0; i < quads.size(); i++) {
+			// update blocks
+			blocks[i] = (Block)quads[i].block;
+		}
 
-		//free(blocks);
+		for (int i = 0; i < quads.size(); i++) {
+			Block b = blocks[i];
+			if (b == Block::Grass) {
+				OutputDebugString("");
+			}
+		}
+
+		OutputDebugString("Buffer's types:\n\t");
+		for (int i = 0; i < quads.size(); i++) {
+			sprintf(buf, "[%d]: buffer says %d, quad says %d.\n", i, (uint8_t)blocks[i], (uint8_t)quads[i].block);
+			OutputDebugString(buf);
+			if (blocks[i] != (Block) quads[i].block) {
+				throw "wew";
+			}
+		}
+
+		free(blocks);
 		//glGetBufferSubData
 
 
