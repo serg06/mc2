@@ -344,8 +344,6 @@ public:
 		// got our mesh
 		MiniChunkMesh* mesh = new MiniChunkMesh();
 
-		int num_air_total = mini->count_air();
-
 		// for all 6 sides
 		for (int i = 0; i < 6; i++) {
 			bool backface = i < 3;
@@ -360,7 +358,6 @@ public:
 			// I don't think it matters whether we start with front or back face, as long as we switch halfway through.
 			// BACKFACE => +X/+Y/+Z SIDE. 
 			face[layers_idx] = backface ? -1 : 1;
-
 
 			// for each layer
 			for (int i = 0; i < 16; i++) {
@@ -378,9 +375,6 @@ public:
 					}
 				}
 				int num_not_air = 16 * 16 - num_air;
-
-				// wew
-				assert((uint8_t)layer[0][0] != 204);
 
 				// get quads from layer
 				vector<Quad2D> quads2d = gen_quads(layer);
@@ -405,25 +399,6 @@ public:
 					}
 				}
 
-				//// if backface
-				//if (!backface) {
-				//	// for each quad
-				//	for (int i = 0; i < quads.size(); i++) {
-				//		//// add offset
-				//		//quads[i].corners[0] + face;
-				//		//quads[i].corners[1] + face;
-
-				//		// do flippy
-				//		//ivec3 tmp = quads[i].corners[0];
-				//		//quads[i].corners[0] = quads[i].corners[1];
-				//		//quads[i].corners[1] = tmp;
-
-				//		ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
-				//		quads[i].corners[1] = quads[i].corners[0] + ivec2(0, diffs[1]);
-				//		quads[i].corners[0] = quads[i].corners[0] + ivec3( diffs[0];
-				//	}
-				//}
-
 				// append quads
 				for (auto quad : quads) {
 					mesh->quads3d.push_back(quad);
@@ -436,7 +411,7 @@ public:
 
 	// convert 2D quads to 3D quads
 	// face: for offset
-	static inline vector<Quad3D> quads_2d_3d(vector<Quad2D> quads2d, int layers_idx, int layer_no, ivec3 face) {
+	static inline vector<Quad3D> quads_2d_3d(vector<Quad2D> &quads2d, int layers_idx, int layer_no, ivec3 face) {
 		vector<Quad3D> result;
 
 		// working variable
