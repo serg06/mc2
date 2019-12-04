@@ -105,6 +105,24 @@ static inline bool in_range(vecN<T, len> vec, vecN<T, len> min, vecN<T, len> max
 	return true;
 }
 
+template <typename T, const int len>
+static inline char* vec2str(vecN<T, len> vec) {
+	char* result = (char*)malloc((vec.size() * 16 + 4) * sizeof(char));
+	char* tmp = result;
+
+	tmp += sprintf(tmp, "(");
+	for (int i = 0; i < len; i++) {
+		tmp += sprintf(tmp, "%d", vec[i]);
+		if (i != (len - 1)) {
+			tmp += sprintf(tmp, ", ");
+		}
+	}
+
+	tmp += sprintf(tmp, ")");
+	
+	return result;
+}
+
 double noise2d(double x, double y);
 
 #endif // __UTIL_H__

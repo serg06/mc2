@@ -109,7 +109,7 @@ void App::render(float time) {
 
 	// Create Model->World matrix
 	mat4 model_world_matrix =
-		translate(0.0f, -PLAYER_HEIGHT * 0.9f, 0.0f);
+		translate(0.0f, -CAMERA_HEIGHT, 0.0f);
 
 	// Create World->View matrix
 	mat4 world_view_matrix =
@@ -140,17 +140,23 @@ void App::render(float time) {
 	glNamedBufferSubData(glInfo.trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 
-	// PRINT FPS
-	sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
-	OutputDebugString(buf);
-
-	//// PRINT POSITION/ORIENTATION
-	//vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
-	//sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
+	//// PRINT FPS
+	//sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
 	//OutputDebugString(buf);
+
+	// PRINT POSITION/ORIENTATION
+	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
+	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
+	OutputDebugString(buf);
 
 	// Draw ALL our chunks!
 	world->render(&glInfo);
+
+	// Try finding block in front of us
+	world->raycast(&glInfo, char_position + CAMERA_HEIGHT, direction, 40);
+
+	//// TODO: Draw box around the square we're looking at.
+	//world->render_outline_of_forwards_block(char_position, direction);
 }
 
 // update player's movement based on how much time has passed since we last did it

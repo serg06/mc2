@@ -90,6 +90,9 @@ void main(void)
 			vs_color = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // grey
 			// vs_color = vec4(0.4, 0.4, 0.4, 1.0); // grey
 			break;
+		case 100: // black outline
+			vs_color = vec4(0.0, 0.0, 0.0, 1.0);
+			break;
 		default:
 			vs_color = vec4(1.0, 0.0, 1.0, 1.0); // SUPER NOTICEABLE (for debugging)
 			break;

@@ -234,6 +234,11 @@ public:
 		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
 	}
 
+	// get minichunk-coordinates of minichunk containing the block at (x, y, z)
+	inline ivec3 get_mini_coords(int x, int y, int z) {
+		return { (int)floorf((float)x / 16.0f), (y / 16) * 16, (int)floorf((float)z / 16.0f) };
+	}
+
 	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
 	inline vmath::ivec3 get_chunk_relative_coordinates(int x, int y, int z) {
 		// adjust x and y
@@ -598,6 +603,280 @@ public:
 	//inline bool is_face_visible(vmath::ivec4 block_coords, vmath::ivec4 axis, int backface) {
 	//	return get_type(block_coords + face_to_direction(face)) == Block::Air;
 	//}
+
+	// position you're at
+	// direction you're looking at
+	inline void render_outline_of_forwards_block(vec4 position, vec4 direction) {
+
+	}
+
+	//// todo: understand
+	//inline float intBound(s, ds) {
+	//	return ds > 0 ? (Math.ceil(s) - s) / ds : (s - Math.floor(s)) / -ds;
+	//}
+
+	static inline float intbound(float s, float ds)
+	{
+		// Some kind of edge case, see:
+		// http://gamedev.stackexchange.com/questions/47362/cast-ray-to-select-block-in-voxel-game#comment160436_49423
+		bool sIsInteger = round(s) == s;
+		if (ds < 0 && sIsInteger) {
+			return 0;
+		}
+
+		return (ds > 0 ? ceil(s) - s : s - floor(s)) / abs(ds);
+	}
+
+	inline void highlight_block(OpenGLInfo* glInfo, int x, int y, int z) {
+		// Figure out corners / block types
+		Block blocks[6];
+		ivec3 corner1s[6];
+		ivec3 corner2s[6];
+
+		ivec3 mini_coords = get_mini_coords(x, y, z);
+
+		ivec3 relative_coords = get_chunk_relative_coordinates(x, y, z);
+		ivec3 block_coords = { relative_coords[0], y % 16, relative_coords[2] };
+
+		for (int i = 0; i < 6; i++) {
+			blocks[i] = (Block)100; // outline
+		}
+
+		// SOUTH
+		//	bottom-left corner
+		corner1s[0] = block_coords + ivec3(0, 0, 1);
+		//	top-right corner
+		corner2s[0] = block_coords + ivec3(1, 1, 1);
+
+		// NORTH
+		//	bottom-left corner
+		corner1s[1] = block_coords + ivec3(1, 0, 0);
+		//	top-right corner
+		corner2s[1] = block_coords + ivec3(0, 1, 0);
+
+		// EAST
+		//	bottom-left corner
+		corner1s[2] = block_coords + ivec3(1, 0, 1);
+		//	top-right corner
+		corner2s[2] = block_coords + ivec3(1, 1, 0);
+
+		// WEST
+		//	bottom-left corner
+		corner1s[3] = block_coords + ivec3(0, 0, 0);
+		//	top-right corner
+		corner2s[3] = block_coords + ivec3(0, 1, 1);
+
+		// UP
+		//	bottom-left corner
+		corner1s[4] = block_coords + ivec3(0, 1, 0);
+		//	top-right corner
+		corner2s[4] = block_coords + ivec3(1, 1, 1);
+
+		// DOWN
+		//	bottom-left corner
+		corner1s[5] = block_coords + ivec3(1, 0, 1);
+		//	top-right corner
+		corner2s[5] = block_coords + ivec3(0, 0, 0);
+
+		char buf[256];
+		char *str1 = vec2str(relative_coords), *str2 = vec2str(block_coords), *str3 = vec2str(mini_coords);
+		sprintf(buf, "Gonna highlight block %s [i.e. block %s in minichunk %s].\n", str1, str2, str3);
+		OutputDebugString(buf);
+
+
+		GLuint quad_block_type_buf, quad_corner1_buf, quad_corner2_buf;
+
+		// create buffers with just the right sizes
+		glCreateBuffers(1, &quad_block_type_buf);
+		glCreateBuffers(1, &quad_corner1_buf);
+		glCreateBuffers(1, &quad_corner2_buf);
+
+		// allocate them just enough space
+		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+
+		// fill 'em up!
+		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * 6, blocks);
+		glNamedBufferSubData(quad_corner1_buf, 0, sizeof(ivec3) * 6, corner1s);
+		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * 6, corner2s);
+
+		// DRAW!
+
+		// quad VAO
+		glBindVertexArray(glInfo->vao_quad);
+
+		// bind to quads attribute binding point
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
+
+		// write this chunk's coordinate to coordinates buffer
+		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), mini_coords);
+
+		// DRAW!
+		glDisable(GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glLineWidth(100.0f);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 6);
+		glEnable(GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		// unbind VAO jic
+		glBindVertexArray(0);
+
+		// DELETE
+		glDeleteBuffers(1, &quad_block_type_buf);
+		glDeleteBuffers(1, &quad_corner1_buf);
+		glDeleteBuffers(1, &quad_corner2_buf);
+	}
+
+	inline bool raycast_callback(OpenGLInfo* glInfo, int x, int y, int z, ivec3 face) {
+		char buf[256];
+		if (get_type(x, y, z) != Block::Air) {
+			sprintf(buf, "Found Block at location (%d, %d, %d)!\n", x, y, z);
+			OutputDebugString(buf);
+
+			highlight_block(glInfo, x, y, z);
+
+			return true;
+		}
+		return false;
+	}
+
+
+
+	/**
+	* Call the callback with (x,y,z,value,face) of all blocks along the line
+	* segment from point 'origin' in vector direction 'direction' of length
+	* 'radius'. 'radius' may be infinite.
+	*
+	* 'face' is the normal vector of the face of that block that was entered.
+	* It should not be used after the callback returns.
+	*
+	* If the callback returns a true value, the traversal will be stopped.
+	*/
+	inline void raycast(OpenGLInfo* glInfo, vec4 origin, vec4 direction, int radius) {
+		// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
+		// by John Amanatides and Andrew Woo, 1987
+		// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
+		// <http://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.42.3443>
+		// Extensions to the described algorithm:
+		//   • Imposed a distance limit.
+		//   • The face passed through to reach the current cube is provided to
+		//     the callback.
+
+		// The foundation of this algorithm is a parameterized representation of
+		// the provided ray,
+		//                    origin + t * direction,
+		// except that t is not actually stored; rather, at any given point in the
+		// traversal, we keep track of the *greater* t values which we would have
+		// if we took a step sufficient to cross a cube boundary along that axis
+		// (i.e. change the integer part of the coordinate) in the variables
+		// tMaxX, tMaxY, and tMaxZ
+
+		// Cube containing origin point.
+		int x = floor(origin[0]);
+		int y = floor(origin[1]);
+		int z = floor(origin[2]);
+		// Break out direction vector.
+		float dx = direction[0];
+		float dy = direction[1];
+		float dz = direction[2];
+		// Direction to increment x,y,z when stepping.
+		// TODO: Consider case where sgn = 0.
+		int stepX = sgn(dx);
+		int stepY = sgn(dy);
+		int stepZ = sgn(dz);
+		// See description above. The initial values depend on the fractional
+		// part of the origin.
+		float tMaxX = intbound(origin[0], dx);
+		float tMaxY = intbound(origin[1], dy);
+		float tMaxZ = intbound(origin[2], dz);
+		// The change in t when taking a step (always positive).
+		float tDeltaX = (float)stepX / dx;
+		float tDeltaY = (float)stepY / dy;
+		float tDeltaZ = (float)stepZ / dz;
+		// Buffer for reporting faces to the callback.
+		ivec3 face = { 0, 0, 0 };
+
+		// Avoids an infinite loop.
+		if (dx == 0 && dy == 0 && dz == 0) {
+			throw "Raycast in zero direction!";
+		}
+
+		// Rescale from units of 1 cube-edge to units of 'direction' so we can
+		// compare with 't'.
+
+		radius /= sqrt(dx*dx + dy * dy + dz * dz);
+
+		//while (/* ray has not gone past bounds of world */
+		//	(stepX > 0 ? x < wx : x >= 0) &&
+		//	(stepY > 0 ? y < wy : y >= 0) &&
+		//	(stepZ > 0 ? z < wz : z >= 0)) {
+
+		while (/* ray has not gone past bounds of radius */
+			true) {
+
+			// Invoke the callback, unless we are not *yet* within the bounds of the
+			// world.
+			//if (!(x < 0 || y < 0 || z < 0 /*|| x >= wx || y >= wy || z >= wz*/)) {
+
+			//}
+
+			// callback
+			if (raycast_callback(glInfo, x-2, y, z-2, face)) {
+				break;
+			}
+
+
+			// tMaxX stores the t-value at which we cross a cube boundary along the
+			// X axis, and similarly for Y and Z. Therefore, choosing the least tMax
+			// chooses the closest cube boundary. Only the first case of the four
+			// has been commented in detail.
+			if (tMaxX < tMaxY) {
+				if (tMaxX < tMaxZ) {
+					if (tMaxX > radius) break;
+					// Update which cube we are now in.
+					x += stepX;
+					// Adjust tMaxX to the next X-oriented boundary crossing.
+					tMaxX += tDeltaX;
+					// Record the normal vector of the cube face we entered.
+					face[0] = -stepX;
+					face[1] = 0;
+					face[2] = 0;
+				}
+				else {
+					if (tMaxZ > radius) break;
+					z += stepZ;
+					tMaxZ += tDeltaZ;
+					face[0] = 0;
+					face[1] = 0;
+					face[2] = -stepZ;
+				}
+			}
+			else {
+				if (tMaxY < tMaxZ) {
+					if (tMaxY > radius) break;
+					y += stepY;
+					tMaxY += tDeltaY;
+					face[0] = 0;
+					face[1] = -stepY;
+					face[2] = 0;
+				}
+				else {
+					// Identical to the second case, repeated for simplicity in
+					// the conditionals.
+					if (tMaxZ > radius) break;
+					z += stepZ;
+					tMaxZ += tDeltaZ;
+					face[0] = 0;
+					face[1] = 0;
+					face[2] = -stepZ;
+				}
+			}
+		}
+	}
 };
 
 #endif /* __WORLD_H__ */
