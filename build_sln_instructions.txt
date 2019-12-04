@@ -3,22 +3,67 @@
 - CMake (version >= 3.14.7)
 - Visual Studio 2017 (VS 15)
 
+
 # Compile GLFW
 - info: extern/glfw-3.3 is the source code for glfw 3.3, unedited, straight from their website
 - create `lib` directory
 - `cd extern/glfw-3.3`
 - `cmake -G "Visual Studio 15" .`
 - open `GLFW.sln` in Visual Studio
-- build Debug and Release configurations
+- build Debug and Release configurations for `glfw` project
   - in Solution Explorer, right click "Solution 'GLFW'" and click Build
   - go to "Build" menu -> "Configuration Manager", and change "Active solution configuration" to "Release".
   - in Solution Explorer, right click "Solution 'GLFW'" and click Build
 - copy `glfw-3.3/src/Debug/glfw3.lib`   into `lib` and rename it to `glfw3_d.lib`
 - copy `glfw-3.3/src/Release/glfw3.lib` into `lib`
-- (optional) close solution in Visual Studio
-- (optional) go back to base directory and run `git clean -fd` to remove all the Visual Studio bs. (Don't worry, the lib/ folder is ignored!)
+- cleanup
+  - close solution in Visual Studio
+  - go back to base directory and run `git clean -fd` to remove all the Visual Studio bs. (Don't worry, the lib/ folder is ignored!)
 
-# Build Solution
+
+# Compile ZLIB
+- `cd extern/zlib-1.2.11`
+- `cmake -G "Visual Studio 15" .`
+- open `zlib.sln` in Visual Studio
+- build Debug and Release configurations for `zlibstatic` project
+- copy `zlib-1.2.11/Debug/zlibstaticd.lib` into `lib` and rename it to `zlibstatic_d.lib`
+- copy `zlib-1.2.11/Release/zlibstaticd.lib` into `lib`
+- cleanup
+  - close solution in Visual Studio
+  - go back to base directory and run `git clean -fd` to remove all the Visual Studio bs. (Don't worry, the lib/ folder is ignored!)
+
+
+# Compile LIBPNG
+- `cd extern/lpng1637`
+
+- build **Debug** configuration:
+  - Open CMakeLists.txt and, at the top of the file, add
+	  set(ZLIB_LIBRARY "../../lib/zlibstatic_d")
+	  set(ZLIB_INCLUDE_DIR "../zlib-1.2.11/")
+  - `cmake -G "Visual Studio 15" .`
+  - open `libpng.sln` in Visual Studio
+  - build **Debug** configuration for `png_static` project
+  - close the solution
+
+- build **Release** configuration:
+  - Open CMakeLists.txt, delete what you added to the top of the file, and add this instead
+	  set(ZLIB_LIBRARY "../../lib/zlibstatic")
+	  set(ZLIB_INCLUDE_DIR "../zlib-1.2.11/")
+  - `cmake -G "Visual Studio 15" .`
+  - open `libpng.sln` in Visual Studio
+  - build **Release** configuration for `png_static` project
+  - close the solution
+
+- copy `lpng1637/Debug/libpng16_staticd.lib` into `lib` and rename it to `libpng16_static_d.lib`
+- copy `lpng1637/Release/libpng16_static.lib` into `lib`
+- cleanup
+  - close solution in Visual Studio
+  - go back to base directory
+    - run `git clean -fd` to remove all the Visual Studio bs. (Don't worry, the lib/ folder is ignored!)
+    - run `git checkout extern/lpng1637/CMakeLists.txt` to reset CMakeLists.txt file
+
+
+# How to create Visual Studio solution
 - create `build` directory
 - `cd build`
-- `cmake ..`
+- `cmake -G "Visual Studio 15" ..`

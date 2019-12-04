@@ -43,11 +43,12 @@ add_executable(${PROJECT_NAME} WIN32 ${sources} ${data})
 
 # link executable to libraries
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
-target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d fastnoise kenp_noise)
+target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d optimized zlibstatic debug zlibstatic_d optimized libpng16_static debug libpng16_static_d fastnoise kenp_noise )
 
 # specify include directories
 include_directories(include)
 include_directories(extern/glfw-3.3/include)
+include_directories(include/libpng)
 
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
