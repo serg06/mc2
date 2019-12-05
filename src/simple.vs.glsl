@@ -50,33 +50,29 @@ void main(void)
 
 	horizontal = zero_idx == 1 ? 1 : 0;
 
-	// generate corner based on vertex ID
-	switch(gl_VertexID) {
-	case 0:
-		// top-left corner
-		vs_tex_coords = vec2(0, 0);
-		break;
-	case 1:
-	case 4:
-		// bottom-left corner
-		vs_tex_coords = vec2(diffs[working_idx_1], 0);
-		// vs_tex_coords = vec2(1, 0);
-		offset_in_chunk[working_idx_1] += diffs[working_idx_1];
-		break;
-	case 2:
-	case 3:
-		// top-right corner
-		vs_tex_coords = vec2(0, diffs[working_idx_2]);
-		// vs_tex_coords = vec2(0, 1);
-		offset_in_chunk[working_idx_2] += diffs[working_idx_2];
-		break;
-	case 5:
-		// bottom-right corner
-		vs_tex_coords = vec2(diffs[working_idx_1], diffs[working_idx_2]);
-		// vs_tex_coords = vec2(1, 1);
-		offset_in_chunk = vec4(q_corner2, 0);
-		break;
-	}
+	vec4 diffs1 = vec4(0);
+	vec4 diffs2 = vec4(0);
+	diffs1[working_idx_1] = diffs[working_idx_1];
+	diffs2[working_idx_2] = diffs[working_idx_2];
+
+	vec2 possible_tex_coords[6];
+	possible_tex_coords[0] = vec2(0,0);
+	possible_tex_coords[1] = vec2(diffs[working_idx_1], 0);
+	possible_tex_coords[2] = vec2(0, diffs[working_idx_2]);
+	possible_tex_coords[3] = vec2(0, diffs[working_idx_2]);
+	possible_tex_coords[4] = vec2(diffs[working_idx_1], 0);
+	possible_tex_coords[5] = vec2(diffs[working_idx_1], diffs[working_idx_2]);
+
+	vec4 possible_offsets[6];
+	possible_offsets[0] = vec4(q_corner1, 0);
+	possible_offsets[1] = vec4(q_corner1, 0) + diffs1;
+	possible_offsets[2] = vec4(q_corner1, 0) + diffs2;
+	possible_offsets[3] = vec4(q_corner1, 0) + diffs2;
+	possible_offsets[4] = vec4(q_corner1, 0) + diffs1;
+	possible_offsets[5] = vec4(q_corner2, 0);
+
+	offset_in_chunk = possible_offsets[gl_VertexID];
+	vs_tex_coords = possible_tex_coords[gl_VertexID];
 
 	/* CREATE OUR OFFSET VARIABLE */
 
@@ -89,25 +85,14 @@ void main(void)
 
 	// set color
 	int seed = int(instance_offset[0]) ^ int(instance_offset[1]) ^ int(instance_offset[2]);
-	switch(q_block_type) {
-		case 0: // air (just has a color for debugging purposes)
-			vs_color = vec4(0.8 + rand(seed)*0.2, 0.0, 0.0, 1.0); // bright red
-			break;
-		case 1: // grass
-			vs_color = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // green
-			// vs_color = vec4(0.2, 0.6, 0.0, 1.0); // green
-			break;
-		case 2: // stone
-			vs_color = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // grey
-			// vs_color = vec4(0.4, 0.4, 0.4, 1.0); // grey
-			break;
-		case 100: // black outline
-			vs_color = vec4(0.0, 0.0, 0.0, 1.0);
-			break;
-		default:
-			vs_color = vec4(1.0, 0.0, 1.0, 1.0); // SUPER NOTICEABLE (for debugging)
-			break;
-	}
+
+	vec4 block_type_to_color[255];
+	block_type_to_color[0] = vec4(0.8 + rand(seed)*0.2, 0.0, 0.0, 1.0);
+	block_type_to_color[1] = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0);
+	block_type_to_color[2] = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2;
+	block_type_to_color[100] = vec4(0.0, 0.0, 0.0, 1.0);
+
+	vs_color = block_type_to_color[q_block_type];
 
     vs_block_type = q_block_type;
 }

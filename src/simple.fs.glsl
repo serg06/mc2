@@ -13,6 +13,9 @@ layout (binding = 1) uniform sampler2D grass_side;
 
 void main(void)
 {
+	color = vec4(0.0, 0.0, 0.0, 1.0);
+
+	// TODO: Remove branching.	
 	// color = vs_color;
 	// color = texture(grass_tex, vs_tex_coords);
 	if (vs_block_type == 1) {

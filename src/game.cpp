@@ -145,13 +145,13 @@ void App::render(float time) {
 	glNamedBufferSubData(glInfo.trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 
-	//// PRINT FPS
-	//sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
-	//OutputDebugString(buf);
-
-	// PRINT POSITION/ORIENTATION
-	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
+	// PRINT FPS
+	sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
 	OutputDebugString(buf);
+
+	//// PRINT POSITION/ORIENTATION
+	//sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
+	//OutputDebugString(buf);
 
 	// Draw ALL our chunks!
 	world->render(&glInfo);
