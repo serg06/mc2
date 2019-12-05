@@ -27,6 +27,13 @@
 #define IUP_0 vmath::ivec4(0, 1, 0, 0)
 #define IDOWN_0 vmath::ivec4(0, -1, 0, 0)
 
+#define INORTH vmath::ivec3(0, 0, -1)
+#define ISOUTH vmath::ivec3(0, 0, 1)
+#define IEAST vmath::ivec3(1, 0, 0)
+#define IWEST vmath::ivec3(-1, 0, 0)
+#define IUP vmath::ivec3(0, 1, 0)
+#define IDOWN vmath::ivec3(0, -1, 0)
+
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 

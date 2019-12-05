@@ -80,6 +80,22 @@ public:
 		}
 	}
 
+	inline MiniChunk* get_mini_with_y_level(int y) {
+		if (!data) {
+			return nullptr;
+		}
+
+		// TODO: Remove loop.
+		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
+			if (minis[i].coords[1] == y) {
+				return &(minis[i]);
+			}
+		}
+
+		// Somehow reached here, bug.
+		throw "Bug";
+	}
+
 	// render this chunk
 	inline void render(OpenGLInfo* glInfo) {
 		for (auto mini : minis) {

@@ -90,6 +90,7 @@ void App::startup() {
 	setup_opengl(&glInfo);
 }
 
+
 void App::render(float time) {
 	char buf[256];
 
@@ -104,6 +105,10 @@ void App::render(float time) {
 
 	// generate nearby chunks
 	world->gen_nearby_chunks(char_position, min_render_distance);
+
+	// update block that player is staring at
+	auto direction = staring_direction();
+	staring_at = world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, [this](ivec3 coords, ivec3 face) { return this->world->get_type(coords) != Block::Air; });
 
 	/* TRANSFORMATION MATRICES */
 
@@ -145,15 +150,16 @@ void App::render(float time) {
 	//OutputDebugString(buf);
 
 	// PRINT POSITION/ORIENTATION
-	vec4 direction = rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
 	OutputDebugString(buf);
 
 	// Draw ALL our chunks!
 	world->render(&glInfo);
 
-	// Try finding block in front of us
-	world->raycast(&glInfo, char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40);
+	// highlight block we're staring at, if it's valid
+	if (staring_at[1] >= 0) {
+		world->highlight_block(&glInfo, staring_at);
+	}
 
 	//// TODO: Draw box around the square we're looking at.
 	//world->render_outline_of_forwards_block(char_position, direction);
@@ -486,7 +492,21 @@ void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity,
 	exit(-1);
 }
 
-void App::onMouseButton(int button, int action) {}
+void App::onMouseButton(int button, int action) {
+	// left click
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		// if staring at valid block
+		if (staring_at[1] >= 0) {
+			world->destroy_block(staring_at);
+		}
+	}
+
+	// right click
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+
+	}
+}
+
 void App::onMouseWheel(int pos) {}
 
 namespace {

@@ -11,6 +11,7 @@
 #include "GLFW/glfw3.h"
 
 #include <assert.h>
+#include <functional>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -205,16 +206,27 @@ public:
 		return (*search).second;
 	}
 
+	// get mini or nullptr
+	inline MiniChunk* get_mini(int x, int y, int z) {
+		auto search = chunk_map.find({ x, z });
+
+		// if chunk doesn't exist, return null
+		if (search == chunk_map.end()) {
+			return nullptr;
+		}
+
+		Chunk* chunk = (*search).second;
+		return chunk->get_mini_with_y_level((y/16)*16);
+	}
+
+	inline MiniChunk* get_mini(ivec3 xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
+
+
 	// generate chunks near player
 	inline void gen_nearby_chunks(vmath::vec4 position, int distance) {
 		assert(distance >= 0 && "invalid distance");
 
 		ivec2 chunk_coords = get_chunk_coords((int)floorf(position[0]), (int)floorf(position[2]));
-
-		// DEBUG: don't generate anything but (0,_,0)
-		//if (chunk_coords[0] != 0 || chunk_coords[1] != 0) {
-		//	return;
-		//}
 
 		vector<ivec2> coords;
 
@@ -232,6 +244,12 @@ public:
 		return get_chunk((int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f));
 	}
 
+	// get minichunk that contains block at (x, y, z)
+	inline MiniChunk* get_mini_containing_block(int x, int y, int z) {
+		Chunk* chunk = get_chunk_containing_block(x, z);
+		return chunk->get_mini_with_y_level((y/16)*16);
+	}
+
 	// get chunk-coordinates of chunk containing the block at (x, _, z)
 	inline ivec2 get_chunk_coords(int x, int z) {
 		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
@@ -247,6 +265,24 @@ public:
 		// adjust x and y
 		x = x % CHUNK_WIDTH;
 		z = z % CHUNK_DEPTH;
+
+		// make sure modulo didn't leave them negative
+		if (x < 0) {
+			x += CHUNK_WIDTH;
+		}
+		if (z < 0) {
+			z += CHUNK_WIDTH;
+		}
+
+		return vmath::ivec3(x, y, z);
+	}
+
+	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
+	inline vmath::ivec3 get_mini_relative_coords(int x, int y, int z) {
+		// adjust x and y
+		x = x % MINICHUNK_WIDTH;
+		y = y % MINICHUNK_HEIGHT;
+		z = z % MINICHUNK_DEPTH;
 
 		// make sure modulo didn't leave them negative
 		if (x < 0) {
@@ -281,7 +317,7 @@ public:
 		gen_chunks(coords);
 	}
 
-	inline bool check_if_covered(MiniChunk mini) {
+	inline bool check_if_covered(MiniChunk &mini) {
 		// if contains any air blocks, don't know how to handle that yet
 		if (mini.any_air()) {
 			return false;
@@ -744,19 +780,13 @@ public:
 		glDeleteBuffers(1, &quad_corner2_buf);
 	}
 
-	inline bool raycast_callback(OpenGLInfo* glInfo, int x, int y, int z, ivec3 face) {
-		char buf[256];
-		if (get_type(x, y, z) != Block::Air) {
-			sprintf(buf, "Found Block at location (%d, %d, %d)!\n", x, y, z);
-			OutputDebugString(buf);
+	inline void highlight_block(OpenGLInfo* glInfo, ivec3 xyz) { return highlight_block(glInfo, xyz[0], xyz[1], xyz[2]); }
 
-			highlight_block(glInfo, x, y, z);
 
-			return true;
-		}
-		return false;
+	// make sure a block isn't air
+	inline bool not_air(ivec3 block_coords, ivec3 face) {
+		return get_type(block_coords) != Block::Air;
 	}
-
 
 
 	/**
@@ -769,7 +799,7 @@ public:
 	*
 	* If the callback returns a true value, the traversal will be stopped.
 	*/
-	inline void raycast(OpenGLInfo* glInfo, vec4 origin, vec4 direction, int radius) {
+	inline ivec3 raycast(vec4 origin, vec4 direction, int radius, const std::function <bool(ivec3 coords, ivec3 face)>& callback) {
 		// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
 		// by John Amanatides and Andrew Woo, 1987
 		// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
@@ -838,8 +868,8 @@ public:
 			//}
 
 			// callback
-			if (raycast_callback(glInfo, x, y, z, face)) {
-				break;
+			if (callback({ x, y, z }, face)) {
+				return { x, y, z };
 			}
 
 
@@ -889,7 +919,51 @@ public:
 				}
 			}
 		}
+
+		// return invalid coords b/c didn't find a block
+		return { 0, -1, 0 };
 	}
+
+	// when a mini updates, update its and its neighbors' meshes, if required.
+	// mini: the mini that changed
+	// block: the mini-coordinates of the block that was added/deleted
+	// TODO: Use block.
+	void on_mini_update(MiniChunk* mini, vmath::ivec3 block) {
+		auto &coords = mini->coords;
+
+		// need to regenerate self and neighbors
+		vector<MiniChunk*> minis_to_regenerate = { mini };
+
+		// get all neighbors
+		auto neighbor_coords = mini->neighbors();
+		for (auto coord : neighbor_coords) {
+			MiniChunk* m = get_mini(coord);
+			if (m != nullptr) {
+				minis_to_regenerate.push_back(m);
+			}
+		}
+
+		// update self and neighbors
+		for (auto mini : minis_to_regenerate) {
+			mini->invisible = mini->all_air() || check_if_covered(*mini);
+			if (!mini->invisible) {
+				mini->mesh = gen_minichunk_mesh(mini);
+				mini->update_quads_buf();
+			}
+		}
+	}
+
+	void destroy_block(int x, int y, int z) {
+		// update data
+		MiniChunk* mini = get_mini_containing_block(x, y, z);
+		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
+		mini->set_block(mini_coords, Block::Air);
+
+		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since the block always has at least 3 sides inside its mini.)
+		on_mini_update(mini, { x, y, z });
+	}
+
+	void destroy_block(ivec3 xyz) { return destroy_block(xyz[0], xyz[1], xyz[2]); };
 };
 
 #endif /* __WORLD_H__ */

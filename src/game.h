@@ -54,6 +54,7 @@ public:
 	World* world;
 	float last_render_time;
 	int num_chunks = 0;
+	ivec3 staring_at = { 0, -1, 0 }; // the block you're staring at (invalid by default)
 
 	App() {}
 	void run();
@@ -72,6 +73,11 @@ public:
 	void onMouseWheel(int pos);
 
 	void onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
+
+	// get direction player's staring at
+	inline auto staring_direction() {
+		return rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
+	}
 };
 App* App::app;
 

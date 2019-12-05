@@ -8,6 +8,7 @@
 #include "util.h"
 
 #include <algorithm> // std::find
+#include <vector> // std::find
 
 #define MINICHUNK_WIDTH 16
 #define MINICHUNK_HEIGHT 16
@@ -93,6 +94,23 @@ public:
 		return { coords[0] * 16, coords[1], coords[2] * 16 };
 	}
 
+	// get neighboring mini coords
+	inline std::vector<vmath::ivec3> neighbors() {
+		// n/e/s/w
+		std::vector<vmath::ivec3> result = { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH };
+
+		// up/down
+		if (coords[1] < BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) {
+			result.push_back(coords + IUP);
+		}
+		if (coords[1] > 0) {
+			result.push_back(coords + IDOWN);
+		}
+
+		return result;
+	}
+
+
 	void update_quads_buf() {
 		if (mesh == nullptr) {
 			throw "bad";
@@ -156,6 +174,7 @@ public:
 		// delete malloc'd stuff
 		delete [] blocks, corner1s, corner2s;
 	}
+
 };
 
 #endif // __MINICHUNK_H__
