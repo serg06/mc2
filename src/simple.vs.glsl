@@ -14,7 +14,7 @@ layout (location = 3) in ivec3 q_corner1;
 layout (location = 4) in ivec3 q_corner2;
 
 out vec4 vs_color;
-out uint vs_block_type;
+out flat uint vs_block_type;
 out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
 
 layout (std140, binding = 0) uniform UNI_IN
