@@ -15,6 +15,7 @@ layout (location = 4) in ivec3 q_corner2;
 
 out vec4 vs_color;
 out uint vs_block_type;
+out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
 
 layout (std140, binding = 0) uniform UNI_IN
 {
@@ -50,19 +51,26 @@ void main(void)
 	switch(gl_VertexID) {
 	case 0:
 		// top-left corner
+		vs_tex_coords = vec2(0, 0);
 		break;
 	case 1:
 	case 4:
 		// bottom-left corner
+		vs_tex_coords = vec2(diffs[working_idx_1], 0);
+		// vs_tex_coords = vec2(1, 0);
 		offset_in_chunk[working_idx_1] += diffs[working_idx_1];
 		break;
 	case 2:
 	case 3:
 		// top-right corner
+		vs_tex_coords = vec2(0, diffs[working_idx_2]);
+		// vs_tex_coords = vec2(0, 1);
 		offset_in_chunk[working_idx_2] += diffs[working_idx_2];
 		break;
 	case 5:
 		// bottom-right corner
+		vs_tex_coords = vec2(diffs[working_idx_1], diffs[working_idx_2]);
+		// vs_tex_coords = vec2(1, 1);
 		offset_in_chunk = vec4(q_corner2, 0);
 		break;
 	}

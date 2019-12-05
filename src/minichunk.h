@@ -154,7 +154,7 @@ public:
 		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * quads.size(), corner2s);
 
 		// delete malloc'd stuff
-		delete blocks, corner1s, corner2s;
+		delete [] blocks, corner1s, corner2s;
 	}
 };
 

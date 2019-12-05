@@ -33,6 +33,9 @@ struct OpenGLInfo {
 	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
 	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
 
+	// textures
+	GLuint grass_tex;
+
 	// binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint chunk_types_bidx = 1;

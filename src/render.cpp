@@ -3,6 +3,7 @@
 #include "util.h"
 
 #include "GLFW/glfw3.h"
+#include "png++/png.hpp"
 
 #include <string>
 #include <tuple>
@@ -69,8 +70,8 @@ namespace {
 			{ "../src/simple.vs.glsl", GL_VERTEX_SHADER },
 			//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
 			//{"../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER },
-		{ "../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
-		{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
+			//{ "../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
 		};
 
 		// create program
@@ -180,4 +181,70 @@ void setup_opengl(OpenGLInfo* glInfo) {
 
 	// setup extra [default] properties
 	setup_opengl_extra_props(glInfo);
+
+
+	/* TEXTURES */
+
+	// create texture
+	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->grass_tex);
+
+	// allocate
+	// 32-bit float RGB data, 16x16 resolution
+	glTextureStorage2D(glInfo->grass_tex, 1, GL_RGB32F, 16, 16);
+
+	// load in texture!
+	float data[16 * 16 * 3];
+
+	// load into data from disk
+	png::image<png::rgb_pixel> img_grass_top("../textures/grass_top.png");
+	assert(img_grass_top.get_height() == 16);
+	assert(img_grass_top.get_width() == 16);
+
+	for (int x = 0; x < img_grass_top.get_width(); x++) {
+		for (int y = 0; y < img_grass_top.get_width(); y++) {
+			auto a = img_grass_top.get_pixel(x, y);
+
+			data[((x * 16) + y) * 3 + 0] = a.red / 255.0f;
+			data[((x * 16) + y) * 3 + 1] = a.green / 255.0f;
+			data[((x * 16) + y) * 3 + 2] = a.blue / 255.0f;
+		}
+	}
+
+	//for (int i = 0; i < 16 * 16; i++) {
+	//	int y = i / 16;
+	//	int x = i % 16;
+
+	//	auto a = img_grass_top.get_pixel(x, y);
+
+	//	data[i] = a.red / 255.0f;
+	//	data[i+1] = a.green / 255.0f;
+	//	data[i+2] = a.blue / 255.0f;
+	//	}
+	//}
+
+	// load data into texture
+	glTextureSubImage2D(glInfo->grass_tex,
+		0,              // Level 0
+		0, 0,           // Offset 0, 0
+		16, 16,         // 16 x 16 texels, replace entire image
+		GL_RGB,         // Three channel data
+		GL_FLOAT,       // Floating point data
+		data);          // Pointer to data
+
+	// repeat!
+	glTextureParameteri(glInfo->grass_tex, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTextureParameteri(glInfo->grass_tex, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	// bind
+	glBindTextureUnit(0, glInfo->grass_tex);
+
+	// filter
+	glTextureParameteri(glInfo->grass_tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(glInfo->grass_tex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	OutputDebugString("");
+
+	// generate_texture() is a function that fills memory with image data
+	//generate_texture(data, 256, 256);
+
 }

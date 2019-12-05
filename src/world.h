@@ -188,7 +188,7 @@ public:
 		}
 
 		// delete malloc'd stuff
-		delete chunks;
+		delete [] chunks;
 	}
 
 
@@ -684,7 +684,7 @@ public:
 		char buf[256];
 		char *str1 = vec2str(relative_coords), *str2 = vec2str(block_coords), *str3 = vec2str(mini_coords);
 		sprintf(buf, "Gonna highlight block %s [i.e. block %s in minichunk %s].\n", str1, str2, str3);
-		delete str1, str2, str3;
+		delete [] str1, str2, str3;
 		OutputDebugString(buf);
 
 
