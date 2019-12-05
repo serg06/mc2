@@ -188,7 +188,7 @@ public:
 		}
 
 		// delete malloc'd stuff
-		delete [] chunks;
+		delete[] chunks;
 	}
 
 
@@ -684,7 +684,7 @@ public:
 		char buf[256];
 		char *str1 = vec2str(relative_coords), *str2 = vec2str(block_coords), *str3 = vec2str(mini_coords);
 		sprintf(buf, "Gonna highlight block %s [i.e. block %s in minichunk %s].\n", str1, str2, str3);
-		delete [] str1, str2, str3;
+		delete[] str1, str2, str3;
 		OutputDebugString(buf);
 
 
@@ -718,6 +718,11 @@ public:
 		// write this chunk's coordinate to coordinates buffer
 		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), mini_coords);
 
+		// save properties before we overwrite them
+		GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
+		GLint cull_face = glIsEnabled(GL_CULL_FACE);
+		GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
+
 		// DRAW!
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
@@ -725,9 +730,10 @@ public:
 
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 6);
 
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_DEPTH_TEST);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		// restore original properties
+		if (cull_face) glEnable(GL_CULL_FACE);
+		if (depth_test) glEnable(GL_DEPTH_TEST);
+		glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 
 		// unbind VAO jic
 		glBindVertexArray(0);
@@ -832,7 +838,7 @@ public:
 			//}
 
 			// callback
-			if (raycast_callback(glInfo, x-2, y, z-2, face)) {
+			if (raycast_callback(glInfo, x, y, z, face)) {
 				break;
 			}
 
