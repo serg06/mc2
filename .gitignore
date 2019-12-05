@@ -6,3 +6,7 @@ bin/
 
 # Libraries which we compile ourselves
 lib/
+
+# Libpng generated headers
+include/libpng/pnglibconf.h
+
