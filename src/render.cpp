@@ -168,31 +168,19 @@ namespace {
 	}
 }
 
-void setup_opengl(OpenGLInfo* glInfo) {
-	// setup shaders
-	setup_opengl_program(glInfo);
+void setup_block_textures(OpenGLInfo* glInfo) {
+	/* GRASS TOP & SIDE TEXTURES */
 
-	// setup VAOs
-	setup_opengl_vao_cube(glInfo);
-	setup_opengl_vao_quad(glInfo);
-
-	// setup uniforms
-	setup_opengl_uniforms(glInfo);
-
-	// setup extra [default] properties
-	setup_opengl_extra_props(glInfo);
-
-
-	/* TEXTURES */
-
-	// create texture
-	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->grass_tex);
+	// create textures
+	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->grass_top);
+	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->grass_side);
 
 	// allocate
 	// 32-bit float RGB data, 16x16 resolution
-	glTextureStorage2D(glInfo->grass_tex, 1, GL_RGB32F, 16, 16);
+	glTextureStorage2D(glInfo->grass_top, 1, GL_RGB32F, 16, 16);
+	glTextureStorage2D(glInfo->grass_side, 1, GL_RGB32F, 16, 16);
 
-	// load in texture!
+	// load in both textures
 	float data[16 * 16 * 3];
 
 	// load into data from disk
@@ -210,20 +198,8 @@ void setup_opengl(OpenGLInfo* glInfo) {
 		}
 	}
 
-	//for (int i = 0; i < 16 * 16; i++) {
-	//	int y = i / 16;
-	//	int x = i % 16;
-
-	//	auto a = img_grass_top.get_pixel(x, y);
-
-	//	data[i] = a.red / 255.0f;
-	//	data[i+1] = a.green / 255.0f;
-	//	data[i+2] = a.blue / 255.0f;
-	//	}
-	//}
-
 	// load data into texture
-	glTextureSubImage2D(glInfo->grass_tex,
+	glTextureSubImage2D(glInfo->grass_top,
 		0,              // Level 0
 		0, 0,           // Offset 0, 0
 		16, 16,         // 16 x 16 texels, replace entire image
@@ -231,20 +207,62 @@ void setup_opengl(OpenGLInfo* glInfo) {
 		GL_FLOAT,       // Floating point data
 		data);          // Pointer to data
 
+	// load into data from disk
+	png::image<png::rgb_pixel> img_grass_side("../textures/grass_side.png");
+	assert(img_grass_side.get_height() == 16);
+	assert(img_grass_side.get_width() == 16);
+
+	for (int x = 0; x < img_grass_side.get_width(); x++) {
+		for (int y = 0; y < img_grass_side.get_width(); y++) {
+			auto a = img_grass_side.get_pixel(x, y);
+
+			data[((x * 16) + y) * 3 + 0] = a.red / 255.0f;
+			data[((x * 16) + y) * 3 + 1] = a.green / 255.0f;
+			data[((x * 16) + y) * 3 + 2] = a.blue / 255.0f;
+		}
+	}
+
+	// load data into texture
+	glTextureSubImage2D(glInfo->grass_side,
+		0,              // Level 0
+		0, 0,           // Offset 0, 0
+		16, 16,         // 16 x 16 texels, replace entire image
+		GL_RGB,         // Three channel data
+		GL_FLOAT,       // Floating point data
+		data);          // Pointer to data
+
+
 	// repeat!
-	glTextureParameteri(glInfo->grass_tex, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTextureParameteri(glInfo->grass_tex, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	// bind
-	glBindTextureUnit(0, glInfo->grass_tex);
+	glBindTextureUnit(0, glInfo->grass_top);
+	glBindTextureUnit(1, glInfo->grass_side);
 
 	// filter
-	glTextureParameteri(glInfo->grass_tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(glInfo->grass_tex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
 
-	OutputDebugString("");
+void setup_opengl(OpenGLInfo* glInfo) {
+	// setup shaders
+	setup_opengl_program(glInfo);
 
-	// generate_texture() is a function that fills memory with image data
-	//generate_texture(data, 256, 256);
+	// setup VAOs
+	setup_opengl_vao_cube(glInfo);
+	setup_opengl_vao_quad(glInfo);
 
+	// setup uniforms
+	setup_opengl_uniforms(glInfo);
+
+	// setup extra [default] properties
+	setup_opengl_extra_props(glInfo);
+
+	// set up textures
+	setup_block_textures(glInfo);
 }

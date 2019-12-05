@@ -16,6 +16,7 @@ layout (location = 4) in ivec3 q_corner2;
 out vec4 vs_color;
 out flat uint vs_block_type;
 out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
+out flat uint horizontal;
 
 layout (std140, binding = 0) uniform UNI_IN
 {
@@ -46,6 +47,8 @@ void main(void)
 	int zero_idx = diffs[0] == 0 ? 0 : diffs[1] == 0 ? 1 : 2;
 	int working_idx_1 = zero_idx == 0 ? 1 : 0;
 	int working_idx_2 = zero_idx == 2 ? 1 : 2;
+
+	horizontal = zero_idx == 1 ? 1 : 0;
 
 	// generate corner based on vertex ID
 	switch(gl_VertexID) {

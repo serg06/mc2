@@ -34,7 +34,8 @@ struct OpenGLInfo {
 	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
 
 	// textures
-	GLuint grass_tex;
+	GLuint grass_top;
+	GLuint grass_side;
 
 	// binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
