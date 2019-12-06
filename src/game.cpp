@@ -130,7 +130,7 @@ void App::render(float time) {
 		(float)windowInfo.vfov, // virtual fov
 		(float)windowInfo.width / (float)windowInfo.height, // aspect ratio
 		PLAYER_RADIUS,  // blocks are always at least PLAYER_RADIUS away from camera
-		16 * CHUNK_WIDTH // only support 32 chunks for now
+		64 * CHUNK_WIDTH // only support 32 chunks for now
 	);
 
 	/* BACKGROUND / SKYBOX */

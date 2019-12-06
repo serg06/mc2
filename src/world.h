@@ -64,6 +64,8 @@ public:
 	inline void add_chunk(int x, int z, Chunk* chunk) {
 		auto search = chunk_map.find({ x, z });
 
+		// TODO: Figure out why I'm loading 7,000 chunks for 60 render distance when I should only be loading 1,800.
+
 		// if element already exists, error
 		if (search != chunk_map.end()) {
 			throw "Tried to add chunk but it already exists.";
