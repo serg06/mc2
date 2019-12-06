@@ -18,7 +18,15 @@ Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 1
 
 - Movement: Smooth player movement (flying).
 
-- Collisions: Super smooth and quite perfect (at reasonable refresh rates).
+- Collisions: By using the fact that all voxels are cubes, I've made the collision-checking be smooth and efficient.
+
+- Block textures: Some blocks now have textures.
+
+- Block destruction (left-click.)
+
+- Block highlighting.
+
+- Greedy meshing: Nearby blocks of the same type are grouped into rectangles and drawn with a single draw call.
 
 ## Some planned features:
 
