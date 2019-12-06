@@ -21,13 +21,10 @@ public:
 	GLuint block_types_buf; // each mini gets its own buf -- easy this way for now
 	bool invisible = false;
 	MiniChunkMesh* mesh;
-	GLuint quad_block_type_buf, quad_corner_buf, quad_corner1_buf, quad_corner2_buf;
+	GLuint quad_block_type_buf = 0, quad_corner_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
-		// Fix a bug when rendering too quickly.
-		glCreateBuffers(1, &quad_block_type_buf);
-		glCreateBuffers(1, &quad_corner1_buf);
-		glCreateBuffers(1, &quad_corner2_buf);
+
 	}
 
 	// render this minichunk's cubes (that's 4096 cubes, with 12 triangles per cube.)
@@ -172,7 +169,7 @@ public:
 		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * quads.size(), corner2s);
 
 		// delete malloc'd stuff
-		delete [] blocks, corner1s, corner2s;
+		delete[] blocks, corner1s, corner2s;
 	}
 
 };
