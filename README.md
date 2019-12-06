@@ -2,7 +2,7 @@
 
 This is a from-scratch creation of a Minecraft-like game, using C++ and OpenGL. (Learning both from *OpenGL Superbible*.)
 
-Progress video (December 6, 2019):
+Progress **video** (December 6, 2019):
 
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/wPdDSbGLJiE/0.jpg)](https://www.youtube.com/watch?v=wPdDSbGLJiE)
 
