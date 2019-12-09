@@ -5,10 +5,14 @@
 #include <string>
 #include <vmath.h>
 
+// TODO: Stone = 1, grass = 2
 enum class Block : uint8_t {
 	Air = 0,
 	Grass = 1,
 	Stone = 2,
+	Water = 9,
+	OakLog = 17,
+	OakLeaves = 18,
 };
 
 inline std::string block_name(Block b) {

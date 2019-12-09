@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <vmath.h>
 
+#define WATER_HEIGHT 64
+
 using namespace std;
 using namespace vmath;
 
@@ -29,7 +31,7 @@ inline float softmax(float v, float minv, float maxv) {
 	assert(minv <= v && v <= maxv);
 
 	float dist = maxv - minv;
-	float dist_rad = dist/2.0f;
+	float dist_rad = dist / 2.0f;
 	float orig = v;
 
 	// center everything
@@ -67,22 +69,53 @@ Chunk* gen_chunk_data(int chunkX, int chunkZ) {
 	// fill data
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
 		for (int z = 0; z < CHUNK_DEPTH; z++) {
-
 			// get height at this location
-			double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
-			y += fn.GetPerlin((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
-			y += fn.GetCellular((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
-			y /= 3;
+			double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16) / 2.0, (FN_DECIMAL)(z + chunkZ * 16) / 2.0);
+			y += fn.GetPerlin((FN_DECIMAL)(x + chunkX * 16) / 2.0, (FN_DECIMAL)(z + chunkZ * 16) / 2.0);
+			y += fn.GetCellular((FN_DECIMAL)(x + chunkX * 16) /2.0, (FN_DECIMAL)(z + chunkZ * 16) / 2.0) / 2.0;
+			y /= 2.5;
 
 			y = (y + 1.0) / 2.0; // normalize to [0.0, 1.0]
 			y *= 64; // variation of around 32
-			y += 55; // minimum height 60
+			y += 38; // minimum height 40
 
 			// fill everything under that height
 			for (int i = 0; i < y; i++) {
 				chunk->set_block(x, i, z, Block::Stone);
 			}
 			chunk->set_block(x, (int)floor(y), z, Block::Grass);
+
+			// generate tree if we wanna
+			if (y >= WATER_HEIGHT) {
+				float w = fn.GetWhiteNoise((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
+				w = (w + 1.0) / 2.0; // normalize random value to [0.0, 1.0]
+				// 1/256 chance to make tree
+				if (w <= (1.0f / 256.0f)) {
+					// generate leaves
+					for (int dx = -2; dx <= 2; dx++) {
+						for (int dy = 4; dy <= 6; dy++) {
+							for (int dz = -2; dz <= 2; dz++) {
+								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
+									continue;
+								}
+								chunk->set_block(x + dx, y + dy, z + dz, Block::OakLeaves);
+							}
+						}
+					}
+
+					// generate logs
+					for (int dy = 1; dy <= 5; dy++) {
+						chunk->set_block(x, y + dy, z, Block::OakLog);
+					}
+				}
+			}
+
+			// Fill water
+			if (y < WATER_HEIGHT - 1) {
+				for (int y2 = y + 1; y2 < WATER_HEIGHT; y2++) {
+					chunk->set_block(x, y2, z, Block::Water);
+				}
+			}
 		}
 	}
 
