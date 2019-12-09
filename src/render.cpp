@@ -254,7 +254,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	setup_opengl_program(glInfo);
 
 	// setup VAOs
-	setup_opengl_vao_cube(glInfo);
+	//setup_opengl_vao_cube(glInfo);
 	setup_opengl_vao_quad(glInfo);
 
 	// setup uniforms

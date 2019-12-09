@@ -48,6 +48,13 @@ void main(void)
 	int working_idx_1 = zero_idx == 0 ? 1 : 0;
 	int working_idx_2 = zero_idx == 2 ? 1 : 2;
 
+	// if working in x/y direction, flip working indices (this rotates texture 90 degrees)
+	if (diffs[2] == 0) {
+		working_idx_1 = working_idx_1 ^ working_idx_2;
+		working_idx_2 = working_idx_2 ^ working_idx_1;
+		working_idx_1 = working_idx_1 ^ working_idx_2;
+	}
+
 	horizontal = zero_idx == 1 ? 1 : 0;
 
 	vec4 diffs1 = vec4(0);
@@ -55,14 +62,15 @@ void main(void)
 	diffs1[working_idx_1] = diffs[working_idx_1];
 	diffs2[working_idx_2] = diffs[working_idx_2];
 
+	// upside down coordinates to correct texture rotation
 	vec2 possible_tex_coords[6];
-	possible_tex_coords[0] = vec2(0,0);
-	possible_tex_coords[1] = vec2(diffs[working_idx_1], 0);
-	possible_tex_coords[2] = vec2(0, diffs[working_idx_2]);
-	possible_tex_coords[3] = vec2(0, diffs[working_idx_2]);
-	possible_tex_coords[4] = vec2(diffs[working_idx_1], 0);
-	possible_tex_coords[5] = vec2(diffs[working_idx_1], diffs[working_idx_2]);
-
+	possible_tex_coords[0] = vec2(diffs[working_idx_1], diffs[working_idx_2]);
+	possible_tex_coords[1] = vec2(0, diffs[working_idx_2]);
+	possible_tex_coords[2] = vec2(diffs[working_idx_1], 0);
+	possible_tex_coords[3] = vec2(diffs[working_idx_1], 0);
+	possible_tex_coords[4] = vec2(0, diffs[working_idx_2]);
+	possible_tex_coords[5] = vec2(0,0);
+	
 	vec4 possible_offsets[6];
 	possible_offsets[0] = vec4(q_corner1, 0);
 	possible_offsets[1] = vec4(q_corner1, 0) + diffs1;
