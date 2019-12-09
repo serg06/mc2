@@ -254,17 +254,6 @@ public:
         return result;
     }
 
-	// compare by value instead of by pointer
-	inline bool operator==(const vecN& that)
-	{
-		for (int i = 0; i < len; i++) {
-			if (data[i] != that[i]) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 protected:
     T data[len];
 
@@ -275,6 +264,17 @@ protected:
             data[n] = that.data[n];
     }
 };
+
+// teach vecN how to compare
+template <typename T, const int len>
+inline bool operator==(const vecN<T, len> &lhs, const vecN<T, len> &rhs) {
+	for (int i = 0; i < len; i++) {
+		if (lhs[i] != rhs[i]) {
+			return false;
+		}
+	}
+	return true;
+}
 
 template <typename T>
 class Tvec2 : public vecN<T,2>
