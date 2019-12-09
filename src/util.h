@@ -142,6 +142,63 @@ inline void hash_combine(std::size_t& seed, const T& v)
 	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
+// check if point is in frustum
+inline bool in_frustum(const vec3 &point, const vec3 &camera_pos, vec3 up, vec3 right, vec3 straight, const int nearplane, const int farplane, float hfov, float vfov) {
+	float hfov_rads = hfov * M_PI / 180.0f;
+	float vfov_rads = vfov * M_PI / 180.0f;
+
+	// distance check
+	if (length(point - camera_pos) > farplane) {
+		return false;
+	}
+
+	up = normalize(up);
+	right = normalize(right);
+	straight = normalize(straight);
+
+	/* HORIZONTAL PLANE */
+
+	// vector from origin to point
+	vec3 h_v = point - camera_pos;
+
+	// distance from point to plane along normal
+	float h_dist = dot(h_v, up);
+
+	// project onto plane
+	vec3 h_projected_point = point - h_dist * up;
+
+	// get angle
+	float h_angle = angle_normalize(straight, h_projected_point - camera_pos);
+
+	// verify
+	if (h_angle > hfov_rads) {
+		return false;
+	}
+
+	/* VERTICAL PLANE */
+
+	// vector from origin to point
+	vec3 v_v = point - camera_pos;
+
+	// distance from point to plane along normal
+	float v_dist = dot(v_v, right);
+
+	// project onto plane
+	vec3 v_projected_point = point - v_dist * right;
+
+	// get angle
+	float v_angle = angle_normalize(straight, v_projected_point - camera_pos);
+
+	// verify
+	if (v_angle > vfov_rads) {
+		return false;
+	}
+
+	// Passed all checks!
+
+	return true;
+}
+
 double noise2d(double x, double y);
 
 #endif // __UTIL_H__
