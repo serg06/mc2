@@ -377,7 +377,6 @@ public:
 			chunk->render(glInfo);
 		}
 
-
 		rendered++;
 	}
 
