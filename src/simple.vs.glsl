@@ -48,8 +48,8 @@ void main(void)
 	int working_idx_1 = zero_idx == 0 ? 1 : 0;
 	int working_idx_2 = zero_idx == 2 ? 1 : 2;
 
-	// if working in x/y direction, flip working indices (this rotates texture 90 degrees)
-	if (diffs[2] == 0) {
+	// if working along x axis, rotate texture 90 degrees to correct rotation
+	if (diffs[0] == 0) {
 		working_idx_1 = working_idx_1 ^ working_idx_2;
 		working_idx_2 = working_idx_2 ^ working_idx_1;
 		working_idx_1 = working_idx_1 ^ working_idx_2;

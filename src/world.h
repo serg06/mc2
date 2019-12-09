@@ -426,8 +426,8 @@ public:
 				// get quads from layer
 				vector<Quad2D> quads2d = gen_quads(layer);
 
-				// if +x, -y, or -z, flip triangles around so that we're not drawing them backwards
-				if (face[0] > 0 || face[1] < 0 || face[2] < 0) {
+				// if -x, -y, or +z, flip triangles around so that we're not drawing them backwards
+				if (face[0] < 0 || face[1] < 0 || face[2] > 0) {
 					for (int i = 0; i < quads2d.size(); i++) {
 						ivec2 diffs = quads2d[i].corners[1] - quads2d[i].corners[0];
 						quads2d[i].corners[1] = quads2d[i].corners[0] + ivec2(0, diffs[1]);
