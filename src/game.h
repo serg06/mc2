@@ -79,6 +79,16 @@ public:
 	inline auto staring_direction() {
 		return rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
 	}
+
+	// get direction straight up from player
+	inline auto up_direction() {
+		return rotate_pitch_yaw(char_pitch, char_yaw) * UP_0;
+	}
+
+	// get direction straight right from player
+	inline auto right_direction() {
+		return rotate_pitch_yaw(char_pitch, char_yaw) * EAST_0;
+	}
 };
 App* App::app;
 
