@@ -55,7 +55,7 @@ public:
 	}
 
 	// get block at these coordinates
-	inline Block get_block(int x, int y, int z) {
+	inline Block get_block(const int &x, const int &y, const int &z) {
 		assert(0 <= x && x < width && "get_block invalid x coordinate");
 		assert(0 <= z && z < depth && "get_block invalid z coordinate");
 
@@ -67,8 +67,8 @@ public:
 		return data[x + z * width + y * width * depth];
 	}
 
-	inline Block get_block(vmath::ivec3 xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
-	inline Block get_block(vmath::ivec4 xyz_) { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
+	inline Block get_block(const vmath::ivec3 &xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
+	inline Block get_block(const vmath::ivec4 &xyz_) { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// set block at these coordinates
 	inline void set_block(int x, int y, int z, Block val) {

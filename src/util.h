@@ -106,9 +106,9 @@ static inline void gen_working_indices(int &layers_idx, int &working_idx_1, int 
 }
 
 template <typename T, const int len>
-static inline bool in_range(vecN<T, len> vec, vecN<T, len> min, vecN<T, len> max) {
+static inline bool in_range(const vecN<T, len> &vec, const vecN<T, len> &min, const vecN<T, len> &max) {
 	for (int i = 0; i < len; i++) {
-		if (min[i] > vec[i] || vec[i] > max[i]) {
+		if (vec[i] < min[i] || vec[i] > max[i]) {
 			return false;
 		}
 	}

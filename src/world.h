@@ -460,7 +460,7 @@ public:
 
 		// reset all to air
 		memset(result, (uint8_t)Block::Air, sizeof(result));
-
+		
 		for (int u = 0; u < 16; u++) {
 			for (int v = 0; v < 16; v++) {
 				ivec3 coords;
