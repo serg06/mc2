@@ -49,7 +49,10 @@ struct pair_hash
 	template <class T1, class T2>
 	std::size_t operator() (const std::pair<T1, T2> &pair) const
 	{
-		return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+		std::size_t seed = 0;
+		hash_combine(seed, pair.first);
+		hash_combine(seed, pair.second);
+		return seed;
 	}
 };
 
@@ -129,6 +132,14 @@ static inline char* vec2str(vecN<T, len> vec) {
 	tmp += sprintf(tmp, ")");
 	
 	return result;
+}
+
+// boost::hash_combine
+template <class T>
+inline void hash_combine(std::size_t& seed, const T& v)
+{
+	std::hash<T> hasher;
+	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 double noise2d(double x, double y);
