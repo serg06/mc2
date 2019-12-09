@@ -59,7 +59,9 @@ layout (location = 3) in ivec3 q_corner1;
 layout (location = 4) in ivec3 q_corner2;
 
 out vec4 vs_color;
-out uint vs_block_type;
+out flat uint vs_block_type;
+out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
+out flat uint horizontal;
 
 layout (std140, binding = 0) uniform UNI_IN
 {
@@ -91,54 +93,62 @@ void main(void)
 	int working_idx_1 = zero_idx == 0 ? 1 : 0;
 	int working_idx_2 = zero_idx == 2 ? 1 : 2;
 
-	// generate corner based on vertex ID
-	switch(gl_VertexID) {
-	case 0:
-		// top-left corner
-		break;
-	case 1:
-	case 4:
-		// bottom-left corner
-		offset_in_chunk[working_idx_1] += diffs[working_idx_1];
-		break;
-	case 2:
-	case 3:
-		// top-right corner
-		offset_in_chunk[working_idx_2] += diffs[working_idx_2];
-		break;
-	case 5:
-		// bottom-right corner
-		offset_in_chunk = vec4(q_corner2, 0);
-		break;
+	// if working along x axis, rotate texture 90 degrees to correct rotation
+	if (diffs[0] == 0) {
+		working_idx_1 ^= working_idx_2;
+		working_idx_2 ^= working_idx_1;
+		working_idx_1 ^= working_idx_2;
 	}
+
+	horizontal = zero_idx == 1 ? 1 : 0;
+
+	vec4 diffs1 = vec4(0);
+	vec4 diffs2 = vec4(0);
+	diffs1[working_idx_1] = diffs[working_idx_1];
+	diffs2[working_idx_2] = diffs[working_idx_2];
+
+	// upside down coordinates to correct texture rotation
+	vec2 possible_tex_coords[6];
+	possible_tex_coords[0] = vec2(diffs[working_idx_1], diffs[working_idx_2]);
+	possible_tex_coords[1] = vec2(0, diffs[working_idx_2]);
+	possible_tex_coords[2] = vec2(diffs[working_idx_1], 0);
+	possible_tex_coords[3] = vec2(diffs[working_idx_1], 0);
+	possible_tex_coords[4] = vec2(0, diffs[working_idx_2]);
+	possible_tex_coords[5] = vec2(0,0);
+	
+	vec4 possible_offsets[6];
+	possible_offsets[0] = vec4(q_corner1, 0);
+	possible_offsets[1] = vec4(q_corner1, 0) + diffs1;
+	possible_offsets[2] = vec4(q_corner1, 0) + diffs2;
+	possible_offsets[3] = vec4(q_corner1, 0) + diffs2;
+	possible_offsets[4] = vec4(q_corner1, 0) + diffs1;
+	possible_offsets[5] = vec4(q_corner2, 0);
+
+	offset_in_chunk = possible_offsets[gl_VertexID];
+	vs_tex_coords = possible_tex_coords[gl_VertexID];
 
 	/* CREATE OUR OFFSET VARIABLE */
 
 	vec4 chunk_base = vec4(uni.base_coords.x * 16, uni.base_coords.y, uni.base_coords.z * 16, 0);
 	vec4 instance_offset = chunk_base + offset_in_chunk;
+	instance_offset[3] = 1;
 
 	/* ADD IT TO VERTEX */
-
-	gl_Position = uni.proj_matrix * uni.mv_matrix * (position + instance_offset);
+	gl_Position = uni.proj_matrix * uni.mv_matrix * instance_offset;
 
 	// set color
 	int seed = int(instance_offset[0]) ^ int(instance_offset[1]) ^ int(instance_offset[2]);
-	switch(q_block_type) {
-		case 0: // air (just has a color for debugging purposes)
-			vs_color = vec4(0.8 + rand(seed)*0.2, 0.0, 0.0, 1.0); // bright red
-			break;
-		case 1: // grass
-			vs_color = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // green
-			// vs_color = vec4(0.2, 0.6, 0.0, 1.0); // green
-			break;
-		case 2: // stone
-			vs_color = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // grey
-			// vs_color = vec4(0.4, 0.4, 0.4, 1.0); // grey
-			break;
-		default:
-			vs_color = vec4(1.0, 0.0, 1.0, 1.0); // SUPER NOTICEABLE (for debugging)
-			break;
-	}
+
+	vec4 block_type_to_color[255];
+	block_type_to_color[0] = vec4(0.8 + rand(seed)*0.2, 0.0, 0.0, 1.0); // Air
+	block_type_to_color[1] = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // Grass
+	block_type_to_color[2] = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // Stone
+	block_type_to_color[9] = vec4(32/255.0, 58/255.0, 230/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // Water
+	block_type_to_color[17] = vec4(87/255.0, 60/255.0, 10/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // Oak Log
+	block_type_to_color[18] = vec4(96/255.0, 148/255.0, 98/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // Oak Leaves
+	block_type_to_color[100] = vec4(0.0, 0.0, 0.0, 1.0);
+
+	vs_color = block_type_to_color[q_block_type];
 
     vs_block_type = q_block_type;
 }
@@ -193,12 +203,32 @@ void main_cubes(void)
 )";
 	const char fshader_src[] = R"(#version 450 core
 
-in vec4 gs_color;
+in vec4 vs_color;
+in flat uint vs_block_type;
+in vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
+in flat uint horizontal; // 0 = quad is vertical, 1 = quad is horizontal (TODO: Remove this once we start inputting quad face to vertex shader.)
+
 out vec4 color;
+
+// our grass texture!
+layout (binding = 0) uniform sampler2D grass_top;
+layout (binding = 1) uniform sampler2D grass_side;
 
 void main(void)
 {
-	color = gs_color;
+	// TODO: Remove branching.	
+
+	// GRASS
+	if (vs_block_type == 1) {
+		if (horizontal != 0) {
+			color = texture(grass_top, vs_tex_coords);
+		} else {
+			color = texture(grass_side, vs_tex_coords);
+		}
+	// DEFAULT
+	} else {
+		color = vs_color;
+	}
 }
 )";
 	const char gshader_src[] = R"(#version 450 core

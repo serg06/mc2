@@ -43,7 +43,7 @@ public:
 	unsigned min_render_distance = 3;
 
 	// movement
-	vec4 char_position = { 8.0f, 66.0f, 8.0f, 1.0f }; // DEBUG: lower player
+	vec4 char_position = { 8.0f, 73.0f, 8.0f, 1.0f };
 	vec4 char_velocity = { 0.0f };
 
 	// rotation

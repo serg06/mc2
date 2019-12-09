@@ -186,7 +186,7 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 	glTextureStorage2D(glInfo->grass_side, 1, GL_RGB32F, 16, 16);
 
 	// load in texture from disk
-	imgdata = stbi_load("../textures/grass_top.png", &width, &height, &components, 0);
+	imgdata = stbi_load("textures/grass_top.png", &width, &height, &components, 0);
 	
 	assert(height == 16);
 	assert(width == 16);
@@ -211,7 +211,7 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 
 
 	// load in texture from disk
-	imgdata = stbi_load("../textures/grass_side.png", &width, &height, &components, 0);
+	imgdata = stbi_load("textures/grass_side.png", &width, &height, &components, 0);
 
 	assert(height == 16);
 	assert(width == 16);
