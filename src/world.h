@@ -56,15 +56,19 @@ public:
 	unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
 
 	int rendered = 0;
+	// get_chunk cache
+	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+	vmath::ivec2 chunk_cache_ivec2[5] = { ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX) };
+	int chunk_cache_clock_hand = 0; // clock cache
 
 	World() {
 
 	}
 
 	// add chunk to chunk coords (x, z)
-	// AND TO GPU!
 	inline void add_chunk(int x, int z, Chunk* chunk) {
-		auto search = chunk_map.find({ x, z });
+		ivec2 coords = { x, z };
+		auto search = chunk_map.find(coords);
 
 		// if element already exists, error
 		if (search != chunk_map.end()) {
@@ -75,7 +79,15 @@ public:
 		if (chunk == nullptr) {
 			throw "Wew";
 		}
-		chunk_map[{x, z}] = chunk;
+		chunk_map[coords] = chunk;
+
+		// invalidate that chunk in cache
+		for (int i = 0; i < 5; i++) {
+			if (chunk_cache_ivec2[i] == coords) {
+				chunk_cache[i] = nullptr;
+				chunk_cache_ivec2[i] = ivec2(INT_MAX);
+			}
+		}
 
 		char buf[256];
 		sprintf(buf, "Loaded chunks: %d\n", chunk_map.size());
@@ -194,8 +206,30 @@ public:
 		delete[] chunks;
 	}
 
-	// get chunk or nullptr
+	// get chunk or nullptr (using cache) (TODO: LRU?)
 	inline Chunk* get_chunk(int x, int z) {
+		ivec2 coords = { x, z };
+
+		// if in cache, return
+		for (int i = 0; i < 5; i++) {
+			if (chunk_cache_ivec2[i] == coords) {
+				return chunk_cache[i];
+			}
+		}
+
+		// not in cache, get normally
+		Chunk* result = get_chunk_(x, z);
+
+		// save in cache
+		chunk_cache[chunk_cache_clock_hand] = result;
+		chunk_cache_ivec2[chunk_cache_clock_hand] = coords;
+		chunk_cache_clock_hand = (chunk_cache_clock_hand + 1) % 5;
+
+		return result;
+	}
+
+	// get chunk or nullptr (no cache)
+	inline Chunk* get_chunk_(int x, int z) {
 		auto search = chunk_map.find({ x, z });
 
 		// if doesn't exist, return null
@@ -216,7 +250,7 @@ public:
 		}
 
 		Chunk* chunk = (*search).second;
-		return chunk->get_mini_with_y_level((y/16)*16);
+		return chunk->get_mini_with_y_level((y / 16) * 16);
 	}
 
 	inline MiniChunk* get_mini(ivec3 xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
@@ -247,7 +281,7 @@ public:
 	// get minichunk that contains block at (x, y, z)
 	inline MiniChunk* get_mini_containing_block(int x, int y, int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
-		return chunk->get_mini_with_y_level((y/16)*16);
+		return chunk->get_mini_with_y_level((y / 16) * 16);
 	}
 
 	// get chunk-coordinates of chunk containing the block at (x, _, z)
@@ -286,13 +320,13 @@ public:
 	// get a block's type
 	inline Block get_type(int x, int y, int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
-		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
 
 		if (!chunk) {
 			return Block::Air;
 		}
 
-		return chunk->get_block(chunk_coords[0], chunk_coords[1], chunk_coords[2]);
+		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
+		return chunk->get_block(chunk_coords);
 	}
 
 	inline Block get_type(vmath::ivec3 xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
@@ -507,7 +541,7 @@ public:
 	}
 
 	// given a layer and start point, find its best dimensions
-	static inline ivec2 get_max_size(const Block (&layer)[16][16], const bool (&merged)[16][16], ivec2 start_point, Block block_type) {
+	static inline ivec2 get_max_size(const Block(&layer)[16][16], const bool(&merged)[16][16], ivec2 start_point, Block block_type) {
 		assert(block_type != Block::Air);
 		assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
