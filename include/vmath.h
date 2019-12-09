@@ -503,7 +503,15 @@ static inline T distance(const vecN<T,len>& a, const vecN<T,len>& b)
 template <typename T, int len>
 static inline T angle(const vecN<T,len>& a, const vecN<T,len>& b)
 {
-    return arccos(dot(a, b));
+	// radians
+    return acos(dot(a, b));
+}
+
+template <typename T, int len>
+static inline T angle_normalize(const vecN<T, len>& a, const vecN<T, len>& b)
+{
+	// radians
+	return acos(dot(a, b)/(length(a) * length(b)));
 }
 
 template <typename T>
