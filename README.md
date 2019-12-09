@@ -2,9 +2,9 @@
 
 This is a from-scratch creation of a Minecraft-like game, using C++ and OpenGL. (Learning both from *OpenGL Superbible*.)
 
-Progress video (December 1, 2019):
+Progress **video** (December 6, 2019):
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/32xDZ_fhXz4/0.jpg)](https://www.youtube.com/watch?v=32xDZ_fhXz4)
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/wPdDSbGLJiE/0.jpg)](https://www.youtube.com/watch?v=wPdDSbGLJiE)
 
 ## Wanna try it out?
 
@@ -18,7 +18,15 @@ Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 1
 
 - Movement: Smooth player movement (flying).
 
-- Collisions: Super smooth and quite perfect (at reasonable refresh rates).
+- Collisions: By using the fact that all voxels are cubes, I've made the collision-checking be smooth and efficient.
+
+- Block textures: Some blocks now have textures.
+
+- Block destruction (left-click.)
+
+- Block highlighting.
+
+- Greedy meshing: Nearby blocks of the same type are grouped into rectangles and drawn with a single draw call.
 
 ## Some planned features:
 
