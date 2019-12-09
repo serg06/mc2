@@ -10,6 +10,9 @@
 #include <vector>
 #include <vmath.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 using namespace vmath;
 
 // setup glfw window
@@ -169,6 +172,10 @@ namespace {
 }
 
 void setup_block_textures(OpenGLInfo* glInfo) {
+	int width, height, components;
+	unsigned char *imgdata;
+	float data[16 * 16 * 3];
+
 	/* GRASS TOP & SIDE TEXTURES */
 
 	// create textures
@@ -180,23 +187,20 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 	glTextureStorage2D(glInfo->grass_top, 1, GL_RGB32F, 16, 16);
 	glTextureStorage2D(glInfo->grass_side, 1, GL_RGB32F, 16, 16);
 
-	// load in both textures
-	float data[16 * 16 * 3];
+	// load in texture from disk
+	imgdata = stbi_load("../textures/grass_top.png", &width, &height, &components, 0);
+	
+	assert(height == 16);
+	assert(width == 16);
+	assert(components == 3);
 
-	// load into data from disk
-	png::image<png::rgb_pixel> img_grass_top("../textures/grass_top.png");
-	assert(img_grass_top.get_height() == 16);
-	assert(img_grass_top.get_width() == 16);
-
-	for (int x = 0; x < img_grass_top.get_width(); x++) {
-		for (int y = 0; y < img_grass_top.get_width(); y++) {
-			auto a = img_grass_top.get_pixel(x, y);
-
-			data[((x * 16) + y) * 3 + 0] = a.red / 255.0f;
-			data[((x * 16) + y) * 3 + 1] = a.green / 255.0f;
-			data[((x * 16) + y) * 3 + 2] = a.blue / 255.0f;
-		}
+	// convert to floats
+	for (int i = 0; i < height*width*components; i++) {
+		data[i] = imgdata[i] / 255.0f;
 	}
+	
+	// free
+	stbi_image_free(imgdata);
 
 	// load data into texture
 	glTextureSubImage2D(glInfo->grass_top,
@@ -207,19 +211,17 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 		GL_FLOAT,       // Floating point data
 		data);          // Pointer to data
 
-	// load into data from disk
-	png::image<png::rgb_pixel> img_grass_side("../textures/grass_side.png");
-	assert(img_grass_side.get_height() == 16);
-	assert(img_grass_side.get_width() == 16);
 
-	for (int x = 0; x < img_grass_side.get_width(); x++) {
-		for (int y = 0; y < img_grass_side.get_width(); y++) {
-			auto a = img_grass_side.get_pixel(x, y);
+	// load in texture from disk
+	imgdata = stbi_load("../textures/grass_side.png", &width, &height, &components, 0);
 
-			data[((x * 16) + y) * 3 + 0] = a.red / 255.0f;
-			data[((x * 16) + y) * 3 + 1] = a.green / 255.0f;
-			data[((x * 16) + y) * 3 + 2] = a.blue / 255.0f;
-		}
+	assert(height == 16);
+	assert(width == 16);
+	assert(components == 3);
+
+	// convert to floats
+	for (int i = 0; i < height*width*components; i++) {
+		data[i] = imgdata[i] / 255.0f;
 	}
 
 	// load data into texture
@@ -231,8 +233,10 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 		GL_FLOAT,       // Floating point data
 		data);          // Pointer to data
 
-
-	// repeat!
+	// free
+	stbi_image_free(imgdata);
+	
+	// wrap!
 	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_WRAP_S, GL_REPEAT);
