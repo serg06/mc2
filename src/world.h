@@ -54,6 +54,7 @@ class World {
 public:
 	// map of (chunk coordinate) -> chunk
 	unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
+
 	int rendered = 0;
 
 	World() {
@@ -193,8 +194,6 @@ public:
 		delete[] chunks;
 	}
 
-
-
 	// get chunk or nullptr
 	inline Chunk* get_chunk(int x, int z) {
 		auto search = chunk_map.find({ x, z });
@@ -263,19 +262,7 @@ public:
 
 	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
 	inline vmath::ivec3 get_chunk_relative_coordinates(int x, int y, int z) {
-		// adjust x and y
-		x = x % CHUNK_WIDTH;
-		z = z % CHUNK_DEPTH;
-
-		// make sure modulo didn't leave them negative
-		if (x < 0) {
-			x += CHUNK_WIDTH;
-		}
-		if (z < 0) {
-			z += CHUNK_WIDTH;
-		}
-
-		return vmath::ivec3(x, y, z);
+		return vmath::ivec3(((x % CHUNK_WIDTH) + CHUNK_WIDTH) % 16, y, ((z % CHUNK_DEPTH) + CHUNK_DEPTH) % 16);
 	}
 
 	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
