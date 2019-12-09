@@ -3,15 +3,13 @@
 #include "util.h"
 
 #include "GLFW/glfw3.h"
-#include "png++/png.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #include <string>
 #include <tuple>
 #include <vector>
 #include <vmath.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 using namespace vmath;
 
