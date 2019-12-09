@@ -435,10 +435,12 @@ public:
 		assert(layers_idx != working_idx_1 && working_idx_1 != working_idx_2 && working_idx_2 != layers_idx);
 		assert(layers_idx + working_idx_1 + working_idx_2 == 3);
 
-		// TODO: Use mini.get_block() whenever possible, it's way faster then world.get_type()!
 		// TODO: Maybe make this method static by passing in surrounding minis.
 
 		ivec3 minichunk_offset = { mini->coords[0] * 16, mini->coords[1], mini->coords[2] * 16 };
+
+		// reset all to air
+		memset(result, (uint8_t)Block::Air, sizeof(result));
 
 		for (int u = 0; u < 16; u++) {
 			for (int v = 0; v < 16; v++) {
@@ -447,26 +449,27 @@ public:
 				coords[working_idx_1] = u;
 				coords[working_idx_2] = v;
 
-				ivec3 face_coords = coords + face;
-
 				Block block = mini->get_block(coords);
-				Block face_block;
+
+				// dgaf about air blocks
+				if (block == Block::Air) {
+					continue;
+				}
+
+				ivec3 face_coords = coords + face;
 
 				// if in range of mini, get face block via mini's data
 				if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
-					face_block = mini->get_block(face_coords);
+					// if block and face both visible, set it
+					if (mini->get_block(face_coords) == Block::Air) {
+						result[u][v] = block;
+					}
 				}
 				else {
-					ivec3 world_coords = minichunk_offset + coords;
-					face_block = get_type(world_coords + face);
-				}
-
-				// if block invisible or face not visible, set to air
-				if (block == Block::Air || face_block != Block::Air) {
-					result[u][v] = Block::Air;
-				}
-				else {
-					result[u][v] = block;
+					// if block and face both visible, set it
+					if (get_type(minichunk_offset + face_coords) == Block::Air) {
+						result[u][v] = block;
+					}
 				}
 			}
 		}
