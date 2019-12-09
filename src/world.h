@@ -381,79 +381,10 @@ public:
 		rendered++;
 	}
 
-	static inline void gen_working_indices(int &layers_idx, int &working_idx_1, int &working_idx_2) {
+	static constexpr inline void gen_working_indices(int &layers_idx, int &working_idx_1, int &working_idx_2) {
 		// working indices are always gonna be xy, xz, or yz.
 		working_idx_1 = layers_idx == 0 ? 1 : 0;
 		working_idx_2 = layers_idx == 2 ? 1 : 2;
-	}
-
-	inline MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini) {
-		// got our mesh
-		MiniChunkMesh* mesh = new MiniChunkMesh();
-
-		// for all 6 sides
-		for (int i = 0; i < 6; i++) {
-			bool backface = i < 3;
-			int layers_idx = i % 3;
-
-			// working indices are always gonna be xy, xz, or yz.
-			int working_idx_1, working_idx_2;
-			gen_working_indices(layers_idx, working_idx_1, working_idx_2);
-
-			// generate face variable
-			ivec3 face = { 0, 0, 0 };
-			// I don't think it matters whether we start with front or back face, as long as we switch halfway through.
-			// BACKFACE => +X/+Y/+Z SIDE. 
-			face[layers_idx] = backface ? -1 : 1;
-
-			// for each layer
-			for (int i = 0; i < 16; i++) {
-				Block layer[16][16];
-
-				// extract it from the data
-				gen_layer(mini, layers_idx, i, face, layer);
-
-				int num_air = 0;
-				for (int i = 0; i < 16; i++) {
-					for (int j = 0; j < 16; j++) {
-						if (layer[i][j] == Block::Air) {
-							num_air++;
-						}
-					}
-				}
-				int num_not_air = 16 * 16 - num_air;
-
-				// get quads from layer
-				vector<Quad2D> quads2d = gen_quads(layer);
-
-				// if -x, -y, or +z, flip triangles around so that we're not drawing them backwards
-				if (face[0] < 0 || face[1] < 0 || face[2] > 0) {
-					for (int i = 0; i < quads2d.size(); i++) {
-						ivec2 diffs = quads2d[i].corners[1] - quads2d[i].corners[0];
-						quads2d[i].corners[1] = quads2d[i].corners[0] + ivec2(0, diffs[1]);
-						quads2d[i].corners[0] = quads2d[i].corners[0] + ivec2(diffs[0], 0);
-					}
-				}
-
-				// convert quads back to 3D coordinates
-				vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
-
-				// if -x, -y, or -z, move 1 forwards
-				if (face[0] > 0 || face[1] > 0 || face[2] > 0) {
-					for (int i = 0; i < quads.size(); i++) {
-						quads[i].corners[0] += face;
-						quads[i].corners[1] += face;
-					}
-				}
-
-				// append quads
-				for (auto quad : quads) {
-					mesh->quads3d.push_back(quad);
-				}
-			}
-		}
-
-		return mesh;
 	}
 
 	// convert 2D quads to 3D quads
@@ -530,7 +461,6 @@ public:
 					face_block = get_type(world_coords + face);
 				}
 
-
 				// if block invisible or face not visible, set to air
 				if (block == Block::Air || face_block != Block::Air) {
 					result[u][v] = Block::Air;
@@ -543,9 +473,9 @@ public:
 	}
 
 	// given 2D array of block numbers, generate optimal quads
-	static inline vector<Quad2D> gen_quads(Block(&layer)[16][16]) {
+	static inline vector<Quad2D> gen_quads(const Block(&layer)[16][16]) {
 		bool merged[16][16];
-		memset(merged, false, 16 * 16 * sizeof(bool));
+		memset(merged, false, sizeof(merged));
 
 		vector<Quad2D> result;
 
@@ -589,7 +519,7 @@ public:
 	}
 
 	// given a layer and start point, find its best dimensions
-	static inline ivec2 get_max_size(Block layer[16][16], bool merged[16][16], ivec2 start_point, Block block_type) {
+	static inline ivec2 get_max_size(const Block (&layer)[16][16], const bool (&merged)[16][16], ivec2 start_point, Block block_type) {
 		assert(block_type != Block::Air);
 		assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
@@ -982,6 +912,8 @@ public:
 	}
 
 	void add_block(ivec3 xyz, Block block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
+
+	MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini);
 };
 
 #endif /* __WORLD_H__ */

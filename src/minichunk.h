@@ -159,14 +159,9 @@ public:
 		glCreateBuffers(1, &quad_corner2_buf);
 
 		// allocate them just enough space
-		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * quads.size(), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-
-		// fill 'em up!
-		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * quads.size(), blocks);
-		glNamedBufferSubData(quad_corner1_buf, 0, sizeof(ivec3) * quads.size(), corner1s);
-		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * quads.size(), corner2s);
+		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), blocks, NULL); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * quads.size(), corner1s, NULL); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * quads.size(), corner2s, NULL); // allocate 2 matrices of space for transforms, and allow editing
 
 		// delete malloc'd stuff
 		delete[] blocks, corner1s, corner2s;
