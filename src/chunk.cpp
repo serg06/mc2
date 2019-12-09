@@ -24,6 +24,37 @@ double noise22(float vec[2]) {
 	return result;
 }
 
+inline float softmax(float v, float minv, float maxv) {
+	assert(maxv > minv);
+	assert(minv <= v && v <= maxv);
+
+	float dist = maxv - minv;
+	float dist_rad = dist/2.0f;
+	float orig = v;
+
+	// center everything
+	v -= minv;
+	v -= dist_rad;
+
+	// squeeze from -1 to 1
+	v /= dist_rad;
+
+	int strength = 3;
+	for (int i = 0; i < strength; i++) {
+		// apply softmax
+		v *= abs(v);
+	}
+
+	// stretch back out
+	v *= dist_rad;
+
+	// recenter at original point
+	v += dist_rad;
+	v += minv;
+
+	return v;
+}
+
 Chunk* gen_chunk_data(int chunkX, int chunkZ) {
 	char buf[256];
 	FastNoise fn;
@@ -39,9 +70,12 @@ Chunk* gen_chunk_data(int chunkX, int chunkZ) {
 
 			// get height at this location
 			double y = fn.GetSimplex((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
+			y += fn.GetPerlin((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
+			y += fn.GetCellular((FN_DECIMAL)(x + chunkX * 16), (FN_DECIMAL)(z + chunkZ * 16));
+			y /= 3;
 
 			y = (y + 1.0) / 2.0; // normalize to [0.0, 1.0]
-			y *= 12; // variation of around 6
+			y *= 64; // variation of around 32
 			y += 55; // minimum height 60
 
 			// fill everything under that height
