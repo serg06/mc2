@@ -78,10 +78,10 @@ void main(void)
 
 	vec4 chunk_base = vec4(uni.base_coords.x * 16, uni.base_coords.y, uni.base_coords.z * 16, 0);
 	vec4 instance_offset = chunk_base + offset_in_chunk;
+	instance_offset[3] = 1;
 
 	/* ADD IT TO VERTEX */
-
-	gl_Position = uni.proj_matrix * uni.mv_matrix * (position + instance_offset);
+	gl_Position = uni.proj_matrix * uni.mv_matrix * instance_offset;
 
 	// set color
 	int seed = int(instance_offset[0]) ^ int(instance_offset[1]) ^ int(instance_offset[2]);
