@@ -35,9 +35,10 @@ inline bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
 	auto &rc1 = rhs.corners[0];
 	auto &rc2 = rhs.corners[1];
 
-	return lhs.block == rhs.block &&
-		((lc1[0] == rc1[0] && lc1[1] == rc1[1] && lc2[0] == rc2[0] && lc2[1] == rc2[1]) ||
-		(lc2[0] == rc1[0] && lc2[1] == rc1[1] && lc1[0] == rc2[0] && lc1[1] == rc2[1]));
+	return lhs.block == rhs.block && (
+		(lc1 == rc1 && lc2 == rc2) ||
+		(lc2 == rc1 && lc1 == rc2)
+		);
 }
 
 namespace WorldTests {

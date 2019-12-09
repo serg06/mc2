@@ -131,7 +131,7 @@ void App::render(float time) {
 	mat4 proj_matrix = perspective(
 		(float)windowInfo.vfov, // virtual fov
 		(float)windowInfo.width / (float)windowInfo.height, // aspect ratio
-		(PLAYER_HEIGHT-CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // see blocks no matter how close they are
+		(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // see blocks no matter how close they are
 		64 * CHUNK_WIDTH // only support 64 chunks for now
 	);
 
@@ -513,7 +513,7 @@ void App::onMouseButton(int button, int action) {
 			// check if we're in the way
 			vector<ivec4> intersecting_blocks = get_intersecting_blocks(char_position);
 			auto result = find_if(begin(intersecting_blocks), end(intersecting_blocks), [desired_position](const auto &ipos) {
-				return ipos[0] == desired_position[0] && ipos[1] == desired_position[1] && ipos[2] == desired_position[2];
+				return desired_position == ivec3(ipos[0], ipos[1], ipos[2]);
 			});
 
 			// if we're not in the way, place it
