@@ -62,13 +62,13 @@ struct vecN_hash
 	template <typename T, const int len>
 	std::size_t operator() (const vmath::vecN<T, len> vec) const
 	{
-		int result = 0;
+		std::size_t seed = 0;
 
 		for (int i = 0; i < len; i++) {
-			result ^= std::hash<int>()(vec[i]);
+			hash_combine(seed, vec[i]);
 		}
 
-		return result;
+		return seed;
 	}
 };
 
