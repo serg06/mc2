@@ -50,9 +50,9 @@ void main(void)
 
 	// if working along x axis, rotate texture 90 degrees to correct rotation
 	if (diffs[0] == 0) {
-		working_idx_1 = working_idx_1 ^ working_idx_2;
-		working_idx_2 = working_idx_2 ^ working_idx_1;
-		working_idx_1 = working_idx_1 ^ working_idx_2;
+		working_idx_1 ^= working_idx_2;
+		working_idx_2 ^= working_idx_1;
+		working_idx_1 ^= working_idx_2;
 	}
 
 	horizontal = zero_idx == 1 ? 1 : 0;

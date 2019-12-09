@@ -212,8 +212,9 @@ public:
 
 		// if in cache, return
 		for (int i = 0; i < 5; i++) {
-			if (chunk_cache_ivec2[i] == coords) {
-				return chunk_cache[i];
+			// start at chunk_cache_clock_hand and search backwards
+			if (chunk_cache_ivec2[(chunk_cache_clock_hand - i + 5) % 5] == coords) {
+				return chunk_cache[(chunk_cache_clock_hand - i + 5) % 5];
 			}
 		}
 
@@ -221,9 +222,9 @@ public:
 		Chunk* result = get_chunk_(x, z);
 
 		// save in cache
+		chunk_cache_clock_hand = (chunk_cache_clock_hand + 1) % 5;
 		chunk_cache[chunk_cache_clock_hand] = result;
 		chunk_cache_ivec2[chunk_cache_clock_hand] = coords;
-		chunk_cache_clock_hand = (chunk_cache_clock_hand + 1) % 5;
 
 		return result;
 	}
