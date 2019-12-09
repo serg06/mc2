@@ -52,7 +52,7 @@ namespace WorldTests {
 class World {
 public:
 	// map of (chunk coordinate) -> chunk
-	unordered_map<pair<int, int>, Chunk*, pair_hash> chunk_map;
+	unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
 	int rendered = 0;
 
 	World() {
@@ -104,7 +104,7 @@ public:
 
 		// fetch
 		for (auto coords : chunk_coords) {
-			result.insert(chunk_map[{coords[0], coords[1]}]);
+			result.insert(chunk_map[coords]);
 		}
 
 		return result;
@@ -116,7 +116,7 @@ public:
 		std::unordered_set<ivec2, vecN_hash> to_generate;
 
 		for (auto coords : chunk_coords) {
-			auto search = chunk_map.find({ coords[0], coords[1] });
+			auto search = chunk_map.find(coords);
 
 			// if doesn't exist, need to generate it
 			if (search == chunk_map.end()) {
