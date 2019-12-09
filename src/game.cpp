@@ -108,7 +108,9 @@ void App::render(float time) {
 
 	// update block that player is staring at
 	auto direction = staring_direction();
-	staring_at = world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, [this](ivec3 coords, ivec3 face) { return this->world->get_type(coords) != Block::Air; });
+	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](ivec3 coords, ivec3 face) {
+		return this->world->get_type(coords) != Block::Air;
+	});
 
 	/* TRANSFORMATION MATRICES */
 
@@ -129,8 +131,8 @@ void App::render(float time) {
 	mat4 proj_matrix = perspective(
 		(float)windowInfo.vfov, // virtual fov
 		(float)windowInfo.width / (float)windowInfo.height, // aspect ratio
-		PLAYER_RADIUS,  // blocks are always at least PLAYER_RADIUS away from camera
-		64 * CHUNK_WIDTH // only support 32 chunks for now
+		(PLAYER_HEIGHT-CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // see blocks no matter how close they are
+		64 * CHUNK_WIDTH // only support 64 chunks for now
 	);
 
 	/* BACKGROUND / SKYBOX */
@@ -503,7 +505,22 @@ void App::onMouseButton(int button, int action) {
 
 	// right click
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+		// if staring at valid block
+		if (staring_at[1] >= 0) {
+			// position we wanna place block at
+			ivec3 desired_position = staring_at + staring_at_face;
 
+			// check if we're in the way
+			vector<ivec4> intersecting_blocks = get_intersecting_blocks(char_position);
+			auto result = find_if(begin(intersecting_blocks), end(intersecting_blocks), [desired_position](const auto &ipos) {
+				return ipos[0] == desired_position[0] && ipos[1] == desired_position[1] && ipos[2] == desired_position[2];
+			});
+
+			// if we're not in the way, place it
+			if (result == end(intersecting_blocks)) {
+				world->add_block(desired_position, Block::Grass);
+			}
+		}
 	}
 }
 

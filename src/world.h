@@ -802,7 +802,8 @@ public:
 	*
 	* If the callback returns a true value, the traversal will be stopped.
 	*/
-	inline ivec3 raycast(vec4 origin, vec4 direction, int radius, const std::function <bool(ivec3 coords, ivec3 face)>& callback) {
+	// stop_check = function that decides if we stop the raycast or not
+	inline void raycast(vec4 origin, vec4 direction, int radius, ivec3 *result_coords, ivec3 *result_face, const std::function <bool(ivec3 coords, ivec3 face)>& stop_check) {
 		// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
 		// by John Amanatides and Andrew Woo, 1987
 		// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
@@ -870,11 +871,12 @@ public:
 
 			//}
 
-			// callback
-			if (callback({ x, y, z }, face)) {
-				return { x, y, z };
+			// success, set result values and return
+			if (stop_check({ x, y, z }, face)) {
+				*result_coords = { x, y, z };
+				*result_face = face;
+				return;
 			}
-
 
 			// tMaxX stores the t-value at which we cross a cube boundary along the
 			// X axis, and similarly for Y and Z. Therefore, choosing the least tMax
@@ -922,9 +924,10 @@ public:
 				}
 			}
 		}
-
-		// return invalid coords b/c didn't find a block
-		return { 0, -1, 0 };
+		// nothing found, set invalid results and return
+		*result_coords = { 0, -1, 0 }; // invalid
+		*result_face = { 0, 0, 0 }; // invalid
+		return;
 	}
 
 	// when a mini updates, update its and its neighbors' meshes, if required.
@@ -967,6 +970,18 @@ public:
 	}
 
 	void destroy_block(ivec3 xyz) { return destroy_block(xyz[0], xyz[1], xyz[2]); };
+
+	void add_block(int x, int y, int z, Block block) {
+		// update data
+		MiniChunk* mini = get_mini_containing_block(x, y, z);
+		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
+		mini->set_block(mini_coords, block);
+
+		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since the block always has at least 3 sides inside its mini.)
+		on_mini_update(mini, { x, y, z });
+	}
+
+	void add_block(ivec3 xyz, Block block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 };
 
 #endif /* __WORLD_H__ */
