@@ -8,8 +8,8 @@
 // TODO: Stone = 1, grass = 2
 enum class Block : uint8_t {
 	Air = 0,
-	Grass = 1,
-	Stone = 2,
+	Stone = 1,
+	Grass = 2,
 	Water = 9,
 	OakLog = 17,
 	OakLeaves = 18,

@@ -96,8 +96,8 @@ void main(void)
 
 	vec4 block_type_to_color[255];
 	block_type_to_color[0] = vec4(0.8 + rand(seed)*0.2, 0.0, 0.0, 1.0); // Air
-	block_type_to_color[1] = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // Grass
-	block_type_to_color[2] = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Stone
+	block_type_to_color[1] = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Stone
+	block_type_to_color[2] = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // Grass
 	block_type_to_color[9] = vec4(32/255.0, 58/255.0, 230/255.0, 0.7) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Water
 	block_type_to_color[17] = vec4(87/255.0, 60/255.0, 10/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Oak Log
 	block_type_to_color[18] = vec4(96/255.0, 148/255.0, 98/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Oak Leaves
