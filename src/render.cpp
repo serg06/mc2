@@ -173,14 +173,8 @@ namespace {
 	}
 }
 
-// create texture object, fill it with block texture, store it in texture object
-void load_block_texture(GLuint* texture, char* tex_name) {
-	// create texture
-	glCreateTextures(GL_TEXTURE_2D, 1, texture);
-
-	// allocate space (32-bit float RGBA 16x16)
-	glTextureStorage2D(*texture, 1, GL_RGBA32F, 16, 16);
-
+// load texture data for a block
+void load_block_texture_data(char* tex_name, float (&data)[16 * 16 * 4]) {
 	// resolve texture filename
 	char fname[256];
 	sprintf(fname, "textures/blocks/%s.png", tex_name);
@@ -195,7 +189,6 @@ void load_block_texture(GLuint* texture, char* tex_name) {
 	}
 
 	// convert data to floats
-	float data[16 * 16 * 4];
 	for (int i = 0; i < height*width*components; i++) {
 		data[i] = imgdata[i] / 255.0f;
 	}
@@ -229,7 +222,18 @@ void load_block_texture(GLuint* texture, char* tex_name) {
 	}
 
 	/* SPECIAL CASES END */
+}
 
+// create texture object, fill it with block texture, store it in texture object
+void load_block_texture(GLuint* texture, char* tex_name) {
+	// create texture
+	glCreateTextures(GL_TEXTURE_2D, 1, texture);
+
+	// allocate space (32-bit float RGBA 16x16)
+	glTextureStorage2D(*texture, 1, GL_RGBA32F, 16, 16);
+
+	float data[16 * 16 * 4];
+	load_block_texture_data(tex_name, data);
 
 	// load data into texture
 	glTextureSubImage2D(*texture,
@@ -255,6 +259,8 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 	float data[16 * 16 * 4];
 
 	/* GRASS TOP & SIDE TEXTURES */
+
+
 
 	// create textures
 	load_block_texture(&glInfo->grass_top, "grass_top");
