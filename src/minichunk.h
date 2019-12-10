@@ -263,8 +263,14 @@ public:
 		}
 
 		// delete malloc'd stuff
-		delete[] blocks, corner1s, corner2s, faces;
-		delete[] water_blocks, water_corner1s, water_corner2s, water_faces;
+		auto to_delete = {
+			(void*)blocks, (void*)corner1s, (void*)corner2s, (void*)faces,
+			(void*)water_blocks, (void*)water_corner1s,(void*)water_corner2s,(void*)water_faces
+		};
+
+		for (auto ptr : to_delete) {
+			delete[] ptr;
+		}
 	}
 
 };
