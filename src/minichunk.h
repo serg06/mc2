@@ -120,14 +120,14 @@ public:
 		glBindVertexArray(0);
 	}
 
-	// prepare buf for drawing -- only need to call it when new, or when stuff (or nearby stuff) changes
-	void prepare_buf() {
-		// TODO
-	}
-
 	// get MiniChunk's base coords in real coordinates
 	inline vmath::ivec3 real_coords() {
 		return { coords[0] * 16, coords[1], coords[2] * 16 };
+	}
+
+	// get MiniChunk's center coords in real coordinates
+	inline vmath::vec3 center_coords_v3() {
+		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f };
 	}
 
 	// get neighboring mini coords

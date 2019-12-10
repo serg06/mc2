@@ -142,65 +142,8 @@ inline void hash_combine(std::size_t& seed, const T& v)
 	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-// check if point is in frustum
-inline bool in_frustum(const vec3 &point, const vec3 &camera_pos, vec3 up, vec3 right, vec3 straight, const int nearplane, const int farplane, float hfov, float vfov) {
-	float hfov_rads = hfov * M_PI / 180.0f;
-	float vfov_rads = vfov * M_PI / 180.0f;
-
-	// distance check
-	if (length(point - camera_pos) > farplane) {
-		return false;
-	}
-
-	up = normalize(up);
-	right = normalize(right);
-	straight = normalize(straight);
-
-	/* HORIZONTAL PLANE */
-
-	// vector from origin to point
-	vec3 h_v = point - camera_pos;
-
-	// distance from point to plane along normal
-	float h_dist = dot(h_v, up);
-
-	// project onto plane
-	vec3 h_projected_point = point - h_dist * up;
-
-	// get angle
-	float h_angle = angle_normalize(straight, h_projected_point - camera_pos);
-
-	// verify
-	if (h_angle > hfov_rads) {
-		return false;
-	}
-
-	/* VERTICAL PLANE */
-
-	// vector from origin to point
-	vec3 v_v = point - camera_pos;
-
-	// distance from point to plane along normal
-	float v_dist = dot(v_v, right);
-
-	// project onto plane
-	vec3 v_projected_point = point - v_dist * right;
-
-	// get angle
-	float v_angle = angle_normalize(straight, v_projected_point - camera_pos);
-
-	// verify
-	if (v_angle > vfov_rads) {
-		return false;
-	}
-
-	// Passed all checks!
-
-	return true;
-}
-
 // check if sphere is inside frustrum planes
-inline bool sphere_in_frustrum(vec3 &pos, float &radius, const vmath::vec4 (&frustum_planes)[6]) {
+static inline bool sphere_in_frustrum(vec3 &pos, float &radius, const vmath::vec4 (&frustum_planes)[6]) {
 	bool res = true;
 	for (int i = 2; i < 4; i++) {
 		if (frustum_planes[i][0] * pos[0] + frustum_planes[i][1] * pos[1] + frustum_planes[i][2] * pos[2] + frustum_planes[i][3] <= -radius) {
@@ -212,29 +155,17 @@ inline bool sphere_in_frustrum(vec3 &pos, float &radius, const vmath::vec4 (&fru
 }
 
 // extract planes from projection matrix
-inline void extract_planes_from_projmat(const vmath::mat4 &proj_mat, const vmath::mat4 &mv_mat, vmath::vec4 (&planes)[6])
+static inline void extract_planes_from_projmat(const vmath::mat4 &proj_mat, const vmath::mat4 &mv_mat, vmath::vec4 (&planes)[6])
 {
-	const vmath::mat4 mat = proj_mat * mv_mat;
+	vmath::mat4 mat = proj_mat * mv_mat;
+	mat = mat.transpose();
 
-	for (int i = 0; i < 4; i++) {
-		// left
-		planes[0][i] = mat[i][3] + mat[i][0];
-
-		// right
-		planes[1][i] = mat[i][3] - mat[i][0];
-
-		// top
-		planes[2][i] = mat[i][3] + mat[i][1];
-
-		// bottom
-		planes[3][i] = mat[i][3] - mat[i][1];
-
-		// near
-		planes[4][i] = mat[i][3] + mat[i][2];
-
-		// far
-		planes[5][i] = mat[i][3] - mat[i][2];
-	}
+	planes[0] = mat[3] + mat[0];
+	planes[1] = mat[3] - mat[0];
+	planes[2] = mat[3] + mat[1];
+	planes[3] = mat[3] - mat[1];
+	planes[4] = mat[3] + mat[2];
+	planes[5] = mat[3] - mat[2];
 }
 
 

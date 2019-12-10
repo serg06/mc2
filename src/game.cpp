@@ -155,9 +155,9 @@ void App::render(float time) {
 	sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
 	OutputDebugString(buf);
 
-	// PRINT POSITION/ORIENTATION
-	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
-	OutputDebugString(buf);
+	//// PRINT POSITION/ORIENTATION
+	//sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
+	//OutputDebugString(buf);
 
 	// extract projection matrix planes
 	vec4 planes[6];

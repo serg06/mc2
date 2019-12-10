@@ -417,45 +417,40 @@ public:
 		//	chunk->render(glInfo);
 		//}
 
-		// count how many minis are in and how many are out
+		// collect all the minis we're gonna draw
+		vector<MiniChunk> minis_to_draw;
+
+		// count visible minis
+		int num_visible = 0;
 
 		for (auto &[coords_p, chunk] : chunk_map) {
 			for (auto &mini : chunk->minis) {
-				// check if mini in frustum
-				if (mini_in_frustum(&mini, planes)) {
-					mini.render_meshes(glInfo);
+				if (!mini.invisible) {
+					num_visible++;
+					if (mini_in_frustum(&mini, planes)) {
+						minis_to_draw.push_back(mini);
+					}
 				}
 			}
 		}
 
-		for (auto &[coords_p, chunk] : chunk_map) {
-			for (auto &mini : chunk->minis) {
-				// check if mini in frustum
-				if (mini_in_frustum(&mini, planes)) {
-					mini.render_water_meshes(glInfo);
-				}
-			}
+		sprintf(buf, "Drawing %d/%d\tvisible minis.\n", minis_to_draw.size(), num_visible);
+		OutputDebugString(buf);
+
+		for (auto &mini : minis_to_draw) {
+			mini.render_meshes(glInfo);
+		}
+		for (auto mini : minis_to_draw) {
+			mini.render_water_meshes(glInfo);
 		}
 
 		rendered++;
 	}
 
+	// check if a mini is visible in a frustum
 	static inline bool mini_in_frustum(MiniChunk* mini, const vmath::vec4 (&planes)[6]) {
-		ivec3 &coords = mini->coords;
-
-		// real coords
-		vec3 real_coords = { coords[0] * 16.0f, (float)coords[1], coords[2] * 16.0f };
-
-		// center position
-		vec3 center_coords = real_coords + vec3(8.0f, 8.0f, 8.0f);
-
-		// radius
-		// rounded-up from sqrt(8^2 + 8^2 + 8^2);
-		float radius = 14.0f;
-		radius = 20;
-		
-		// check if we intersect with planes
-		return SphereInFrustum(center_coords, radius, planes);
+		float radius = 140.0f;
+		return sphere_in_frustrum(mini->center_coords_v3(), radius, planes);
 	}
 
 	static constexpr inline void gen_working_indices(int &layers_idx, int &working_idx_1, int &working_idx_2) {
