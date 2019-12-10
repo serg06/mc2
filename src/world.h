@@ -520,7 +520,7 @@ public:
 				}
 
 				// if block's face is visible, set it
-				if (face_block == Block::Air || (face_block == Block::Water && block != Block::Water)) {
+				if (face_block.is_transparent() || (block != Block::Water && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent())) {
 					result[u][v] = block;
 				}
 			}

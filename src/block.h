@@ -50,9 +50,20 @@ public:
 	static const std::unordered_map<Value, std::string> top_texture_names;
 	static const std::unordered_map<Value, std::string> side_texture_names;
 	static const std::unordered_map<Value, std::string> bottom_texture_names;
+	static const bool translucent_blocks[MAX_BLOCK_TYPES];
+
+	// check if are transparent
+	constexpr inline bool is_transparent() {
+		return value == Block::Air;
+	}
+
+	// check if are translucent
+	constexpr inline bool is_translucent() {
+		return translucent_blocks[value];
+	}
 
 	// get from map
-	std::string top_texture() {
+	inline std::string top_texture() {
 		auto search = top_texture_names.find(value);
 
 		// if element doesn't exist, null
@@ -64,7 +75,7 @@ public:
 	}
 
 	// get from map
-	std::string side_texture() {
+	inline std::string side_texture() {
 		auto search = side_texture_names.find(value);
 
 		// if element doesn't exist, null
@@ -76,7 +87,7 @@ public:
 	}
 
 	// get from map
-	std::string bottom_texture() {
+	inline std::string bottom_texture() {
 		auto search = bottom_texture_names.find(value);
 
 		// if element doesn't exist, null
