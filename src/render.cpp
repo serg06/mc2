@@ -173,6 +173,82 @@ namespace {
 	}
 }
 
+// create texture object, fill it with block texture, store it in texture object
+void load_block_texture(GLuint* texture, char* tex_name) {
+	// create texture
+	glCreateTextures(GL_TEXTURE_2D, 1, texture);
+
+	// allocate space (32-bit float RGBA 16x16)
+	glTextureStorage2D(*texture, 1, GL_RGBA32F, 16, 16);
+
+	// resolve texture filename
+	char fname[256];
+	sprintf(fname, "textures/blocks/%s.png", tex_name);
+
+	// load in texture from disk
+	int width, height, components;
+	unsigned char *imgdata = stbi_load(fname, &width, &height, &components, 0);
+
+	// make sure it's correct dimensions
+	if (height != 16 || width != 16 || components != 4) {
+		throw "Invalid dimensions!";
+	}
+
+	// convert data to floats
+	float data[16 * 16 * 4];
+	for (int i = 0; i < height*width*components; i++) {
+		data[i] = imgdata[i] / 255.0f;
+	}
+
+	// free
+	stbi_image_free(imgdata);
+
+
+	/* SPECIAL CASES START */
+
+	// grass_top.png
+
+	// gray by default, let's color it green.
+	if (strcmp(tex_name, "grass_top") == 0) {
+		for (int i = 0; i < height*width*components; i++) {
+			// RED
+			if ((i % 4) == 0) {
+				data[i] *= 115 / 255.0f;
+			}
+
+			// GREEN
+			if ((i % 4) == 1) {
+				data[i] *= 0.8f;
+			}
+
+			// BLUE
+			if ((i % 4) == 2) {
+				data[i] *= 73 / 255.0f;
+			}
+		}
+	}
+
+	/* SPECIAL CASES END */
+
+
+	// load data into texture
+	glTextureSubImage2D(*texture,
+		0,              // Level 0
+		0, 0,           // Offset 0, 0
+		16, 16,         // 16 x 16 texels, replace entire image
+		GL_RGBA,        // Four channel data
+		GL_FLOAT,       // Floating point data
+		data);          // Pointer to data
+
+	// wrap!
+	glTextureParameteri(*texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTextureParameteri(*texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	// filter
+	glTextureParameteri(*texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(*texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
 void setup_block_textures(OpenGLInfo* glInfo) {
 	int width, height, components;
 	unsigned char *imgdata;
@@ -181,95 +257,12 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 	/* GRASS TOP & SIDE TEXTURES */
 
 	// create textures
-	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->grass_top);
-	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->grass_side);
-
-	// allocate
-	// 32-bit float RGB data, 16x16 resolution
-	glTextureStorage2D(glInfo->grass_top, 1, GL_RGB32F, 16, 16);
-	glTextureStorage2D(glInfo->grass_side, 1, GL_RGB32F, 16, 16);
-
-	// load in texture from disk
-	imgdata = stbi_load("textures/blocks/grass_top.png", &width, &height, &components, 0);
-	
-	assert(height == 16);
-	assert(width == 16);
-	assert(components == 4);
-
-	// convert to floats
-	for (int i = 0; i < height*width*components; i++) {
-		data[i] = imgdata[i] / 255.0f;
-
-		// grass_top is gray by default, let's color it green
-
-		// RED
-		if ((i % 4) == 0) {
-			data[i] *= 115 / 255.0f;
-		}
-
-		// GREEN
-		if ((i % 4) == 1) {
-			data[i] *= 0.8f;
-		}
-
-		// BLUE
-		if ((i % 4) == 2) {
-			data[i] *= 73 / 255.0f;
-		}
-	}
-	
-	// free
-	stbi_image_free(imgdata);
-
-	// load data into texture
-	glTextureSubImage2D(glInfo->grass_top,
-		0,              // Level 0
-		0, 0,           // Offset 0, 0
-		16, 16,         // 16 x 16 texels, replace entire image
-		GL_RGBA,        // Three channel data
-		GL_FLOAT,       // Floating point data
-		data);          // Pointer to data
-
-
-	// load in texture from disk
-	imgdata = stbi_load("textures/blocks/grass_side.png", &width, &height, &components, 0);
-
-	assert(height == 16);
-	assert(width == 16);
-	assert(components == 4);
-
-	// convert to floats
-	for (int i = 0; i < height*width*components; i++) {
-		data[i] = imgdata[i] / 255.0f;
-	}
-
-	// load data into texture
-	glTextureSubImage2D(glInfo->grass_side,
-		0,              // Level 0
-		0, 0,           // Offset 0, 0
-		16, 16,         // 16 x 16 texels, replace entire image
-		GL_RGBA,        // Three channel data
-		GL_FLOAT,       // Floating point data
-		data);          // Pointer to data
-
-	// free
-	stbi_image_free(imgdata);
-	
-	// wrap!
-	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	load_block_texture(&glInfo->grass_top, "grass_top");
+	load_block_texture(&glInfo->grass_side, "grass_side");
 
 	// bind
 	glBindTextureUnit(0, glInfo->grass_top);
 	glBindTextureUnit(1, glInfo->grass_side);
-
-	// filter
-	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(glInfo->grass_top, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(glInfo->grass_side, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 void setup_opengl(OpenGLInfo* glInfo) {
