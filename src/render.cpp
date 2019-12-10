@@ -7,11 +7,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <experimental/filesystem>
 #include <string>
+#include <sys/stat.h>
 #include <tuple>
 #include <vector>
 #include <vmath.h>
 
+namespace fs = std::experimental::filesystem;
 using namespace vmath;
 
 // setup glfw window
@@ -186,7 +189,14 @@ namespace {
 void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
 	// resolve texture filename
 	char fname[256];
-	sprintf(fname, "textures/blocks/%s.png", tex_name);
+	sprintf(fname, "./textures/blocks/%s.png", tex_name);
+
+	if (!fs::exists(fname)) {
+		char buf[256];
+		sprintf(buf, "Error: File '%s' doesn't exist!\n", fname);
+		WindowsException(buf);
+		exit(-1);
+	}
 
 	// load in texture from disk
 	int width, height, components;

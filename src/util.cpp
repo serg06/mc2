@@ -57,11 +57,14 @@ layout (location = 1) in uint block_type; // fed in via instance array!
 layout (location = 2) in uint q_block_type;
 layout (location = 3) in ivec3 q_corner1;
 layout (location = 4) in ivec3 q_corner2;
+layout (location = 5) in ivec3 q_face;
 
 out vec4 vs_color;
 out flat uint vs_block_type;
 out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
 out flat uint horizontal;
+out flat ivec3 vs_face;
+
 
 layout (std140, binding = 0) uniform UNI_IN
 {
@@ -141,16 +144,17 @@ void main(void)
 
 	vec4 block_type_to_color[255];
 	block_type_to_color[0] = vec4(0.8 + rand(seed)*0.2, 0.0, 0.0, 1.0); // Air
-	block_type_to_color[1] = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // Grass
-	block_type_to_color[2] = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // Stone
-	block_type_to_color[9] = vec4(32/255.0, 58/255.0, 230/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // Water
-	block_type_to_color[17] = vec4(87/255.0, 60/255.0, 10/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // Oak Log
-	block_type_to_color[18] = vec4(96/255.0, 148/255.0, 98/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // Oak Leaves
+	block_type_to_color[1] = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Stone
+	block_type_to_color[2] = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // Grass
+	block_type_to_color[9] = vec4(32/255.0, 58/255.0, 230/255.0, 0.7) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Water
+	block_type_to_color[17] = vec4(87/255.0, 60/255.0, 10/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Oak Log
+	block_type_to_color[18] = vec4(96/255.0, 148/255.0, 98/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Oak Leaves
 	block_type_to_color[100] = vec4(0.0, 0.0, 0.0, 1.0);
 
 	vs_color = block_type_to_color[q_block_type];
 
     vs_block_type = q_block_type;
+	vs_face = q_face;
 }
 
 // shader starts executing here
@@ -207,6 +211,7 @@ in vec4 vs_color;
 in flat uint vs_block_type;
 in vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
 in flat uint horizontal; // 0 = quad is vertical, 1 = quad is horizontal (TODO: Remove this once we start inputting quad face to vertex shader.)
+in flat ivec3 vs_face;
 
 out vec4 color;
 
@@ -214,20 +219,24 @@ out vec4 color;
 layout (binding = 0) uniform sampler2D grass_top;
 layout (binding = 1) uniform sampler2D grass_side;
 
+// texture arrays
+layout (binding = 2) uniform sampler2DArray top_textures;
+layout (binding = 3) uniform sampler2DArray side_textures;
+layout (binding = 4) uniform sampler2DArray bottom_textures;
+
 void main(void)
 {
-	// TODO: Remove branching.	
-
-	// GRASS
-	if (vs_block_type == 1) {
-		if (horizontal != 0) {
-			color = texture(grass_top, vs_tex_coords);
-		} else {
-			color = texture(grass_side, vs_tex_coords);
-		}
-	// DEFAULT
+	// TODO: Remove branching.
+	if (vs_face[1] > 0) {
+		color = texture(top_textures,  vec3(vs_tex_coords, vs_block_type));
+	} else if (vs_face[1] < 0) {
+		color = texture(bottom_textures,  vec3(vs_tex_coords, vs_block_type));
 	} else {
-		color = vs_color;
+		color = texture(side_textures,  vec3(vs_tex_coords, vs_block_type));
+	}
+
+	if (color.a < 0.5) {
+		discard;
 	}
 }
 )";
@@ -382,7 +391,7 @@ GLuint link_program(GLuint program) {
 }
 
 GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnames) {
-	//return compile_shaders_hardcoded(shader_fnames);
+	return compile_shaders_hardcoded(shader_fnames);
 
 	GLuint program;
 	std::vector <GLuint> shaders; // store compiled shaders
