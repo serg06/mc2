@@ -61,6 +61,8 @@ public:
 	vmath::ivec2 chunk_cache_ivec2[5] = { ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX) };
 	int chunk_cache_clock_hand = 0; // clock cache
 
+	OpenGLInfo *glInfo;
+
 	GLuint cs_coords_in_buf = 0, cs_coords_out_buf = 0;
 
 	World() {
