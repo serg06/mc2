@@ -130,6 +130,11 @@ public:
 		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f };
 	}
 
+	// get MiniChunk's center coords in real coordinates
+	inline vmath::vec4 center_coords_v4() {
+		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f, 0.0f };
+	}
+
 	// get neighboring mini coords
 	inline std::vector<vmath::ivec3> neighbors() {
 		// n/e/s/w

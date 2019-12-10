@@ -85,6 +85,7 @@ void App::startup() {
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 	world = new World();
+	world->glInfo = &glInfo;
 
 	// prepare opengl
 	setup_opengl(&glInfo);
@@ -168,6 +169,7 @@ void App::render(float time) {
 
 	// highlight block we're staring at, if it's valid
 	if (staring_at[1] >= 0) {
+		glUseProgram(glInfo.rendering_program);
 		world->highlight_block(&glInfo, staring_at);
 	}
 
@@ -498,8 +500,8 @@ void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity,
 	} bufp += sprintf(bufp, "\n");
 	bufp += sprintf(bufp, "\n");
 
-	OutputDebugString(buf);
-	exit(-1);
+	//OutputDebugString(buf);
+	//exit(-1);
 }
 
 void App::onMouseButton(int button, int action) {

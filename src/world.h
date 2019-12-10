@@ -61,6 +61,8 @@ public:
 	vmath::ivec2 chunk_cache_ivec2[5] = { ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX) };
 	int chunk_cache_clock_hand = 0; // clock cache
 
+	GLuint cs_coords_in_buf = 0, cs_coords_out_buf = 0;
+
 	World() {
 
 	}
@@ -417,32 +419,119 @@ public:
 		//	chunk->render(glInfo);
 		//}
 
-		// collect all the minis we're gonna draw
-		vector<MiniChunk> minis_to_draw;
+		//// collect all the minis we're gonna draw
+		//vector<MiniChunk> minis_to_draw;
 
-		// count visible minis
-		int num_visible = 0;
+		//// count visible minis
+		//int num_visible = 0;
+
+		//for (auto &[coords_p, chunk] : chunk_map) {
+		//	for (auto &mini : chunk->minis) {
+		//		if (!mini.invisible) {
+		//			num_visible++;
+		//			if (mini_in_frustum(&mini, planes)) {
+		//				minis_to_draw.push_back(mini);
+		//			}
+		//		}
+		//	}
+		//}
+
+		GLfloat* test = (GLfloat*)planes;
+		if (test[4] != planes[1][0]) {
+			throw "err";
+		}
+
+		glUseProgram(glInfo->frustum_program);
+
+
+		// set uniform variables -- planes and radius
+		glUniform4fv(glInfo->cs_planes_uni_idx, 6, (GLfloat*)planes);
+		glUniform1f(glInfo->cs_radius_uni_idx, 28.0f);
+
+		// grab all non-invisible minis
+		vector<MiniChunk> minis;
 
 		for (auto &[coords_p, chunk] : chunk_map) {
 			for (auto &mini : chunk->minis) {
 				if (!mini.invisible) {
-					num_visible++;
-					if (mini_in_frustum(&mini, planes)) {
-						minis_to_draw.push_back(mini);
-					}
+					minis.push_back(mini);
 				}
 			}
 		}
 
+		// figure out sizes
+		GLuint bufSize = minis.size();
+		GLuint bufSizeBytes = minis.size() * sizeof(vec4);
+
+		// get center coords of all non-invisible minis
+		vmath::vec4 *coords = new vmath::vec4[bufSize];
+		for (int i = 0; i < bufSize; i++) {
+			coords[i] = minis[i].center_coords_v4();
+		}
+
+		// create us 2 bufferses and fill 'em up
+
+		// input buffer
+		glCreateBuffers(1, &cs_coords_in_buf);
+		glNamedBufferStorage(cs_coords_in_buf, bufSizeBytes, &coords[0], GL_DYNAMIC_STORAGE_BIT);
+		//glNamedBufferStorage(cs_coords_in_buf, bufSizeBytes, &(coords[0]), GL_DYNAMIC_STORAGE_BIT);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->cs_coords_in_bidx, cs_coords_in_buf);
+
+		// output buffer
+		glCreateBuffers(1, &cs_coords_out_buf);
+		glNamedBufferStorage(cs_coords_out_buf, bufSizeBytes, NULL, GL_DYNAMIC_STORAGE_BIT);
+		//glNamedBufferStorage(cs_coords_out_buf, bufSizeBytes, NULL, GL_DYNAMIC_STORAGE_BIT);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->cs_coords_out_bidx, cs_coords_out_buf);
+
+		// run compute shader
+		glDispatchCompute((GLint)ceilf(bufSize / 64.0f), 1, 1);
+
+		// MEMORY BARRIER BEFORE ACCESSING DATA!
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		// read data result
+		vmath::vec4 *results = new vmath::vec4[bufSize];
+		glGetNamedBufferSubData(cs_coords_out_buf, 0, bufSizeBytes, results);
+
+		// make sure at least ONE result is 1!
+		int num_positives = 0;
+		for (int i = 0; i < bufSize; i++) {
+			if (length(results[i]) > 0) {
+				num_positives++;
+			}
+		}
+
+		glDeleteBuffers(1, &cs_coords_in_buf);
+		glDeleteBuffers(1, &cs_coords_out_buf);
+
 		//sprintf(buf, "Drawing %d/%d\tvisible minis.\n", minis_to_draw.size(), num_visible);
 		//OutputDebugString(buf);
 
-		for (auto &mini : minis_to_draw) {
-			mini.render_meshes(glInfo);
+		// render
+
+		//for (auto &mini : minis_to_draw) {
+		//	mini.render_meshes(glInfo);
+		//}
+		//for (auto mini : minis_to_draw) {
+		//	mini.render_water_meshes(glInfo);
+		//}
+
+		glUseProgram(glInfo->rendering_program);
+
+		// render minis we've decided to render!
+		for (int i = 0; i < bufSize; i++) {
+			if (results[i][0] == 1.0f) {
+				minis[i].render_meshes(glInfo);
+			}
 		}
-		for (auto mini : minis_to_draw) {
-			mini.render_water_meshes(glInfo);
+		for (int i = 0; i < bufSize; i++) {
+			if (results[i][0] == 1.0f) {
+				minis[i].render_water_meshes(glInfo);
+			}
 		}
+
+		delete[] coords;
+		delete[] results;
 
 		rendered++;
 	}
@@ -797,6 +886,7 @@ public:
 		glDeleteBuffers(1, &quad_block_type_buf);
 		glDeleteBuffers(1, &quad_corner1_buf);
 		glDeleteBuffers(1, &quad_corner2_buf);
+		glDeleteBuffers(1, &quad_face_buf);
 	}
 
 	inline void highlight_block(OpenGLInfo* glInfo, ivec3 xyz) { return highlight_block(glInfo, xyz[0], xyz[1], xyz[2]); }

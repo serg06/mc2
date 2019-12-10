@@ -26,6 +26,9 @@ struct OpenGLInfo {
 	// program
 	GLuint rendering_program;
 
+	// frustum culling program
+	GLuint frustum_program;
+
 	// VAOs
 	GLuint vao_cube, vao_quad;
 
@@ -41,7 +44,7 @@ struct OpenGLInfo {
 	GLuint side_textures;
 	GLuint bottom_textures;
 
-	// binding points
+	// binding points for rendering_program
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint chunk_types_bidx = 1;
 
@@ -50,8 +53,16 @@ struct OpenGLInfo {
 	const GLuint q_corner2_bidx = 4;
 	const GLuint q_face_bidx = 5;
 
-	// uniform binding points
+	// binding points for frustum_program
+	const GLuint cs_coords_in_bidx = 0;
+	const GLuint cs_coords_out_bidx = 1;
+
+	// uniform binding points for rendering_program
 	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
+
+	// uniform attribute indices for frustum_program
+	const GLuint cs_planes_uni_idx = 0;
+	const GLuint cs_radius_uni_idx = 6;
 
 	// attribute indices
 	const GLuint position_attr_idx = 0; // index of 'position' attribute

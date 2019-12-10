@@ -391,9 +391,21 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 	glBindTextureUnit(1, glInfo->grass_side);
 }
 
+void setup_compute_shader(OpenGLInfo* glInfo) {
+	// list of shaders to create program with
+	// TODO: Embed these into binary somehow - maybe generate header file with cmake.
+	std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+		{ "../src/simple.cs.glsl", GL_COMPUTE_SHADER},
+	};
+
+	// create program
+	glInfo->frustum_program = compile_shaders(shader_fnames);
+}
+
 void setup_opengl(OpenGLInfo* glInfo) {
 	// setup shaders
 	setup_opengl_program(glInfo);
+	setup_compute_shader(glInfo);
 
 	// setup VAOs
 	//setup_opengl_vao_cube(glInfo);
