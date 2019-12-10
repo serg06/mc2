@@ -245,6 +245,21 @@ void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
 	// let's make sure non-transparent spots are 100% non-transparent
 	if (strcmp(tex_name, "leaves") == 0) {
 		for (int i = 0; i < height*width*components; i++) {
+			// RED
+			if ((i % 4) == 0) {
+				data[i] *= 115 / 255.0f;
+			}
+
+			// GREEN
+			if ((i % 4) == 1) {
+				data[i] *= 0.6f;
+			}
+
+			// BLUE
+			if ((i % 4) == 2) {
+				data[i] *= 73 / 255.0f;
+			}
+
 			// ALPHA
 			if ((i % 4) == 3) {
 				if (data[i] > 0.0f) {
