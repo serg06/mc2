@@ -43,7 +43,7 @@ public:
 		glVertexArrayVertexBuffer(glInfo->vao_cube, glInfo->chunk_types_bidx, block_types_buf, 0, sizeof(Block));
 
 		// write this chunk's coordinate to coordinates buffer
-		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords); // Add base chunk coordinates to transformation data
+		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec4), vec4(coords[0], coords[1], coords[2], 1.0)); // Add base chunk coordinates to transformation data
 
 		// draw!
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, MINICHUNK_SIZE);

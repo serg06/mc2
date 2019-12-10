@@ -147,9 +147,18 @@ void App::render(float time) {
 	glClearBufferfv(GL_COLOR, 0, sky_blue);
 	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // used for depth test somehow
 
+	// check if in water
+	Block face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
+	GLuint in_water = face_block == Block::Water;
+
+	if (in_water) {
+		OutputDebugString("FACE IN WATER!\n");
+	}
+
 	// Update transformation buffer with matrices
 	glNamedBufferSubData(glInfo.trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
+	glNamedBufferSubData(glInfo.trans_buf, sizeof(mat4)*2 + sizeof(ivec4), sizeof(GLuint), &in_water); // proj matrix
 
 	// PRINT FPS
 	sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);

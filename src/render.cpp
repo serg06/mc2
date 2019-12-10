@@ -167,8 +167,8 @@ namespace {
 		glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_buf); 
 
 		// allocate 
-		// allocate enough space for 2 transform matrices + current chunk coords
-		glNamedBufferStorage(glInfo->trans_buf, sizeof(mat4) * 2 + sizeof(ivec3), NULL, GL_DYNAMIC_STORAGE_BIT);
+		// allocate enough space for 2 transform matrices + current chunk coords + bool in_water
+		glNamedBufferStorage(glInfo->trans_buf, sizeof(mat4) * 2 + sizeof(ivec4) + sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT);
 	}
 
 	void setup_opengl_extra_props(OpenGLInfo* glInfo) {
