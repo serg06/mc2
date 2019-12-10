@@ -175,7 +175,7 @@ namespace {
 }
 
 // load texture data for a block
-void load_block_texture_data(const char* tex_name, float (&data)[16 * 16 * 4]) {
+void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
 	// resolve texture filename
 	char fname[256];
 	sprintf(fname, "textures/blocks/%s.png", tex_name);
@@ -223,6 +223,105 @@ void load_block_texture_data(const char* tex_name, float (&data)[16 * 16 * 4]) {
 	}
 
 	/* SPECIAL CASES END */
+}
+
+void setup_texture_arrays(OpenGLInfo* glInfo) {
+	// data for one texture
+	float data[16 * 16 * 4];
+
+	// create textures
+	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->top_textures);
+	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->side_textures);
+	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->bottom_textures);
+
+	auto tex_arrays = { glInfo->top_textures, glInfo->side_textures, glInfo->bottom_textures };
+
+	// allocate space (32-bit float RGBA 16x16) (TODO: GL_RGBA8 instead.)
+	for (auto tex_arr : tex_arrays) {
+		glTextureStorage3D(tex_arr, 1, GL_RGBA32F, 16, 16, MAX_BLOCK_TYPES);
+	}
+
+	float* red = new float[16 * 16 * MAX_BLOCK_TYPES * 4];
+	for (int i = 0; i < 16 * 16 * MAX_BLOCK_TYPES; i++) {
+		red[i * 4 + 0] = 1.0f; // R
+		red[i * 4 + 1] = 0.0f; // G
+		red[i * 4 + 2] = 0.0f; // B
+		red[i * 4 + 3] = 1.0f; // A
+	}
+
+	// set all textures as BRIGHT RED, so we know when something's wrong
+	for (auto tex_arr : tex_arrays) {
+		glTextureSubImage3D(tex_arr,
+			0,							// Level 0
+			0, 0, 0,					// Offset 0, 0, 0
+			16, 16, MAX_BLOCK_TYPES,	// 16 x 16 x MAX_BLOCK_TYPES texels, replace entire image
+			GL_RGBA,					// Four channel data
+			GL_FLOAT,					// Floating point data
+			red);						// Pointer to data
+	}
+
+	delete[] red;
+	
+	// write in each texture that we can
+	for (int i = 0; i < MAX_BLOCK_TYPES; i++) {
+		// get block
+		Block b = Block(i);
+
+		// get block's textures
+		std::string top = b.top_texture();
+		std::string side = b.side_texture();
+		std::string bottom = b.bottom_texture();
+
+		// if they exist, load them in
+		if (top.size() > 0) {
+			load_block_texture_data(top.c_str(), data);
+			glTextureSubImage3D(glInfo->top_textures,
+				0,			// Level 0
+				0, 0, i,	// Offset 0, 0, block_id
+				16, 16, 1,	// 16 x 16 x 1 texels, replace one texture
+				GL_RGBA,	// Four channel data
+				GL_FLOAT,	// Floating point data
+				data);		// Pointer to data
+		}
+
+		if (side.size() > 0) {
+			load_block_texture_data(side.c_str(), data);
+			glTextureSubImage3D(glInfo->side_textures,
+				0,			// Level 0
+				0, 0, i,	// Offset 0, 0, block_id
+				16, 16, 1,	// 16 x 16 x 1 texels, replace one texture
+				GL_RGBA,	// Four channel data
+				GL_FLOAT,	// Floating point data
+				data);		// Pointer to data
+		}
+
+		if (bottom.size() > 0) {
+			load_block_texture_data(bottom.c_str(), data);
+			glTextureSubImage3D(glInfo->bottom_textures,
+				0,			// Level 0
+				0, 0, i,	// Offset 0, 0, block_id
+				16, 16, 1,	// 16 x 16 x 1 texels, replace one texture
+				GL_RGBA,	// Four channel data
+				GL_FLOAT,	// Floating point data
+				data);		// Pointer to data
+		}
+	}
+
+	// for each texture array
+	for (auto tex_arr : tex_arrays) {
+		// wrap!
+		glTextureParameteri(tex_arr, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTextureParameteri(tex_arr, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		// filter
+		glTextureParameteri(tex_arr, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(tex_arr, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	}
+
+	// bind them!
+	glBindTextureUnit(2, glInfo->top_textures);
+	glBindTextureUnit(3, glInfo->side_textures);
+	glBindTextureUnit(4, glInfo->bottom_textures);
 }
 
 // create texture object, fill it with block texture, store it in texture object
@@ -286,4 +385,5 @@ void setup_opengl(OpenGLInfo* glInfo) {
 
 	// set up textures
 	setup_block_textures(glInfo);
+	setup_texture_arrays(glInfo);
 }

@@ -11,6 +11,11 @@ out vec4 color;
 layout (binding = 0) uniform sampler2D grass_top;
 layout (binding = 1) uniform sampler2D grass_side;
 
+// texture arrays
+layout (binding = 2) uniform sampler2DArray top_textures;
+layout (binding = 3) uniform sampler2DArray side_textures;
+layout (binding = 4) uniform sampler2DArray bottom_textures;
+
 void main(void)
 {
 	// TODO: Remove branching.	
@@ -18,9 +23,9 @@ void main(void)
 	// GRASS
 	if (vs_block_type == 2) {
 		if (horizontal != 0) {
-			color = texture(grass_top, vs_tex_coords);
+			color = texture(top_textures, vec3(vs_tex_coords, vs_block_type));
 		} else {
-			color = texture(grass_side, vs_tex_coords);
+			color = texture(side_textures,  vec3(vs_tex_coords, vs_block_type));
 		}
 	// DEFAULT
 	} else {

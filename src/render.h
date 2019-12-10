@@ -37,6 +37,10 @@ struct OpenGLInfo {
 	GLuint grass_top;
 	GLuint grass_side;
 
+	GLuint top_textures;
+	GLuint side_textures;
+	GLuint bottom_textures;
+
 	// binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint chunk_types_bidx = 1;
