@@ -18,17 +18,16 @@ layout (binding = 4) uniform sampler2DArray bottom_textures;
 
 void main(void)
 {
-	// TODO: Remove branching.	
-
-	// GRASS
-	if (vs_block_type == 2) {
-		if (horizontal != 0) {
-			color = texture(top_textures, vec3(vs_tex_coords, vs_block_type));
-		} else {
-			color = texture(side_textures,  vec3(vs_tex_coords, vs_block_type));
+	// TODO: Remove branching.
+	if (horizontal != 0) {
+		color = texture(top_textures, vec3(vs_tex_coords, vs_block_type));
+		if (color.a < 0.5) {
+			discard;
 		}
-	// DEFAULT
 	} else {
-		color = vs_color;
+		color = texture(side_textures,  vec3(vs_tex_coords, vs_block_type));
+		if (color.a < 0.5) {
+			discard;
+		}
 	}
 }

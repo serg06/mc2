@@ -2,7 +2,8 @@
 build/
 
 # Project builds into here
-bin/
+bin/*
+!bin/textures/
 
 # Libraries which we compile ourselves
 lib/

@@ -154,21 +154,23 @@ namespace {
 		glCreateBuffers(1, &glInfo->trans_buf);
 
 		// bind them
-		glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_buf); // bind transformation buffer to uniform buffer binding point
+		// bind transform buffer to transform uniform
+		glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_buf); 
 
-																							// allocate
-		glNamedBufferStorage(glInfo->trans_buf, sizeof(mat4) * 2 + sizeof(ivec3), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		// allocate 
+		// allocate enough space for 2 transform matrices + current chunk coords
+		glNamedBufferStorage(glInfo->trans_buf, sizeof(mat4) * 2 + sizeof(ivec3), NULL, GL_DYNAMIC_STORAGE_BIT);
 	}
 
 	void setup_opengl_extra_props(OpenGLInfo* glInfo) {
 		glPointSize(5.0f);
 		glFrontFace(GL_CW);
 
-		//glEnable(GL_CULL_FACE);
-
+		// depth testing
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 
+		// alpha blending
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
@@ -218,6 +220,20 @@ void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
 			// BLUE
 			if ((i % 4) == 2) {
 				data[i] *= 73 / 255.0f;
+			}
+		}
+	}
+
+	// leaves
+
+	// let's make sure non-transparent spots are 100% non-transparent
+	if (strcmp(tex_name, "leaves") == 0) {
+		for (int i = 0; i < height*width*components; i++) {
+			// ALPHA
+			if ((i % 4) == 3) {
+				if (data[i] > 0.0f) {
+					data[i] = 1.0f;
+				}
 			}
 		}
 	}
