@@ -22,7 +22,7 @@ public:
 	bool invisible = false;
 	MiniChunkMesh* mesh;
 	MiniChunkMesh* water_mesh;
-	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf;
+	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
 	GLuint water_quad_block_type_buf = 0, water_quad_corner1_buf = 0, water_quad_corner2_buf = 0, water_quad_face_buf = 0;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
