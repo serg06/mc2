@@ -93,8 +93,28 @@ Chunk* gen_chunk_data(int chunkX, int chunkZ) {
 				if (w <= (1.0f / 256.0f)) {
 					// generate leaves
 					for (int dx = -2; dx <= 2; dx++) {
-						for (int dy = 4; dy <= 6; dy++) {
-							for (int dz = -2; dz <= 2; dz++) {
+						for (int dz = -2; dz <= 2; dz++) {
+							for (int dy = 4; dy <= 5; dy++) {
+								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
+									continue;
+								}
+								chunk->set_block(x + dx, y + dy, z + dz, Block::OakLeaves);
+							}
+						}
+					}
+					for (int dx = -1; dx <= 1; dx++) {
+						for (int dz = -1; dz <= 1; dz++) {
+							for (int dy = 6; dy <= 6; dy++) {
+								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
+									continue;
+								}
+								chunk->set_block(x + dx, y + dy, z + dz, Block::OakLeaves);
+							}
+						}
+					}
+					for (int dx = -1; dx <= 1; dx++) {
+						for (int dz = abs(dx) - 1; dz <= 1 - abs(dx); dz++) {
+							for (int dy = 7; dy <= 7; dy++) {
 								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
 									continue;
 								}
