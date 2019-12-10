@@ -93,12 +93,14 @@ namespace {
 		glCreateBuffers(1, &glInfo->vert_buf);
 
 		// buffers: allocate space
-		glNamedBufferStorage(glInfo->vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate enough for all vertices, and allow editing
+		// allocate enough for all vertices, and allow editing
+		glNamedBufferStorage(glInfo->vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT);
 
-																							// buffers: insert static data
-		glNamedBufferSubData(glInfo->vert_buf, 0, sizeof(cube), cube); // vertex positions
+		// buffers: insert static data
+		// vertex positions
+		glNamedBufferSubData(glInfo->vert_buf, 0, sizeof(cube), cube);
 
-																	   // vao: enable all cube's attributes, 1 at a time
+		 // vao: enable all cube's attributes, 1 at a time
 		glEnableVertexArrayAttrib(glInfo->vao_cube, glInfo->position_attr_idx);
 		glEnableVertexArrayAttrib(glInfo->vao_cube, glInfo->chunk_types_attr_idx);
 
@@ -128,16 +130,19 @@ namespace {
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_block_type_attr_idx);
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner1_attr_idx);
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner2_attr_idx);
+		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_face_attr_idx);
 
 		// vao: set up formats for cube's attributes, 1 at a time
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_block_type_attr_idx, 1, GL_BYTE, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner1_attr_idx, 3, GL_INT, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner2_attr_idx, 3, GL_INT, 0);
+		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_face_attr_idx, 3, GL_INT, 0);
 
 		// vao: match attributes to binding indices
 		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_block_type_attr_idx, glInfo->quad_block_type_bidx);
 		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner1_attr_idx, glInfo->q_corner1_bidx);
 		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner2_attr_idx, glInfo->q_corner2_bidx);
+		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_face_attr_idx, glInfo->q_face_bidx);
 
 		// vao: extra properties
 		glBindVertexArray(glInfo->vao_quad);
@@ -145,6 +150,7 @@ namespace {
 		glVertexAttribDivisor(glInfo->q_block_type_attr_idx, 1); // instance attribute
 		glVertexAttribDivisor(glInfo->q_corner1_attr_idx, 1); // instance attribute
 		glVertexAttribDivisor(glInfo->q_corner2_attr_idx, 1); // instance attribute
+		glVertexAttribDivisor(glInfo->q_face_attr_idx, 1); // instance attribute
 
 		glBindVertexArray(0);
 	}

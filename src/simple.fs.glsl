@@ -4,6 +4,7 @@ in vec4 vs_color;
 in flat uint vs_block_type;
 in vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
 in flat uint horizontal; // 0 = quad is vertical, 1 = quad is horizontal (TODO: Remove this once we start inputting quad face to vertex shader.)
+in flat ivec3 vs_face;
 
 out vec4 color;
 
@@ -19,15 +20,15 @@ layout (binding = 4) uniform sampler2DArray bottom_textures;
 void main(void)
 {
 	// TODO: Remove branching.
-	if (horizontal != 0) {
-		color = texture(top_textures, vec3(vs_tex_coords, vs_block_type));
-		if (color.a < 0.5) {
-			discard;
-		}
+	if (vs_face[1] > 0) {
+		color = texture(top_textures,  vec3(vs_tex_coords, vs_block_type));
+	} else if (vs_face[1] < 0) {
+		color = texture(bottom_textures,  vec3(vs_tex_coords, vs_block_type));
 	} else {
 		color = texture(side_textures,  vec3(vs_tex_coords, vs_block_type));
-		if (color.a < 0.5) {
-			discard;
-		}
+	}
+
+	if (color.a < 0.5) {
+		discard;
 	}
 }

@@ -28,6 +28,7 @@ public:
 	Block block;
 	ivec2 corners[2];
 };
+
 inline bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
 	auto &lc1 = lhs.corners[0];
 	auto &lc2 = lhs.corners[1];
@@ -35,10 +36,9 @@ inline bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
 	auto &rc1 = rhs.corners[0];
 	auto &rc2 = rhs.corners[1];
 
-	return lhs.block == rhs.block && (
-		(lc1 == rc1 && lc2 == rc2) ||
-		(lc2 == rc1 && lc1 == rc2)
-		);
+	return
+		(lhs.block == rhs.block) &&
+		((lc1 == rc1 && lc2 == rc2) || (lc2 == rc1 && lc1 == rc2));
 }
 
 namespace WorldTests {
@@ -461,6 +461,9 @@ public:
 				quad3d.corners[i][working_idx_2] = quad2d.corners[i][1];
 			}
 
+			// set face
+			quad3d.face = face;
+
 			result.push_back(quad3d);
 		}
 
@@ -490,7 +493,7 @@ public:
 
 		// reset all to air
 		memset(result, (uint8_t)Block::Air, sizeof(result));
-		
+
 		// for each coordinate
 		for (int u = 0; u < 16; u++) {
 			for (int v = 0; v < 16; v++) {

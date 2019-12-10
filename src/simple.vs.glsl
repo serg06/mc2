@@ -12,11 +12,14 @@ layout (location = 1) in uint block_type; // fed in via instance array!
 layout (location = 2) in uint q_block_type;
 layout (location = 3) in ivec3 q_corner1;
 layout (location = 4) in ivec3 q_corner2;
+layout (location = 5) in ivec3 q_face;
 
 out vec4 vs_color;
 out flat uint vs_block_type;
 out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
 out flat uint horizontal;
+out flat ivec3 vs_face;
+
 
 layout (std140, binding = 0) uniform UNI_IN
 {
@@ -106,6 +109,7 @@ void main(void)
 	vs_color = block_type_to_color[q_block_type];
 
     vs_block_type = q_block_type;
+	vs_face = q_face;
 }
 
 // shader starts executing here

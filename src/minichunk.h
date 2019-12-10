@@ -22,8 +22,8 @@ public:
 	bool invisible = false;
 	MiniChunkMesh* mesh;
 	MiniChunkMesh* water_mesh;
-	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0;
-	GLuint water_quad_block_type_buf = 0, water_quad_corner1_buf = 0, water_quad_corner2_buf = 0;
+	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf;
+	GLuint water_quad_block_type_buf = 0, water_quad_corner1_buf = 0, water_quad_corner2_buf = 0, water_quad_face_buf = 0;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
 
@@ -76,6 +76,7 @@ public:
 			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
 			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
 			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
+			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
 
 			// DRAW!
 			glDrawArraysInstanced(GL_TRIANGLES, 0, 6, quads.size());
@@ -109,6 +110,7 @@ public:
 			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, water_quad_block_type_buf, 0, sizeof(Block));
 			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, water_quad_corner1_buf, 0, sizeof(ivec3));
 			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, water_quad_corner2_buf, 0, sizeof(ivec3));
+			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, water_quad_face_buf, 0, sizeof(ivec3));
 
 			// DRAW!
 			glDrawArraysInstanced(GL_TRIANGLES, 0, 6, water_quads.size());
@@ -164,19 +166,17 @@ public:
 		Block* blocks = new Block[quads.size()];
 		ivec3* corner1s = new ivec3[quads.size()];
 		ivec3* corner2s = new ivec3[quads.size()];
+		ivec3* faces = new ivec3[quads.size()];
 
 		Block* water_blocks = new Block[water_quads.size()];
 		ivec3* water_corner1s = new ivec3[water_quads.size()];
 		ivec3* water_corner2s = new ivec3[water_quads.size()];
+		ivec3* water_faces = new ivec3[water_quads.size()];
 
 		for (int i = 0; i < quads.size(); i++) {
-			//// skip water
-			//if ((Block)quads[i].block == Block::Water) {
-			//	continue;
-			//}
-
 			// update blocks
 			blocks[i] = (Block)quads[i].block;
+			faces[i] = quads[i].face;
 
 			ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
 
@@ -202,13 +202,9 @@ public:
 		}
 
 		for (int i = 0; i < water_quads.size(); i++) {
-			//// skip non-water
-			//if ((Block)quads[i].block != Block::Water) {
-			//	continue;
-			//}
-
 			// update blocks
 			water_blocks[i] = (Block)water_quads[i].block;
+			water_faces[i] = water_quads[i].face;
 
 			ivec3 diffs = water_quads[i].corners[1] - water_quads[i].corners[0];
 
@@ -237,36 +233,42 @@ public:
 		glDeleteBuffers(1, &quad_block_type_buf);
 		glDeleteBuffers(1, &quad_corner1_buf);
 		glDeleteBuffers(1, &quad_corner2_buf);
+		glDeleteBuffers(1, &quad_face_buf);
 
 		glDeleteBuffers(1, &water_quad_block_type_buf);
 		glDeleteBuffers(1, &water_quad_corner1_buf);
 		glDeleteBuffers(1, &water_quad_corner2_buf);
+		glDeleteBuffers(1, &water_quad_face_buf);
 
 		// create new ones with just the right sizes
 		glCreateBuffers(1, &quad_block_type_buf);
 		glCreateBuffers(1, &quad_corner1_buf);
 		glCreateBuffers(1, &quad_corner2_buf);
+		glCreateBuffers(1, &quad_face_buf);
 
 		glCreateBuffers(1, &water_quad_block_type_buf);
 		glCreateBuffers(1, &water_quad_corner1_buf);
 		glCreateBuffers(1, &water_quad_corner2_buf);
+		glCreateBuffers(1, &water_quad_face_buf);
 
 		// allocate them just enough space
 		if (quads.size() > 0) {
 			glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), blocks, NULL); // allocate 2 matrices of space for transforms, and allow editing
 			glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * quads.size(), corner1s, NULL); // allocate 2 matrices of space for transforms, and allow editing
 			glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * quads.size(), corner2s, NULL); // allocate 2 matrices of space for transforms, and allow editing
+			glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * quads.size(), faces, NULL); // allocate 2 matrices of space for transforms, and allow editing
 		}
 
 		if (water_quads.size() > 0) {
 			glNamedBufferStorage(water_quad_block_type_buf, sizeof(Block) * water_quads.size(), water_blocks, NULL); // allocate 2 matrices of space for transforms, and allow editing
 			glNamedBufferStorage(water_quad_corner1_buf, sizeof(ivec3) * water_quads.size(), water_corner1s, NULL); // allocate 2 matrices of space for transforms, and allow editing
 			glNamedBufferStorage(water_quad_corner2_buf, sizeof(ivec3) * water_quads.size(), water_corner2s, NULL); // allocate 2 matrices of space for transforms, and allow editing
+			glNamedBufferStorage(water_quad_face_buf, sizeof(ivec3) * water_quads.size(), water_faces, NULL); // allocate 2 matrices of space for transforms, and allow editing
 		}
 
 		// delete malloc'd stuff
-		delete[] blocks, corner1s, corner2s;
-		delete[] water_blocks, water_corner1s, water_corner2s;
+		delete[] blocks, corner1s, corner2s, faces;
+		delete[] water_blocks, water_corner1s, water_corner2s, water_faces;
 	}
 
 };
