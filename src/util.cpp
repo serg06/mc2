@@ -391,7 +391,7 @@ GLuint link_program(GLuint program) {
 }
 
 GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnames) {
-	return compile_shaders_hardcoded(shader_fnames);
+	//return compile_shaders_hardcoded(shader_fnames);
 
 	GLuint program;
 	std::vector <GLuint> shaders; // store compiled shaders
