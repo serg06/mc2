@@ -36,6 +36,10 @@ float soft_increase(float x) {
 	return -1/((x+1)) + 1;
 }
 
+float soft_increase2(float x, float cap) {
+	return min(sqrt(x/cap), 1.0);
+}
+
 void main(void)
 {
 	// TODO: Remove branching.
