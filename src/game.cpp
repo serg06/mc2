@@ -109,7 +109,8 @@ void App::render(float time) {
 	// update block that player is staring at
 	auto direction = staring_direction();
 	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](ivec3 coords, ivec3 face) {
-		return this->world->get_type(coords) != Block::Air;
+		auto block = this->world->get_type(coords);
+		return block != Block::Air && block != Block::Water;
 	});
 
 	/* TRANSFORMATION MATRICES */
@@ -276,8 +277,8 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	// Get all blocks we might be intersecting with
 	auto blocks = get_intersecting_blocks(char_position + position_change);
 
-	// if all blocks are air, we done
-	if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return world->get_type(block) == Block::Air; })) {
+	// if all blocks are non-solid, we done
+	if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == Block::Air || block == Block::Water; })) {
 		return position_change;
 	}
 
@@ -298,8 +299,8 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		position_change_fixed[indices[i]] = 0.0f;
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
-		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return world->get_type(block[0], block[1], block[2]) == Block::Air; })) {
+		// if all blocks are non-solid, we done
+		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == Block::Air || block == Block::Water; })) {
 			return position_change_fixed;
 		}
 	}
@@ -324,7 +325,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block) { return world->get_type(block[0], block[1], block[2]) == Block::Air; })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == Block::Air || block == Block::Water; })) {
 			return position_change_fixed;
 		}
 	}
