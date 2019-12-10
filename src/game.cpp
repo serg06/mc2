@@ -135,6 +135,10 @@ void App::render(float time) {
 		64 * CHUNK_WIDTH // only support 64 chunks for now
 	);
 
+	//for (int i = 0; i < 4; i++) {
+	//	proj_matrix[i] = normalize(proj_matrix[i]);
+	//}
+
 	/* BACKGROUND / SKYBOX */
 
 	// Draw background color
@@ -155,8 +159,12 @@ void App::render(float time) {
 	sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
 	OutputDebugString(buf);
 
+	// extract projection matrix planes
+	vec4 planes[6];
+	extract_planes_from_projmat(proj_matrix, model_view_matrix, planes);
+
 	// Draw ALL our chunks!
-	world->render(&glInfo);
+	world->render(&glInfo, planes);
 
 	// highlight block we're staring at, if it's valid
 	if (staring_at[1] >= 0) {

@@ -130,7 +130,7 @@ static inline char* vec2str(vecN<T, len> vec) {
 	}
 
 	tmp += sprintf(tmp, ")");
-	
+
 	return result;
 }
 
@@ -198,6 +198,45 @@ inline bool in_frustum(const vec3 &point, const vec3 &camera_pos, vec3 up, vec3 
 
 	return true;
 }
+
+// check if sphere is inside frustrum planes
+inline bool sphere_in_frustrum(vec3 &pos, float &radius, const vmath::vec4 (&frustum_planes)[6]) {
+	bool res = true;
+	for (int i = 2; i < 4; i++) {
+		if (frustum_planes[i][0] * pos[0] + frustum_planes[i][1] * pos[1] + frustum_planes[i][2] * pos[2] + frustum_planes[i][3] <= -radius) {
+			res = false;
+		}
+	}
+
+	return res;
+}
+
+// extract planes from projection matrix
+inline void extract_planes_from_projmat(const vmath::mat4 &proj_mat, const vmath::mat4 &mv_mat, vmath::vec4 (&planes)[6])
+{
+	const vmath::mat4 mat = proj_mat * mv_mat;
+
+	for (int i = 0; i < 4; i++) {
+		// left
+		planes[0][i] = mat[i][3] + mat[i][0];
+
+		// right
+		planes[1][i] = mat[i][3] - mat[i][0];
+
+		// top
+		planes[2][i] = mat[i][3] + mat[i][1];
+
+		// bottom
+		planes[3][i] = mat[i][3] - mat[i][1];
+
+		// near
+		planes[4][i] = mat[i][3] + mat[i][2];
+
+		// far
+		planes[5][i] = mat[i][3] - mat[i][2];
+	}
+}
+
 
 double noise2d(double x, double y);
 

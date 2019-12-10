@@ -407,7 +407,8 @@ public:
 		return true;
 	}
 
-	inline void render(OpenGLInfo* glInfo) {
+	//float(&pleft)[4], float(&pright)[4], float(&ptop)[4], float(&pbottom)[4], float(&pnear)[4], float(&pfar)[4]
+	inline void render(OpenGLInfo* glInfo, const vmath::vec4 (&planes)[6]) {
 		char buf[256];
 		//sprintf(buf, "[%d] Rendering all chunks\n", rendered);
 		//OutputDebugString(buf);
@@ -416,19 +417,45 @@ public:
 		//	chunk->render(glInfo);
 		//}
 
+		// count how many minis are in and how many are out
+
 		for (auto &[coords_p, chunk] : chunk_map) {
 			for (auto &mini : chunk->minis) {
-				mini.render_meshes(glInfo);
+				// check if mini in frustum
+				if (mini_in_frustum(&mini, planes)) {
+					mini.render_meshes(glInfo);
+				}
 			}
 		}
 
 		for (auto &[coords_p, chunk] : chunk_map) {
 			for (auto &mini : chunk->minis) {
-				mini.render_water_meshes(glInfo);
+				// check if mini in frustum
+				if (mini_in_frustum(&mini, planes)) {
+					mini.render_water_meshes(glInfo);
+				}
 			}
 		}
 
 		rendered++;
+	}
+
+	static inline bool mini_in_frustum(MiniChunk* mini, const vmath::vec4 (&planes)[6]) {
+		ivec3 &coords = mini->coords;
+
+		// real coords
+		vec3 real_coords = { coords[0] * 16.0f, (float)coords[1], coords[2] * 16.0f };
+
+		// center position
+		vec3 center_coords = real_coords + vec3(8.0f, 8.0f, 8.0f);
+
+		// radius
+		// rounded-up from sqrt(8^2 + 8^2 + 8^2);
+		float radius = 14.0f;
+		radius = 20;
+		
+		// check if we intersect with planes
+		return SphereInFrustum(center_coords, radius, planes);
 	}
 
 	static constexpr inline void gen_working_indices(int &layers_idx, int &working_idx_1, int &working_idx_2) {
@@ -471,6 +498,7 @@ public:
 		return result;
 	}
 
+	// TODO: Test with __forceinline
 	// extract a layer from data, replacing covered faces with air, and checking covered faces via `face` variable
 	// layers_idx: The index of the coordinate in {x, y, z} that we're currently traversing, layer by layer.
 	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
@@ -716,22 +744,25 @@ public:
 		//OutputDebugString(buf);
 
 
-		GLuint quad_block_type_buf, quad_corner1_buf, quad_corner2_buf;
+		GLuint quad_block_type_buf, quad_corner1_buf, quad_corner2_buf, quad_face_buf;
 
 		// create buffers with just the right sizes
 		glCreateBuffers(1, &quad_block_type_buf);
 		glCreateBuffers(1, &quad_corner1_buf);
 		glCreateBuffers(1, &quad_corner2_buf);
+		glCreateBuffers(1, &quad_face_buf);
 
 		// allocate them just enough space
 		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_face_buf, sizeof(ivec3), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
 		// fill 'em up!
 		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * 6, blocks);
 		glNamedBufferSubData(quad_corner1_buf, 0, sizeof(ivec3) * 6, corner1s);
 		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * 6, corner2s);
+		glNamedBufferSubData(quad_face_buf, 0, sizeof(ivec3), ivec3(0));
 
 		// DRAW!
 
@@ -742,6 +773,7 @@ public:
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
 
 		// write this chunk's coordinate to coordinates buffer
 		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), mini_coords);
