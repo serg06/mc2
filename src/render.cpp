@@ -176,7 +176,7 @@ namespace {
 void setup_block_textures(OpenGLInfo* glInfo) {
 	int width, height, components;
 	unsigned char *imgdata;
-	float data[16 * 16 * 3];
+	float data[16 * 16 * 4];
 
 	/* GRASS TOP & SIDE TEXTURES */
 
@@ -190,15 +190,32 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 	glTextureStorage2D(glInfo->grass_side, 1, GL_RGB32F, 16, 16);
 
 	// load in texture from disk
-	imgdata = stbi_load("textures/grass_top.png", &width, &height, &components, 0);
+	imgdata = stbi_load("textures/blocks/grass_top.png", &width, &height, &components, 0);
 	
 	assert(height == 16);
 	assert(width == 16);
-	assert(components == 3);
+	assert(components == 4);
 
 	// convert to floats
 	for (int i = 0; i < height*width*components; i++) {
 		data[i] = imgdata[i] / 255.0f;
+
+		// grass_top is gray by default, let's color it green
+
+		// RED
+		if ((i % 4) == 0) {
+			data[i] *= 115 / 255.0f;
+		}
+
+		// GREEN
+		if ((i % 4) == 1) {
+			data[i] *= 0.8f;
+		}
+
+		// BLUE
+		if ((i % 4) == 2) {
+			data[i] *= 73 / 255.0f;
+		}
 	}
 	
 	// free
@@ -209,17 +226,17 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 		0,              // Level 0
 		0, 0,           // Offset 0, 0
 		16, 16,         // 16 x 16 texels, replace entire image
-		GL_RGB,         // Three channel data
+		GL_RGBA,        // Three channel data
 		GL_FLOAT,       // Floating point data
 		data);          // Pointer to data
 
 
 	// load in texture from disk
-	imgdata = stbi_load("textures/grass_side.png", &width, &height, &components, 0);
+	imgdata = stbi_load("textures/blocks/grass_side.png", &width, &height, &components, 0);
 
 	assert(height == 16);
 	assert(width == 16);
-	assert(components == 3);
+	assert(components == 4);
 
 	// convert to floats
 	for (int i = 0; i < height*width*components; i++) {
@@ -231,7 +248,7 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 		0,              // Level 0
 		0, 0,           // Offset 0, 0
 		16, 16,         // 16 x 16 texels, replace entire image
-		GL_RGB,         // Three channel data
+		GL_RGBA,        // Three channel data
 		GL_FLOAT,       // Floating point data
 		data);          // Pointer to data
 
