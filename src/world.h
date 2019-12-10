@@ -196,7 +196,25 @@ public:
 				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 
 				if (!mini.invisible) {
-					mini.mesh = gen_minichunk_mesh(&mini);
+					MiniChunkMesh* mesh = gen_minichunk_mesh(&mini);
+
+					MiniChunkMesh* non_water = new MiniChunkMesh;
+					MiniChunkMesh* water = new MiniChunkMesh;
+
+					for (auto &quad : mesh->quads3d) {
+						if ((Block)quad.block == Block::Water) {
+							water->quads3d.push_back(quad);
+						}
+						else {
+							non_water->quads3d.push_back(quad);
+						}
+					}
+
+					assert(mesh->size() == non_water->size() + water->size());
+
+					mini.mesh = non_water;
+					mini.water_mesh = water;
+
 					mini.update_quads_buf();
 				}
 			}
@@ -394,8 +412,19 @@ public:
 		//sprintf(buf, "[%d] Rendering all chunks\n", rendered);
 		//OutputDebugString(buf);
 
+		//for (auto &[coords_p, chunk] : chunk_map) {
+		//	chunk->render(glInfo);
+		//}
 		for (auto &[coords_p, chunk] : chunk_map) {
-			chunk->render(glInfo);
+			for (auto &mini : chunk->minis) {
+				mini.render_meshes(glInfo);
+			}
+		}
+
+		for (auto &[coords_p, chunk] : chunk_map) {
+			for (auto &mini : chunk->minis) {
+				mini.render_water_meshes(glInfo);
+			}
 		}
 
 		rendered++;
@@ -462,6 +491,7 @@ public:
 		// reset all to air
 		memset(result, (uint8_t)Block::Air, sizeof(result));
 		
+		// for each coordinate
 		for (int u = 0; u < 16; u++) {
 			for (int v = 0; v < 16; v++) {
 				ivec3 coords;
@@ -469,6 +499,7 @@ public:
 				coords[working_idx_1] = u;
 				coords[working_idx_2] = v;
 
+				// get block at these coordinates
 				Block block = mini->get_block(coords);
 
 				// dgaf about air blocks
@@ -477,19 +508,20 @@ public:
 				}
 
 				ivec3 face_coords = coords + face;
+				Block face_block;
 
 				// if in range of mini, get face block via mini's data
 				if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
-					// if block and face both visible, set it
-					if (mini->get_block(face_coords) == Block::Air) {
-						result[u][v] = block;
-					}
+					face_block = mini->get_block(face_coords);
 				}
+				// else get it from its chunk data
 				else {
-					// if block and face both visible, set it
-					if (get_type(minichunk_offset + face_coords) == Block::Air) {
-						result[u][v] = block;
-					}
+					face_block = get_type(minichunk_offset + face_coords);
+				}
+
+				// if block's face is visible, set it
+				if (face_block == Block::Air || (face_block == Block::Water && block != Block::Water)) {
+					result[u][v] = block;
 				}
 			}
 		}
@@ -906,7 +938,25 @@ public:
 		for (auto mini : minis_to_regenerate) {
 			mini->invisible = mini->all_air() || check_if_covered(*mini);
 			if (!mini->invisible) {
-				mini->mesh = gen_minichunk_mesh(mini);
+				MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
+
+				MiniChunkMesh* non_water = new MiniChunkMesh;
+				MiniChunkMesh* water = new MiniChunkMesh;
+
+				for (auto &quad : mesh->quads3d) {
+					if ((Block)quad.block == Block::Water) {
+						water->quads3d.push_back(quad);
+					}
+					else {
+						non_water->quads3d.push_back(quad);
+					}
+				}
+
+				assert(mesh->size() == non_water->size() + water->size());
+
+				mini->mesh = non_water;
+				mini->water_mesh = water;
+
 				mini->update_quads_buf();
 			}
 		}
