@@ -159,10 +159,6 @@ public:
 		auto &quads = mesh->quads3d;
 		auto &water_quads = water_mesh->quads3d;
 
-		if (water_quads.size() > 0) {
-			OutputDebugString("we");
-		}
-
 		Block* blocks = new Block[quads.size()];
 		ivec3* corner1s = new ivec3[quads.size()];
 		ivec3* corner2s = new ivec3[quads.size()];
