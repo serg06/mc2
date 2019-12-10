@@ -90,7 +90,6 @@ void App::startup() {
 	setup_opengl(&glInfo);
 }
 
-
 void App::render(float time) {
 	char buf[256];
 

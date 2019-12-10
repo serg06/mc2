@@ -1,3 +1,4 @@
+#include "block.h"
 #include "render.h"
 #include "shapes.h"
 #include "util.h"
@@ -174,7 +175,7 @@ namespace {
 }
 
 // load texture data for a block
-void load_block_texture_data(char* tex_name, float (&data)[16 * 16 * 4]) {
+void load_block_texture_data(const char* tex_name, float (&data)[16 * 16 * 4]) {
 	// resolve texture filename
 	char fname[256];
 	sprintf(fname, "textures/blocks/%s.png", tex_name);
@@ -225,7 +226,7 @@ void load_block_texture_data(char* tex_name, float (&data)[16 * 16 * 4]) {
 }
 
 // create texture object, fill it with block texture, store it in texture object
-void load_block_texture(GLuint* texture, char* tex_name) {
+void load_block_texture(GLuint* texture, const char* tex_name) {
 	// create texture
 	glCreateTextures(GL_TEXTURE_2D, 1, texture);
 
@@ -260,11 +261,9 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 
 	/* GRASS TOP & SIDE TEXTURES */
 
-
-
 	// create textures
-	load_block_texture(&glInfo->grass_top, "grass_top");
-	load_block_texture(&glInfo->grass_side, "grass_side");
+	load_block_texture(&glInfo->grass_top, Block(Block::Grass).top_texture().c_str());
+	load_block_texture(&glInfo->grass_side, Block(Block::Grass).side_texture().c_str());
 
 	// bind
 	glBindTextureUnit(0, glInfo->grass_top);

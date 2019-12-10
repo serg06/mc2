@@ -666,7 +666,7 @@ public:
 		ivec3 block_coords = { relative_coords[0], y % 16, relative_coords[2] };
 
 		for (int i = 0; i < 6; i++) {
-			blocks[i] = (Block)100; // outline
+			blocks[i] = Block::Outline; // outline
 		}
 
 		// SOUTH
