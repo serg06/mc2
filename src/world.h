@@ -434,8 +434,8 @@ public:
 			}
 		}
 
-		sprintf(buf, "Drawing %d/%d\tvisible minis.\n", minis_to_draw.size(), num_visible);
-		OutputDebugString(buf);
+		//sprintf(buf, "Drawing %d/%d\tvisible minis.\n", minis_to_draw.size(), num_visible);
+		//OutputDebugString(buf);
 
 		for (auto &mini : minis_to_draw) {
 			mini.render_meshes(glInfo);
@@ -449,7 +449,7 @@ public:
 
 	// check if a mini is visible in a frustum
 	static inline bool mini_in_frustum(MiniChunk* mini, const vmath::vec4 (&planes)[6]) {
-		float radius = 140.0f;
+		float radius = 28.0f;
 		return sphere_in_frustrum(mini->center_coords_v3(), radius, planes);
 	}
 
