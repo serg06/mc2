@@ -90,6 +90,10 @@ public:
 		return std::find(data, data + size(), Block::Air) < (data + size());
 	}
 
+	inline bool any_translucent() {
+		return std::find_if(data, data + size(), [](Block b) { return b.is_translucent(); }) < (data + size());
+	}
+
 	inline void set_all_air() {
 		memset(this->data, (uint8_t)Block::Air, sizeof(Block) * size());
 	}

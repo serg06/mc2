@@ -359,8 +359,8 @@ public:
 	}
 
 	inline bool check_if_covered(MiniChunk &mini) {
-		// if contains any air blocks, don't know how to handle that yet
-		if (mini.any_air()) {
+		// if contains any translucent blocks, don't know how to handle that yet
+		if (mini.any_translucent()) {
 			return false;
 		}
 
@@ -376,29 +376,29 @@ public:
 
 					// if along east wall, check east
 					if (miniX == CHUNK_WIDTH - 1) {
-						if (get_type(clamp_coords_to_world(coords + IEAST_0)) == Block::Air) return false;
+						if (get_type(clamp_coords_to_world(coords + IEAST_0)).is_translucent()) return false;
 					}
 					// if along west wall, check west
 					if (miniX == 0) {
-						if (get_type(clamp_coords_to_world(coords + IWEST_0)) == Block::Air) return false;
+						if (get_type(clamp_coords_to_world(coords + IWEST_0)).is_translucent()) return false;
 					}
 
 					// if along north wall, check north
 					if (miniZ == 0) {
-						if (get_type(clamp_coords_to_world(coords + INORTH_0)) == Block::Air) return false;
+						if (get_type(clamp_coords_to_world(coords + INORTH_0)).is_translucent()) return false;
 					}
 					// if along south wall, check south
 					if (miniZ == CHUNK_DEPTH - 1) {
-						if (get_type(clamp_coords_to_world(coords + ISOUTH_0)) == Block::Air) return false;
+						if (get_type(clamp_coords_to_world(coords + ISOUTH_0)).is_translucent()) return false;
 					}
 
 					// if along bottom wall, check bottom
 					if (miniY == 0) {
-						if (get_type(clamp_coords_to_world(coords + IDOWN_0)) == Block::Air) return false;
+						if (get_type(clamp_coords_to_world(coords + IDOWN_0)).is_translucent()) return false;
 					}
 					// if along top wall, check top
 					if (miniY == MINICHUNK_HEIGHT - 1) {
-						if (get_type(clamp_coords_to_world(coords + IUP_0)) == Block::Air) return false;
+						if (get_type(clamp_coords_to_world(coords + IUP_0)).is_translucent()) return false;
 					}
 				}
 			}
@@ -415,6 +415,7 @@ public:
 		//for (auto &[coords_p, chunk] : chunk_map) {
 		//	chunk->render(glInfo);
 		//}
+
 		for (auto &[coords_p, chunk] : chunk_map) {
 			for (auto &mini : chunk->minis) {
 				mini.render_meshes(glInfo);
