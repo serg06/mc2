@@ -686,6 +686,7 @@ public:
 		Block blocks[6];
 		ivec3 corner1s[6];
 		ivec3 corner2s[6];
+		ivec3 faces[6];
 
 		ivec3 mini_coords = get_mini_coords(x, y, z);
 
@@ -698,46 +699,45 @@ public:
 
 		// SOUTH
 		//	bottom-left corner
-		corner1s[0] = block_coords + ivec3(0, 0, 1);
+		corner1s[0] = block_coords + ivec3(1, 0, 1);
 		//	top-right corner
-		corner2s[0] = block_coords + ivec3(1, 1, 1);
+		corner2s[0] = block_coords + ivec3(0, 1, 1);
+		faces[0] = ivec3(0, 0, 1);
 
 		// NORTH
 		//	bottom-left corner
-		corner1s[1] = block_coords + ivec3(1, 0, 0);
+		corner1s[1] = block_coords + ivec3(0, 0, 0);
 		//	top-right corner
-		corner2s[1] = block_coords + ivec3(0, 1, 0);
+		corner2s[1] = block_coords + ivec3(1, 1, 0);
+		faces[1] = ivec3(0, 0, -1);
 
 		// EAST
 		//	bottom-left corner
-		corner1s[2] = block_coords + ivec3(1, 0, 1);
+		corner1s[2] = block_coords + ivec3(1, 1, 1);
 		//	top-right corner
-		corner2s[2] = block_coords + ivec3(1, 1, 0);
+		corner2s[2] = block_coords + ivec3(1, 0, 0);
+		faces[2] = ivec3(1, 0, 0);
 
 		// WEST
 		//	bottom-left corner
-		corner1s[3] = block_coords + ivec3(0, 0, 0);
+		corner1s[3] = block_coords + ivec3(0, 1, 0);
 		//	top-right corner
-		corner2s[3] = block_coords + ivec3(0, 1, 1);
+		corner2s[3] = block_coords + ivec3(0, 0, 1);
+		faces[3] = ivec3(-1, 0, 0);
 
 		// UP
 		//	bottom-left corner
 		corner1s[4] = block_coords + ivec3(0, 1, 0);
 		//	top-right corner
 		corner2s[4] = block_coords + ivec3(1, 1, 1);
+		faces[4] = ivec3(0, 1, 0);
 
 		// DOWN
 		//	bottom-left corner
-		corner1s[5] = block_coords + ivec3(1, 0, 1);
+		corner1s[5] = block_coords + ivec3(0, 0, 1);
 		//	top-right corner
-		corner2s[5] = block_coords + ivec3(0, 0, 0);
-
-		//char buf[256];
-		//char *str1 = vec2str(relative_coords), *str2 = vec2str(block_coords), *str3 = vec2str(mini_coords);
-		//sprintf(buf, "Gonna highlight block %s [i.e. block %s in minichunk %s].\n", str1, str2, str3);
-		//delete[] str1; delete[] str2; delete[] str3;
-		//OutputDebugString(buf);
-
+		corner2s[5] = block_coords + ivec3(1, 0, 0);
+		faces[5] = ivec3(0, -1, 0);
 
 		GLuint quad_block_type_buf, quad_corner1_buf, quad_corner2_buf, quad_face_buf;
 
@@ -751,13 +751,13 @@ public:
 		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_face_buf, sizeof(ivec3), NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
 
 		// fill 'em up!
 		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * 6, blocks);
 		glNamedBufferSubData(quad_corner1_buf, 0, sizeof(ivec3) * 6, corner1s);
 		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * 6, corner2s);
-		glNamedBufferSubData(quad_face_buf, 0, sizeof(ivec3), ivec3(0));
+		glNamedBufferSubData(quad_face_buf, 0, sizeof(ivec3) * 6, faces);
 
 		// DRAW!
 
@@ -779,15 +779,15 @@ public:
 		GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
 
 		// DRAW!
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_DEPTH_TEST);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 6);
 
 		// restore original properties
-		if (cull_face) glEnable(GL_CULL_FACE);
-		if (depth_test) glEnable(GL_DEPTH_TEST);
+		if (cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+		if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
 		glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 
 		// unbind VAO jic

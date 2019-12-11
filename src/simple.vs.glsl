@@ -92,6 +92,11 @@ void main(void)
 	vec4 instance_offset = chunk_base + offset_in_chunk;
 	instance_offset[3] = 1;
 
+	// if it's outline, move it out a little to prevent z-fighting
+	if (q_block_type == 100) {
+		instance_offset += vec4(q_face * 0.01f, 0);
+	}
+
 	/* ADD IT TO VERTEX */
 	gl_Position = uni.proj_matrix * uni.mv_matrix * instance_offset;
 
