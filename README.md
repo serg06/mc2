@@ -14,11 +14,11 @@ Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 1
 
 - Infinite world generation, world is split into 16x256x16 chunks, chunks are split into 16x16x16 mini-chunks. One mini-chunk is rendered per draw call.
 
-- Culling: Mini-chunks are culled out when they're surrounded by blocks on all sides.
+- Culling: Mini-chunks are culled out when they're surrounded by blocks on all sides. They're also not drawn when outside the frustum (frustum culling.)
 
-- Movement: Smooth player movement (flying).
+- Movement: Smooth player movement (only flying atm.)
 
-- Collisions: By using the fact that all voxels are cubes, I've made the collision-checking be smooth and efficient.
+- Collisions: Custom super fast collision algorithm which utilizes the fact that voxels are all cubes. (Will need changing if non-cube blocks are added.)
 
 - Block textures: Some blocks now have textures.
 
