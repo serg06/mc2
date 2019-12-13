@@ -48,7 +48,7 @@ void main() {
 	uint chunk_idx = gl_WorkGroupID.x;
 
 	// index of the face we're working on
-	uint face_idx = gl_WorkGroupID.y;
+	uint face_idx = gl_WorkGroupID.y % 3;
 	bool backface = face_idx < 3;
 	ivec3 face = ivec3(0, 0, 0);
 	face[face_idx] = backface ? -1 : 1;
