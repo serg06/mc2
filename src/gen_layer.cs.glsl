@@ -66,7 +66,7 @@ void main() {
 }
 
 // get block at these coordinates
-// NOTE: Should iterate on x then y then z for best efficiency.
+// NOTE: Should iterate on x then z then y for best efficiency.
 uint get_block(const uint x, const uint y, const uint z) {
 	return mini[x + z * 16 + y * 16 * 16];
 }

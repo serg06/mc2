@@ -59,6 +59,13 @@ namespace WorldTests {
 		unsigned output[16 * 16 * 90]; // 90 16x16 layers
 		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 90 * sizeof(unsigned), output);
 
+		// read result along z in -z face direction
+
+		//void set_block(const uint u, const uint v, const uint face_idx, const uint layer_idx, const uint val) {
+		//	uint result_layer_idx = face_idx * 15 + layer_idx;
+		//	layers[u + v * 16 + result_layer_idx * 16 * 16] = val;
+		//}
+
 		OutputDebugString("wait here!\n");
 	}
 

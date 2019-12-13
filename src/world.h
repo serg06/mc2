@@ -410,7 +410,7 @@ public:
 	}
 
 	//float(&pleft)[4], float(&pright)[4], float(&ptop)[4], float(&pbottom)[4], float(&pnear)[4], float(&pfar)[4]
-	inline void render(OpenGLInfo* glInfo, const vmath::vec4 (&planes)[6]) {
+	inline void render(OpenGLInfo* glInfo, const vmath::vec4(&planes)[6]) {
 		char buf[256];
 		//sprintf(buf, "[%d] Rendering all chunks\n", rendered);
 		//OutputDebugString(buf);
@@ -452,7 +452,7 @@ public:
 	}
 
 	// check if a mini is visible in a frustum
-	static inline bool mini_in_frustum(MiniChunk* mini, const vmath::vec4 (&planes)[6]) {
+	static inline bool mini_in_frustum(MiniChunk* mini, const vmath::vec4(&planes)[6]) {
 		float radius = 28.0f;
 		return sphere_in_frustrum(mini->center_coords_v3(), radius, planes);
 	}
@@ -498,7 +498,7 @@ public:
 	}
 
 	// generate layer by grabbing face blocks directly from the minichunk
-	static inline void gen_layer_fast(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
+	static inline void gen_layer_fast(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, Block(&result)[16][16]) {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -515,34 +515,72 @@ public:
 		memset(result, (uint8_t)Block::Air, sizeof(result));
 
 		// for each coordinate
-		for (int u = 0; u < 16; u++) {
+
+		// if face is y, iterate on x then z (best speed)
+		// if face is z, iterate on x then y (best speed)
+		if (face[1] != 0 || face[2] != 0) {
+			// y or z
 			for (int v = 0; v < 16; v++) {
-				// set working indices (TODO: move u to outer loop)
-				coords[working_idx_1] = u;
-				coords[working_idx_2] = v;
+				// x
+				for (int u = 0; u < 16; u++) {
+					// set working indices (TODO: move u to outer loop)
+					coords[working_idx_1] = u;
+					coords[working_idx_2] = v;
 
-				// get block at these coordinates
-				Block block = mini->get_block(coords);
+					// get block at these coordinates
+					Block block = mini->get_block(coords);
 
-				// dgaf about air blocks
-				if (block == Block::Air) {
-					continue;
+					// dgaf about air blocks
+					if (block == Block::Air) {
+						continue;
+					}
+
+					// get face block
+					face_coords = coords + face;
+					Block face_block = mini->get_block(face_coords);
+
+					// if block's face is visible, set it
+					if (is_face_visible(block, face_block)) {
+						result[u][v] = block;
+					}
 				}
+			}
+		}
 
-				// get face block
-				face_coords = coords + face;
-				Block face_block = mini->get_block(face_coords);
 
-				// if block's face is visible, set it
-				if (is_face_visible(block, face_block)) {
-					result[u][v] = block;
+		// if face is x, iterate on z then y (best speed)
+		else if (face[0] != 0) {
+			// y
+			for (int u = 0; u < 16; u++) {
+				// z
+				for (int v = 0; v < 16; v++) {
+					// set working indices (TODO: move u to outer loop)
+					coords[working_idx_1] = u;
+					coords[working_idx_2] = v;
+
+					// get block at these coordinates
+					Block block = mini->get_block(coords);
+
+					// dgaf about air blocks
+					if (block == Block::Air) {
+						continue;
+					}
+
+					// get face block
+					face_coords = coords + face;
+					Block face_block = mini->get_block(face_coords);
+
+					// if block's face is visible, set it
+					if (is_face_visible(block, face_block)) {
+						result[u][v] = block;
+					}
 				}
 			}
 		}
 	}
 
 	// generate layer by grabbing face blocks using get_type()
-	inline void gen_layer_slow(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
+	inline void gen_layer_slow(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, Block(&result)[16][16]) {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -553,31 +591,67 @@ public:
 
 		// minichunk's coordinates
 		ivec3 minichunk_offset = mini->real_coords();
-		
+
 		// reset all to air
 		memset(result, (uint8_t)Block::Air, sizeof(result));
 
 		// for each coordinate
-		for (int u = 0; u < 16; u++) {
+
+		// if face is y, iterate on x then z (best speed)
+		// if face is z, iterate on x then y (best speed)
+		if (face[1] != 0 || face[2] != 0) {
+			// y or z
 			for (int v = 0; v < 16; v++) {
-				// set working indices (TODO: move u to outer loop)
-				coords[working_idx_1] = u;
-				coords[working_idx_2] = v;
+				// x
+				for (int u = 0; u < 16; u++) {
+					// set working indices (TODO: move u to outer loop)
+					coords[working_idx_1] = u;
+					coords[working_idx_2] = v;
 
-				// get block at these coordinates
-				Block block = mini->get_block(coords);
+					// get block at these coordinates
+					Block block = mini->get_block(coords);
 
-				// dgaf about air blocks
-				if (block == Block::Air) {
-					continue;
+					// dgaf about air blocks
+					if (block == Block::Air) {
+						continue;
+					}
+
+					// get face block
+					Block face_block = get_type(minichunk_offset + coords + face);
+
+					// if block's face is visible, set it
+					if (is_face_visible(block, face_block)) {
+						result[u][v] = block;
+					}
 				}
+			}
+		}
 
-				// get face block
-				Block face_block = get_type(minichunk_offset + coords + face);
+		// if face is x, iterate on z then y (best speed)
+		else if (face[0] != 0) {
+			// y
+			for (int u = 0; u < 16; u++) {
+				// z
+				for (int v = 0; v < 16; v++) {
+					// set working indices (TODO: move u to outer loop)
+					coords[working_idx_1] = u;
+					coords[working_idx_2] = v;
 
-				// if block's face is visible, set it
-				if (is_face_visible(block, face_block)) {
-					result[u][v] = block;
+					// get block at these coordinates
+					Block block = mini->get_block(coords);
+
+					// dgaf about air blocks
+					if (block == Block::Air) {
+						continue;
+					}
+
+					// get face block
+					Block face_block = get_type(minichunk_offset + coords + face);
+
+					// if block's face is visible, set it
+					if (is_face_visible(block, face_block)) {
+						result[u][v] = block;
+					}
 				}
 			}
 		}
@@ -587,7 +661,7 @@ public:
 		return face_block.is_transparent() || (block != Block::Water && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
-	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
+	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, Block(&result)[16][16]) {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
