@@ -91,6 +91,17 @@ namespace {
 		glUseProgram(glInfo->rendering_program);
 	}
 
+	void setup_gen_layer_program(OpenGLInfo* glInfo) {
+		// list of shaders to create program with
+		// TODO: Embed these into binary somehow - maybe generate header file with cmake.
+		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+			{ "../src/gen_layer.cs.glsl", GL_COMPUTE_SHADER},
+		};
+
+		// create program
+		glInfo->gen_layer_program = compile_shaders(shader_fnames);
+	}
+
 	void setup_opengl_vao_cube(OpenGLInfo* glInfo) {
 		const GLfloat(&cube)[108] = shapes::cube_full;
 
@@ -431,6 +442,7 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 void setup_opengl(OpenGLInfo* glInfo) {
 	// setup shaders
 	setup_opengl_program(glInfo);
+	setup_gen_layer_program(glInfo);
 
 	// setup VAOs
 	//setup_opengl_vao_cube(glInfo);

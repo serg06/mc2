@@ -25,6 +25,7 @@ struct GlfwInfo {
 struct OpenGLInfo {
 	// program
 	GLuint rendering_program;
+	GLuint gen_layer_program;
 
 	// VAOs
 	GLuint vao_cube, vao_quad;
