@@ -6,16 +6,128 @@
 
 namespace WorldTests {
 
-	void run_all_tests() {
+	void run_all_tests(OpenGLInfo *glInfo) {
 		test_gen_quads();
 		test_mark_as_merged();
 		test_get_max_size();
 		test_gen_layer();
+		test_gen_layers_compute_shader(glInfo);
 		OutputDebugString("WorldTests completed successfully.\n");
 	}
 
+	void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
+		// gen chunk at 0,0
+		Chunk* chunk = gen_chunk_data(0, 0);
+
+		// grab first mini that has stone, grass, and air blocks
+		MiniChunk* mini;
+		for (auto &mini2 : chunk->minis) {
+			bool has_air = false, has_stone = false, has_grass = false;
+			for (int i = 0; i < MINICHUNK_SIZE; i++) {
+				has_air |= mini2.data[i] == Block::Air;
+				has_stone |= mini2.data[i] == Block::Stone;
+				has_grass |= mini2.data[i] == Block::Grass;
+			}
+
+			if (has_air && has_stone && has_grass) {
+				mini = &mini2;
+			}
+		}
+
+		if (mini == nullptr) {
+			throw "No sufficient minis!";
+		}
+
+		// use program
+		glUseProgram(glInfo->gen_layer_program);
+
+		// fill input buffer
+		unsigned data[MINICHUNK_SIZE];
+		for (int i = 0; i < MINICHUNK_SIZE; i++) {
+			data[i] = (uint8_t)mini->data[i];
+		}
+		glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned), data);
+
+		// run program
+		glDispatchCompute(
+			1, // 1 minichunk
+			6, // 6 faces
+			15 // 15 layers per face
+		);
+
+		// read result
+		unsigned output[16 * 16 * 90]; // 90 16x16 layers
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 90 * sizeof(unsigned), output);
+
+		OutputDebugString("wait here!\n");
+	}
+
 	void test_gen_layer() {
-		// fuck this is too hard
+		// gen chunk at 0,0
+		Chunk* chunk = gen_chunk_data(0, 0);
+
+		// grab first mini that has stone, grass, and air blocks
+		MiniChunk* mini;
+		for (auto &mini2 : chunk->minis) {
+			bool has_air = false, has_stone = false, has_grass = false;
+			for (int i = 0; i < MINICHUNK_SIZE; i++) {
+				has_air |= mini2.data[i] == Block::Air;
+				has_stone |= mini2.data[i] == Block::Stone;
+				has_grass |= mini2.data[i] == Block::Grass;
+			}
+
+			if (has_air && has_stone && has_grass) {
+				mini = &mini2;
+			}
+		}
+
+		if (mini == nullptr) {
+			throw "No sufficient minis!";
+		}
+
+		// grab 2nd layer facing us in z direction
+		Block result[16][16];
+		int z = 1;
+		ivec3 face = { 0, 0, -1 };
+
+		for (int x = 0; x < 16; x++) {
+			for (int y = 0; y < 16; y++) {
+				// set working indices (TODO: move u to outer loop)
+				ivec3 coords = { x, y, z };
+
+				// get block at these coordinates
+				Block block = mini->get_block(coords);
+
+				// dgaf about air blocks
+				if (block == Block::Air) {
+					continue;
+				}
+
+				// get face block
+				Block face_block = mini->get_block(coords + face);
+
+				// if block's face is visible, set it
+				if (World::is_face_visible(block, face_block)) {
+					result[x][y] = block;
+				}
+			}
+		}
+
+		// Do the same with gen_layer_fast
+		Block expected[16][16];
+		World::gen_layer_fast(mini, 2, 1, face, result);
+
+		// Make sure they're the same
+		for (int x = 0; x < 16; x++) {
+			for (int y = 0; y < 16; y++) {
+				if (result[x][y] != expected[x][y]) {
+					throw "It broke!";
+				}
+			}
+		}
+	
+		// free
+		chunk->free_data();
 	}
 
 	void test_gen_quads() {

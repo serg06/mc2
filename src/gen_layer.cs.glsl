@@ -36,7 +36,7 @@ layout(std430, binding=0) buffer MINI {
 };
 
 // minichunk output (TODO: support multiple minichunks)
-layout(std430, binding=0) buffer LAYERS { 
+layout(std430, binding=1) buffer LAYERS { 
 	uint layers[]; 
 };
 
@@ -60,9 +60,6 @@ void main() {
 	// index of element in current layer
 	uint layer_x = gl_LocalInvocationID.x;
 	uint layer_y = gl_LocalInvocationID.y;
-
-	// get working axes
-	// ...
 
 	// just plug in my usual gen_layer algorithm!
 	go(face_idx, layer_idx, face, layer_x, layer_y);

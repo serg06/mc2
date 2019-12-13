@@ -43,11 +43,12 @@ inline bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
 }
 
 namespace WorldTests {
+	void run_all_tests(OpenGLInfo* glInfo);
 	void test_gen_quads();
-	void run_all_tests();
 	void test_mark_as_merged();
 	void test_get_max_size();
 	void test_gen_layer();
+	void test_gen_layers_compute_shader(OpenGLInfo *glInfo);
 }
 
 // represents an in-game world
@@ -438,6 +439,8 @@ public:
 		//sprintf(buf, "Drawing %d/%d\tvisible minis.\n", minis_to_draw.size(), num_visible);
 		//OutputDebugString(buf);
 
+		glUseProgram(glInfo->rendering_program);
+
 		for (auto &mini : minis_to_draw) {
 			mini.render_meshes(glInfo);
 		}
@@ -494,27 +497,19 @@ public:
 		return result;
 	}
 
-	// TODO: Test with __forceinline
-	// extract a layer from data, replacing covered faces with air, and checking covered faces via `face` variable
-	// layers_idx: The index of the coordinate in {x, y, z} that we're currently traversing, layer by layer.
-	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
-		// NOTE: Regardless of what order we're doing layers,
-		//       `face` = face that we wanna check. So e.g. if you wanna check face on -x side, need to pass (-1, 0, 0);
-		assert(length(face) == 1);
-
-		// error check
-		assert(face[layers_idx] && "wrong face, fool");
-
+	// generate layer by grabbing face blocks directly from the minichunk
+	static inline void gen_layer_fast(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
 
-		assert(layers_idx != working_idx_1 && working_idx_1 != working_idx_2 && working_idx_2 != layers_idx);
-		assert(layers_idx + working_idx_1 + working_idx_2 == 3);
+		// get coordinates of a random block
+		ivec3 coords = { 0, 0, 0 };
+		coords[layers_idx] = layer_no;
+		ivec3 face_coords = coords + face;
 
-		// TODO: Maybe make this method static by passing in surrounding minis.
-
-		ivec3 minichunk_offset = { mini->coords[0] * 16, mini->coords[1], mini->coords[2] * 16 };
+		// make sure face not out of bounds
+		assert(in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15)) && "Face outside minichunk.");
 
 		// reset all to air
 		memset(result, (uint8_t)Block::Air, sizeof(result));
@@ -522,8 +517,7 @@ public:
 		// for each coordinate
 		for (int u = 0; u < 16; u++) {
 			for (int v = 0; v < 16; v++) {
-				ivec3 coords;
-				coords[layers_idx] = layer_no;
+				// set working indices (TODO: move u to outer loop)
 				coords[working_idx_1] = u;
 				coords[working_idx_2] = v;
 
@@ -535,23 +529,80 @@ public:
 					continue;
 				}
 
-				ivec3 face_coords = coords + face;
-				Block face_block;
-
-				// if in range of mini, get face block via mini's data
-				if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
-					face_block = mini->get_block(face_coords);
-				}
-				// else get it from its chunk data
-				else {
-					face_block = get_type(minichunk_offset + face_coords);
-				}
+				// get face block
+				face_coords = coords + face;
+				Block face_block = mini->get_block(face_coords);
 
 				// if block's face is visible, set it
-				if (face_block.is_transparent() || (block != Block::Water && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent())) {
+				if (is_face_visible(block, face_block)) {
 					result[u][v] = block;
 				}
 			}
+		}
+	}
+
+	// generate layer by grabbing face blocks using get_type()
+	inline void gen_layer_slow(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
+		// working indices are always gonna be xy, xz, or yz.
+		int working_idx_1, working_idx_2;
+		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
+
+		// coordinates of current block
+		ivec3 coords = { 0, 0, 0 };
+		coords[layers_idx] = layer_no;
+
+		// minichunk's coordinates
+		ivec3 minichunk_offset = mini->real_coords();
+		
+		// reset all to air
+		memset(result, (uint8_t)Block::Air, sizeof(result));
+
+		// for each coordinate
+		for (int u = 0; u < 16; u++) {
+			for (int v = 0; v < 16; v++) {
+				// set working indices (TODO: move u to outer loop)
+				coords[working_idx_1] = u;
+				coords[working_idx_2] = v;
+
+				// get block at these coordinates
+				Block block = mini->get_block(coords);
+
+				// dgaf about air blocks
+				if (block == Block::Air) {
+					continue;
+				}
+
+				// get face block
+				Block face_block = get_type(minichunk_offset + coords + face);
+
+				// if block's face is visible, set it
+				if (is_face_visible(block, face_block)) {
+					result[u][v] = block;
+				}
+			}
+		}
+	}
+
+	static inline bool is_face_visible(Block &block, Block &face_block) {
+		return face_block.is_transparent() || (block != Block::Water && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
+	}
+
+	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, ivec3 face, Block(&result)[16][16]) {
+		// working indices are always gonna be xy, xz, or yz.
+		int working_idx_1, working_idx_2;
+		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
+
+		// get coordinates of a random block
+		ivec3 coords = { 0, 0, 0 };
+		coords[layers_idx] = layer_no;
+		ivec3 face_coords = coords + face;
+
+		// choose function based on whether we can gather face data from inside the minichunk
+		if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
+			return gen_layer_fast(mini, layers_idx, layer_no, face, result);
+		}
+		else {
+			return gen_layer_slow(mini, layers_idx, layer_no, face, result);
 		}
 	}
 

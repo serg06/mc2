@@ -32,8 +32,6 @@ using namespace vmath;
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	WorldTests::run_all_tests();
-
 	glfwSetErrorCallback(glfw_onError);
 	App::app = new App();
 	App::app->run();
@@ -88,6 +86,9 @@ void App::startup() {
 
 	// prepare opengl
 	setup_opengl(&glInfo);
+
+	// run tests
+	WorldTests::run_all_tests(&glInfo);
 }
 
 void App::render(float time) {
@@ -508,7 +509,7 @@ void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity,
 	bufp += sprintf(bufp, "\n");
 
 	OutputDebugString(buf);
-	exit(-1);
+	//exit(-1);
 }
 
 void App::onMouseButton(int button, int action) {

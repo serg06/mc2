@@ -439,6 +439,26 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 	glBindTextureUnit(1, glInfo->grass_side);
 }
 
+void setup_opengl_storage_blocks(OpenGLInfo* glInfo) {
+	// size of buffer we'll need
+	// TODO: fill 'er up with bytes instead of uints
+	GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned); // 1 minichunk = 16 layers
+	GLuint layers_bufsize = 16 * 16 * 90 * sizeof(unsigned); // (16-1) layers * 6 faces = 90 layers
+
+	// mini buffer
+	// TODO: Change both buffers to use glNamedBufferStorage()
+	glCreateBuffers(1, &glInfo->gen_layer_mini_buf);
+	glNamedBufferData(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_DYNAMIC_DRAW);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_mini_ssbidx, glInfo->gen_layer_mini_buf);
+
+	// layers buffer
+	glCreateBuffers(1, &glInfo->gen_layer_layers_buf);
+	glNamedBufferData(glInfo->gen_layer_layers_buf, layers_bufsize, NULL, GL_DYNAMIC_READ);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_layers_ssbidx, glInfo->gen_layer_layers_buf);
+}
+
 void setup_opengl(OpenGLInfo* glInfo) {
 	// setup shaders
 	setup_opengl_program(glInfo);
@@ -450,6 +470,9 @@ void setup_opengl(OpenGLInfo* glInfo) {
 
 	// setup uniforms
 	setup_opengl_uniforms(glInfo);
+
+	// setup ssbs
+	setup_opengl_storage_blocks(glInfo);
 
 	// setup extra [default] properties
 	setup_opengl_extra_props(glInfo);

@@ -30,9 +30,13 @@ struct OpenGLInfo {
 	// VAOs
 	GLuint vao_cube, vao_quad;
 
-	// buffers
-	GLuint trans_buf; // transformations buffer - currently stores view and projection transformations.
-	GLuint vert_buf; // vertices buffer - currently stores vertices for a single 3D cube
+	// render buffers
+	GLuint trans_buf = 0; // transformations buffer - currently stores view and projection transformations.
+	GLuint vert_buf = 0; // vertices buffer - currently stores vertices for a single 3D cube
+
+	// gen_layer buffers
+	GLuint gen_layer_mini_buf = 0;
+	GLuint gen_layer_layers_buf = 0;
 
 	// textures
 	GLuint grass_top;
@@ -42,7 +46,7 @@ struct OpenGLInfo {
 	GLuint side_textures;
 	GLuint bottom_textures;
 
-	// binding points
+	// render binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
 	const GLuint chunk_types_bidx = 1;
 
@@ -53,6 +57,10 @@ struct OpenGLInfo {
 
 	// uniform binding points
 	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
+
+	// render shader storage block binding points
+	const GLuint gen_layer_mini_ssbidx = 0;
+	const GLuint gen_layer_layers_ssbidx = 1;
 
 	// attribute indices
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
