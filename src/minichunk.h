@@ -137,10 +137,10 @@ public:
 
 		// up/down
 		if (coords[1] < BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) {
-			result.push_back(coords + IUP);
+			result.push_back(coords + IUP * MINICHUNK_HEIGHT);
 		}
 		if (coords[1] > 0) {
-			result.push_back(coords + IDOWN);
+			result.push_back(coords + IDOWN * MINICHUNK_HEIGHT);
 		}
 
 		return result;
