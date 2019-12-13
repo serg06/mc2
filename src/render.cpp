@@ -15,6 +15,10 @@
 #include <vector>
 #include <vmath.h>
 
+#define BLOCK_TEXTURE_WIDTH 16
+#define BLOCK_TEXTURE_HEIGHT 16
+#define TEXTURE_COMPONENTS 4
+
 namespace fs = std::experimental::filesystem;
 using namespace vmath;
 
@@ -186,12 +190,10 @@ namespace {
 	}
 }
 
-// load texture data for a block
-void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
-	// resolve texture filename
-	char fname[256];
-	sprintf(fname, "./textures/blocks/%s.png", tex_name);
-
+// load texture from file
+// writes width*height*4 floats to result
+void load_texture_data(const char* fname, unsigned width, unsigned height, float* result) {
+	// check that file exists
 	if (!fs::exists(fname)) {
 		char buf[256];
 		sprintf(buf, "Error: File '%s' doesn't exist!\n", fname);
@@ -200,22 +202,31 @@ void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
 	}
 
 	// load in texture from disk
-	int width, height, components;
-	unsigned char *imgdata = stbi_load(fname, &width, &height, &components, 0);
+	int tex_width, tex_height, tex_components;
+	unsigned char *imgdata = stbi_load(fname, &tex_width, &tex_height, &tex_components, 0);
 
 	// make sure it's correct dimensions
-	if (height != 16 || width != 16 || components != 4) {
-		throw "Invalid dimensions!";
+	if (tex_height != height || tex_width != width || tex_components != TEXTURE_COMPONENTS) {
+		char buf[256];
+		sprintf(buf, "Error: File '%s' has unexpected dimensions!\n", fname);
+		WindowsException(buf);
+		exit(-1);
 	}
 
-	// convert data to floats
-	for (int i = 0; i < height*width*components; i++) {
-		data[i] = imgdata[i] / 255.0f;
+	// write result as floats
+	for (int i = 0; i < height*width*tex_components; i++) {
+		result[i] = imgdata[i] / 255.0f;
 	}
 
 	// free
 	stbi_image_free(imgdata);
+}
 
+// load texture data for a block
+void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
+	char fname[256];
+	sprintf(fname, "./textures/blocks/%s.png", tex_name);
+	load_texture_data(fname, 16, 16, data);
 
 	/* SPECIAL CASES START */
 
@@ -223,7 +234,7 @@ void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
 
 	// gray by default, let's color it green.
 	if (strcmp(tex_name, "grass_top") == 0) {
-		for (int i = 0; i < height*width*components; i++) {
+		for (int i = 0; i < BLOCK_TEXTURE_HEIGHT * BLOCK_TEXTURE_WIDTH * TEXTURE_COMPONENTS; i++) {
 			// RED
 			if ((i % 4) == 0) {
 				data[i] *= 115 / 255.0f;
@@ -245,7 +256,7 @@ void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
 
 	// let's make sure non-transparent spots are 100% non-transparent
 	if (strcmp(tex_name, "leaves") == 0) {
-		for (int i = 0; i < height*width*components; i++) {
+		for (int i = 0; i < BLOCK_TEXTURE_HEIGHT * BLOCK_TEXTURE_WIDTH * TEXTURE_COMPONENTS; i++) {
 			// RED
 			if ((i % 4) == 0) {
 				data[i] *= 115 / 255.0f;
