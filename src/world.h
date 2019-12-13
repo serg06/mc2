@@ -5,6 +5,7 @@
 #include "chunkdata.h"
 #include "minichunkmesh.h"
 #include "render.h"
+#include "shapes.h"
 #include "util.h"
 
 #include "GL/gl3w.h"
@@ -681,7 +682,7 @@ public:
 		return (ds > 0 ? ceil(s) - s : s - floor(s)) / abs(ds);
 	}
 
-	inline void highlight_block(OpenGLInfo* glInfo, int x, int y, int z) {
+	inline void highlight_block(OpenGLInfo* glInfo, GlfwInfo* windowInfo, int x, int y, int z) {
 		// Figure out corners / block types
 		Block blocks[6];
 		ivec3 corner1s[6];
@@ -778,6 +779,15 @@ public:
 		GLint cull_face = glIsEnabled(GL_CULL_FACE);
 		GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
 
+		// Update projection matrix (increase near distance a bit, to fix z-fighting)
+		mat4 proj_matrix = perspective(
+			(float)windowInfo->vfov, // virtual fov
+			(float)windowInfo->width / (float)windowInfo->height, // aspect ratio
+			(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1.001f / sqrtf(2.0f), // see blocks no matter how close they are
+			64 * CHUNK_WIDTH // only support 64 chunks for now
+		);
+		glNamedBufferSubData(glInfo->trans_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
+
 		// DRAW!
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
@@ -790,6 +800,15 @@ public:
 		if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
 		glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 
+		proj_matrix = perspective(
+			(float)windowInfo->vfov, // virtual fov
+			(float)windowInfo->width / (float)windowInfo->height, // aspect ratio
+			(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // see blocks no matter how close they are
+			64 * CHUNK_WIDTH // only support 64 chunks for now
+		);
+		glNamedBufferSubData(glInfo->trans_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
+
+
 		// unbind VAO jic
 		glBindVertexArray(0);
 
@@ -799,7 +818,7 @@ public:
 		glDeleteBuffers(1, &quad_corner2_buf);
 	}
 
-	inline void highlight_block(OpenGLInfo* glInfo, ivec3 xyz) { return highlight_block(glInfo, xyz[0], xyz[1], xyz[2]); }
+	inline void highlight_block(OpenGLInfo* glInfo, GlfwInfo* windowInfo, ivec3 xyz) { return highlight_block(glInfo, windowInfo, xyz[0], xyz[1], xyz[2]); }
 
 
 	// make sure a block isn't air

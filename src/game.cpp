@@ -177,7 +177,7 @@ void App::render(float time) {
 
 	// highlight block we're staring at, if it's valid
 	if (staring_at[1] >= 0) {
-		world->highlight_block(&glInfo, staring_at);
+		world->highlight_block(&glInfo, &windowInfo, staring_at);
 	}
 
 	//// TODO: Draw box around the square we're looking at.
