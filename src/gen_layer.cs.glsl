@@ -48,7 +48,7 @@ uint get_block(const uint x, const uint y, const uint z, const uint chunk_idx) {
 
 //uint get_block(const uvec3 xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
 uint get_block(const uvec3 xyz, const uint chunk_idx) {
-	return mini[xyz[0] + xyz[1] * 256 + xyz[2] * 16 + chunk_idx * 16 * 16 * 16];
+	return mini[xyz[0] + xyz[1] * 16 * 16 + xyz[2] * 16 + chunk_idx * 16 * 16 * 16];
 }
 
 bool is_transparent(uint block) { return block == BLOCK_AIR; }
@@ -71,8 +71,8 @@ void main() {
 	int working_idx_2 = local_face_idx == 2 ? 1 : 2;
 
 	// index of the layer we're working on, relative to face
-	// NOTE: this goes from 0 to 14 (inclusive) because 1 layer in each direction cannot see its face (not in mini)
-	uint layer_idx = gl_WorkGroupID.z;
+	// if backface (face going negative), increment layer index by 1, since can't check first face otherwise
+	uint layer_idx = backface ? gl_WorkGroupID.z + 1 : gl_WorkGroupID.z;
 
 	// index of element in current layer
 	uint u = gl_LocalInvocationID.x;
@@ -84,12 +84,6 @@ void main() {
 	coords[local_face_idx] = layer_idx;
 	coords[working_idx_1] = u;
 	coords[working_idx_2] = v;
-
-	// IF FACE IS NEGATIVE, SUBTRACT IT, CUZ BEHIND FIRST LAYER IS NOTHING.
-	// TODO: can be checked by just doing if(backface)
-	if (face[0] < 0 || face[1] < 0 || face[2] < 0) {
-		coords -= face;
-	}
 
 	// get block and face block for these coords
 	uint block = get_block(coords, chunk_idx);
@@ -104,5 +98,5 @@ void main() {
 	}
 
 	// done!
-	layers[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 15 * 16 * 16 + chunk_idx * 6 * 15 * 16 * 16] = result_block;
+	layers[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + chunk_idx * 6 * 16 * 16 * 16] = result_block;
 }
