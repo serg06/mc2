@@ -137,8 +137,8 @@ namespace WorldTests {
 		//Chunk* chunk = gen_chunk_data(0, 0);
 
 		// generate 128 minichunks
-		Chunk* chunks[8];
-		for (int i = 0; i < 8; i++) {
+		Chunk* chunks[64];
+		for (int i = 0; i < 64; i++) {
 			chunks[i] = gen_chunk_data(0, i);
 		}
 
@@ -160,7 +160,7 @@ namespace WorldTests {
 		glUseProgram(glInfo->gen_layer_program);
 
 		// fill input buffer
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 64; i++) {
 			for (int j = 0; j < 16; j++) {
 				auto &mini = chunks[i]->minis[j];
 
@@ -196,7 +196,7 @@ namespace WorldTests {
 		auto start_manual_1 = std::chrono::high_resolution_clock::now();
 
 		// for each face
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 64; i++) {
 			for (int j = 0; j < 16; j++) {
 				auto &mini = chunks[i]->minis[j];
 				
@@ -224,10 +224,6 @@ namespace WorldTests {
 		auto finish_manual_1 = std::chrono::high_resolution_clock::now();
 		long result_manual_1 = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_manual_1 - start_manual_1).count();
 
-		char buf[256];
-		sprintf(buf, "compute shader time: %ld\nmanual time: %ld\n", result_compute_1, result_manual_1);
-		OutputDebugString(buf);
-
 
 		//// read and print results
 		//for (int i = 0; i < 8; i++) {
@@ -239,10 +235,51 @@ namespace WorldTests {
 		//}
 
 		// read and print results for chunk[0]->minis[4] ((0, 64, 0))
-		// Looks right to me!!
 		unsigned output[16 * 16 * 96]; // 96 16x16 layers
 		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * (0*16 + 4), 16 * 16 * 96 * sizeof(unsigned), output);
 		print_nonzero_cs_output_layers(output);
+
+		auto start_bigread = std::chrono::high_resolution_clock::now();
+
+		unsigned *big_output = new unsigned[16 * 16 * 96 * 1024];
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * 1024, big_output);
+
+		auto finish_bigread = std::chrono::high_resolution_clock::now();
+		long result_bigread = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_bigread - start_bigread).count();
+
+		char buf[256];
+		sprintf(buf, "compute shader time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_compute_1 / 1000000.0f, result_manual_1 / 1000000.0f, result_bigread / 1000000.0f);
+		OutputDebugString(buf);
+
+		/*
+		STATS (Release) (8 chunks / 128 minis):
+			Compute shader:
+				generate layers for 128 minis: 0.98 ms
+				read 128*96 layers from GPU: 4.41 ms
+			Manual:
+				generate layers for 128 minis: 14.77 ms
+
+			So compute shader took 36% of the time.
+				
+		STATS (Release) (64 chunks / 1024 minis):
+			Compute shader:
+				generate layers for 128 minis: 1.43 ms
+				read 128*96 layers from GPU: 123.85 ms
+			Manual:
+				generate layers for 128 minis: 36.05 ms
+
+			So compute shader took 30% of the time again.
+
+		PROBLEM:
+			Reading back layers from GPU takes so fucking long.
+
+		SOLUTION?:
+			Don't need all that data! Just generate quads right on the GPU.
+
+		NOTE:
+			Shader block size can always be made 128MB, and can usually be infinitely large (until GPU memory fills up.)
+			Thus, using 100KB per mini, we can fit AT LEAST 1024 minis (64 chunks) at once.
+		*/
 
 		//// count all non-zero faces
 		//int num_nonzero = 0;

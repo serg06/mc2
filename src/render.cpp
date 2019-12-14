@@ -442,8 +442,8 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 void setup_opengl_storage_blocks(OpenGLInfo* glInfo) {
 	// size of buffer we'll need
 	// TODO: fill 'er up with bytes instead of uints
-	GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned) * 128; // 1 minichunk = 16 layers
-	GLuint layers_bufsize = 16 * 16 * 96 * sizeof(unsigned) * 128; // (16-1) layers * 6 faces = 90 layers
+	GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned) * 1024; // 1 minichunk = 16 layers
+	GLuint layers_bufsize = 16 * 16 * 96 * sizeof(unsigned) * 1024; // (16-1) layers * 6 faces = 90 layers
 
 	// mini buffer
 	// TODO: Change both buffers to use glNamedBufferStorage()
