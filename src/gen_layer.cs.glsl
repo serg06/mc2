@@ -40,7 +40,19 @@ layout(std430, binding=1) buffer LAYERS {
 	uint layers[]; 
 };
 
-void go(const uint face_idx, const uint layer_idx, const ivec3 face, const uint u, const uint v);
+// get block at these coordinates
+// NOTE: Should iterate on x then z then y for best efficiency.
+uint get_block(const uint x, const uint y, const uint z, const uint chunk_idx) {
+	return mini[x + z * 16 + y * 16 * 16 + chunk_idx * 16 * 16 * 16];
+}
+
+//uint get_block(const uvec3 xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
+uint get_block(const uvec3 xyz, const uint chunk_idx) {
+	return mini[xyz[0] + xyz[1] * 256 + xyz[2] * 16 + chunk_idx * 16 * 16 * 16];
+}
+
+bool is_transparent(uint block) { return block == BLOCK_AIR; }
+bool is_translucent(uint block) { return translucent_blocks[block]; }
 
 // TODO: Incorporate backface.
 void main() { 
@@ -48,49 +60,28 @@ void main() {
 	uint chunk_idx = gl_WorkGroupID.x;
 
 	// index of the face we're working on
-	uint face_idx = gl_WorkGroupID.y % 3;
-	bool backface = face_idx < 3;
+	uint global_face_idx = gl_WorkGroupID.y;
+	uint local_face_idx = global_face_idx % 3;
+	bool backface = global_face_idx < 3;
 	ivec3 face = ivec3(0, 0, 0);
-	face[face_idx] = backface ? -1 : 1;
+	face[local_face_idx] = backface ? -1 : 1;
+
+	// working indices are always gonna be xy, xz, or yz.
+	int working_idx_1 = local_face_idx == 0 ? 1 : 0;
+	int working_idx_2 = local_face_idx == 2 ? 1 : 2;
 
 	// index of the layer we're working on, relative to face
 	// NOTE: this goes from 0 to 14 (inclusive) because 1 layer in each direction cannot see its face (not in mini)
 	uint layer_idx = gl_WorkGroupID.z;
 
 	// index of element in current layer
-	uint layer_x = gl_LocalInvocationID.x;
-	uint layer_y = gl_LocalInvocationID.y;
+	uint u = gl_LocalInvocationID.x;
+	uint v = gl_LocalInvocationID.y;
 
 	// just plug in my usual gen_layer algorithm!
-	go(face_idx, layer_idx, face, layer_x, layer_y);
-}
-
-// get block at these coordinates
-// NOTE: Should iterate on x then z then y for best efficiency.
-uint get_block(const uint x, const uint y, const uint z) {
-	return mini[x + z * 16 + y * 16 * 16];
-}
-
-uint get_block(const uvec3 xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
-
-// set block at these coordinates
-// NOTE: Should iterate on u then v then layer_idx then face_idx, for best efficiency.
-void set_block(const uint u, const uint v, const uint face_idx, const uint layer_idx, const uint val) {
-	uint result_layer_idx = face_idx * 15 + layer_idx;
-	layers[u + v * 16 + result_layer_idx * 16 * 16] = val;
-}
-
-bool is_transparent(uint block) { return block == BLOCK_AIR; }
-bool is_translucent(uint block) { return translucent_blocks[block]; }
-
-void go(const uint face_idx, const uint layer_idx, const ivec3 face, const uint u, const uint v) {
-	// working indices are always gonna be xy, xz, or yz.
-	int working_idx_1 = face_idx == 0 ? 1 : 0;
-	int working_idx_2 = face_idx == 2 ? 1 : 2;
-
 	// get coords of block we want
 	uvec3 coords;
-	coords[face_idx] = layer_idx;
+	coords[local_face_idx] = layer_idx;
 	coords[working_idx_1] = u;
 	coords[working_idx_2] = v;
 
@@ -101,8 +92,8 @@ void go(const uint face_idx, const uint layer_idx, const ivec3 face, const uint 
 	}
 
 	// get block and face block for these coords
-	uint block = get_block(coords);
-	uint face_block = get_block(coords + face);
+	uint block = get_block(coords, chunk_idx);
+	uint face_block = get_block(coords + face, chunk_idx);
 
 	// result we're gonna write
 	uint result_block = BLOCK_AIR;
@@ -113,9 +104,5 @@ void go(const uint face_idx, const uint layer_idx, const ivec3 face, const uint 
 	}
 
 	// done!
-	set_block(u, v, face_idx, layer_idx, result_block);
-}
-
-void assert(bool test){
-	// TODO: Write error to output error buffer.
+	layers[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 15 * 16 * 16 + chunk_idx * 6 * 15 * 16 * 16] = result_block;
 }

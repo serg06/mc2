@@ -1,5 +1,7 @@
 #include "world.h"
 
+#include <chrono>
+
 /*************************************************************/
 /* PLACING TESTS IN HERE UNTIL I LEARN HOW TO DO IT PROPERLY */
 /*************************************************************/
@@ -15,7 +17,208 @@ namespace WorldTests {
 		OutputDebugString("WorldTests completed successfully.\n");
 	}
 
+	void get_layer_from_cs_output(unsigned *output, ivec3 face, int layer_idx, unsigned(&result)[16 * 16]) {
+		int face_idx = face[0] != 0 ? 0 : face[1] != 0 ? 1 : 2;
+		assert(face[face_idx] != 0);
+		bool backface = face[face_idx] < 0; // double check
+		int working_idx_1, working_idx_2;
+		gen_working_indices(face_idx, working_idx_1, working_idx_2);
+
+		// get global face idx
+		int global_face_idx = face_idx;
+		if (!backface) {
+			global_face_idx += 3;
+		}
+
+		// get resulting layer idx
+		int result_layer_idx = global_face_idx * 15 + layer_idx;
+
+		unsigned *layer_start = output + result_layer_idx * 16 * 16;
+
+		// extract
+		for (int u = 0; u < 16; u++) {
+			for (int v = 0; v < 16; v++) {
+				result[u + v * 16] = layer_start[u + v * 16];
+			}
+		}
+
+		/*
+		uint result_layer_idx = global_face_idx * 15 + layer_idx;
+		layers[u + v * 16 + result_layer_idx * 16 * 16] = val;
+		*/
+	}
+
+	void print_nonzero_cs_output_layers(unsigned *output) {
+		// for each face
+		for (int global_face_idx = 0; global_face_idx < 6; global_face_idx++) {
+			bool backface = global_face_idx < 3;
+			ivec3 face = { 0, 0, 0 };
+			face[global_face_idx % 3] = backface ? -1 : 1;
+
+			int working_idx_1, working_idx_2;
+			gen_working_indices(global_face_idx % 3, working_idx_1, working_idx_2);
+
+			// go through layers one-by-one
+			for (int layer_idx = 0; layer_idx < 15; layer_idx++) {
+				// get layer index in output
+				int result_layer_idx = global_face_idx * 15 + layer_idx;
+
+				// get start of layer
+				unsigned *layer_start = output + result_layer_idx * 16 * 16;
+
+				// check if layer has non-zero element
+				bool has_nonzero = false;
+				for (int i = 0; i < 16 * 16; i++) {
+					if (layer_start[i] != 0) {
+						has_nonzero = true;
+						break;
+					}
+				}
+
+				// if layer has a non-zero element, print it
+				if (has_nonzero) {
+					OutputDebugString("NONZERO LAYER:\n");
+					char* result = new char[16 * 16 * 8]; // up to 8 chars per block type
+					char* tmp = result;
+
+					char nonzero_coords[16*16*16];
+					char* tmp2 = nonzero_coords;
+					tmp2 += sprintf(tmp2, "Coords: ");
+
+					for (int u = 0; u < 16; u++) {
+						tmp += sprintf(tmp, "[ ");
+
+						for (int v = 0; v < 16; v++) {
+							ivec3 coords = { 0, 0, 0 };
+							coords[global_face_idx % 3] = layer_idx;
+							coords[working_idx_1] = u;
+							coords[working_idx_2] = v;
+
+							tmp += sprintf(tmp, "%d ", layer_start[u + v * 16]);
+
+							if (layer_start[u + v * 16] != 0) {
+								if (backface) {
+									coords[global_face_idx % 3] = layer_idx + 1;
+								}
+								char* s = vec2str(coords);
+								tmp2 += sprintf(tmp2, "%s ", s);
+								delete[] s;
+							}
+						}
+
+						tmp += sprintf(tmp, "]\n");
+					}
+
+					OutputDebugString(result);
+
+					OutputDebugString(nonzero_coords);
+					OutputDebugString("\n");
+
+					OutputDebugString("\n");
+				}
+			}
+		}
+		// LATEST:
+		// DONE! WORKS!
+		// NOW TRY RUNNING IT ON THE ACTUAL MINI AT (0,64,0) AND MAKING SURE IT MATCHES GEN_LAYERS!
+	}
+
 	void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
+		// gen chunk at 0,0
+		Chunk* chunk = gen_chunk_data(0, 0);
+
+		// grab mini at 0,0,0
+		MiniChunk &mini = chunk->minis[0];
+
+		// set all to air
+		mini.set_all_air();
+
+		// have a single block -- at (0,0,0) -- be stone
+		// so 3 of its faces should be visible.
+
+		mini.set_block(5, 5, 5, Block::Stone);
+		mini.set_block(5, 6, 5, Block::Stone);
+		mini.set_block(6, 5, 5, Block::Stone);
+		mini.set_block(6, 6, 5, Block::Stone);
+
+		// use program
+		glUseProgram(glInfo->gen_layer_program);
+
+		// fill input buffer
+		unsigned data[MINICHUNK_SIZE];
+		for (int i = 0; i < MINICHUNK_SIZE; i++) {
+			data[i] = (uint8_t)mini.data[i];
+		}
+		glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned), data);
+
+		auto start_compute_1 = std::chrono::high_resolution_clock::now();
+
+		// run program
+		glDispatchCompute(
+			1, // 1 minichunk
+			6, // 6 faces
+			15 // 15 layers per face
+		);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		auto finish_compute_1 = std::chrono::high_resolution_clock::now();
+		long result_compute_1 = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_compute_1 - start_compute_1).count();
+
+		// TODO: REMOVE
+		Block tmp[16][16];
+
+		auto start_manual_1 = std::chrono::high_resolution_clock::now();
+
+		// for each face
+		for (int i = 0; i < 6; i++) {
+			int face_idx = i % 3;
+			int backface = i < 3;
+			ivec3 face = { 0, 0, 0 };
+			face[face_idx] = backface ? -1 : 1;
+
+			// for every item you can get using gen_layer_fast
+			for (int layer_no = 0; layer_no < 15; layer_no++) {
+				// if backface, want layers 1-15 instead of 0-14
+				if (backface) {
+					layer_no++;
+				}
+				World::gen_layer_fast(&mini, face_idx, layer_no, face, tmp);
+				if (backface) {
+					layer_no--;
+				}
+			}
+		}
+
+		auto finish_manual_1 = std::chrono::high_resolution_clock::now();
+		long result_manual_1 = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_manual_1 - start_manual_1).count();
+
+		char buf[256];
+		sprintf(buf, "compute shader time: %ld\nmanual time: %ld\n", result_compute_1, result_manual_1);
+		OutputDebugString(buf);
+
+
+		// read result
+		unsigned output[16 * 16 * 90]; // 90 16x16 layers
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 90 * sizeof(unsigned), output);
+
+		// count all non-zero faces
+		int num_nonzero = 0;
+		for (int i = 0; i < 16 * 16 * 90; i++) {
+			if (output[i] != 0) {
+				num_nonzero += 1;
+			}
+		}
+
+		unsigned result[16 * 16];
+		ivec3 face = { 0, 0, -1 };
+		get_layer_from_cs_output(output, face, 14, result);
+
+		print_nonzero_cs_output_layers(output);
+
+		OutputDebugString("wait here!\n");
+	}
+
+	void test_gen_layers_compute_shader2(OpenGLInfo *glInfo) {
 		// gen chunk at 0,0
 		Chunk* chunk = gen_chunk_data(0, 0);
 
@@ -38,6 +241,21 @@ namespace WorldTests {
 			throw "No sufficient minis!";
 		}
 
+		char buf[256];
+		char* s = vec2str(mini->real_coords());
+		sprintf(buf, "Grabbed mini: %s.\n", s);
+		delete[] s;
+		OutputDebugString(buf);
+
+		char* layer_str = mini->print_layer(2, 1);
+		char* face_str = mini->print_layer(2, 0);
+
+		OutputDebugString("LAYER:\n");
+		OutputDebugString(layer_str);
+		OutputDebugString("FACE:\n");
+		OutputDebugString(face_str);
+
+
 		// use program
 		glUseProgram(glInfo->gen_layer_program);
 
@@ -48,18 +266,54 @@ namespace WorldTests {
 		}
 		glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned), data);
 
+		// TODO: This part and shit.
+		//int face_idx = 0;
+		//bool backface = true;
+		//int working_idx_1, working_idx_2;
+		//gen_working_indices(face_idx, working_idx_1, working_idx_2);
+		//ivec3 face = { 0, 0, 0 };
+		//face[face_idx] = backface ? -1 : 1;
+		int face_idx = 2;
+		ivec3 face = { 0, 0, -1 };
+
 		// run program
 		glDispatchCompute(
 			1, // 1 minichunk
 			6, // 6 faces
 			15 // 15 layers per face
 		);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 		// read result
 		unsigned output[16 * 16 * 90]; // 90 16x16 layers
 		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 90 * sizeof(unsigned), output);
 
 		// read result along z in -z face direction
+		unsigned result_layer_idx = face_idx * 15 + 1;
+
+		unsigned neg_z_layer[16 * 16];
+		memcpy(neg_z_layer, output + result_layer_idx * 16 * 16, 16 * 16 * sizeof(unsigned));
+
+		// Get same thing with gen_layer_fast!
+		Block expected_blocks[16][16];
+		World::gen_layer_fast(mini, 2, 1, face, expected_blocks);
+		unsigned expected1[16 * 16];
+		unsigned expected2[16 * 16];
+		for (int x = 0; x < 16; x++) {
+			for (int y = 0; y < 16; y++) {
+				expected1[x + y * 16] = (uint8_t)expected_blocks[x][y];
+				expected2[y + x * 16] = (uint8_t)expected_blocks[x][y];
+			}
+		}
+
+		bool any_grass = false;
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 16; j++) {
+				if (expected_blocks[i][j] == Block::Grass) {
+					any_grass = true;
+				}
+			}
+		}
 
 		//void set_block(const uint u, const uint v, const uint face_idx, const uint layer_idx, const uint val) {
 		//	uint result_layer_idx = face_idx * 15 + layer_idx;
@@ -122,7 +376,7 @@ namespace WorldTests {
 
 		// Do the same with gen_layer_fast
 		Block expected[16][16];
-		World::gen_layer_fast(mini, 2, 1, face, result);
+		World::gen_layer_fast(mini, 2, 1, face, expected);
 
 		// Make sure they're the same
 		for (int x = 0; x < 16; x++) {
@@ -132,7 +386,7 @@ namespace WorldTests {
 				}
 			}
 		}
-	
+
 		// free
 		chunk->free_data();
 	}

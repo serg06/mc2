@@ -102,10 +102,10 @@ public:
 		return std::count(data, data + size(), Block::Air);
 	}
 
-	inline char* print_layer(int layer) {
+	inline char* print_y_layer(int layer) {
 		assert(layer < height && "cannot print this layer, too high");
 
-		char* result = (char*)malloc(sizeof(char) * 16 * 16 * 8); // up to 8 chars per block type
+		char* result = new char[16 * 16 * 8]; // up to 8 chars per block type
 		char* tmp = result;
 
 		for (int x = 0; x < width; x++) {

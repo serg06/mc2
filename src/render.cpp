@@ -448,13 +448,13 @@ void setup_opengl_storage_blocks(OpenGLInfo* glInfo) {
 	// mini buffer
 	// TODO: Change both buffers to use glNamedBufferStorage()
 	glCreateBuffers(1, &glInfo->gen_layer_mini_buf);
-	glNamedBufferData(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_DYNAMIC_DRAW);
+	glNamedBufferStorage(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_mini_ssbidx, glInfo->gen_layer_mini_buf);
 
 	// layers buffer
 	glCreateBuffers(1, &glInfo->gen_layer_layers_buf);
-	glNamedBufferData(glInfo->gen_layer_layers_buf, layers_bufsize, NULL, GL_DYNAMIC_READ);
+	glNamedBufferStorage(glInfo->gen_layer_layers_buf, layers_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_layers_ssbidx, glInfo->gen_layer_layers_buf);
 }

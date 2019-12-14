@@ -273,6 +273,34 @@ public:
 		}
 	}
 
+	inline char* print_layer(int face, int layer) {
+		assert(layer < height && "cannot print this layer, too high");
+		assert(0 <= face && face <= 2);
+
+		char* result = new char[16 * 16 * 8]; // up to 8 chars per block type
+		char* tmp = result;
+
+		int working_idx_1, working_idx_2;
+		gen_working_indices(face, working_idx_1, working_idx_2);
+
+		for (int u = 0; u < 16; u++) {
+			tmp += sprintf(tmp, "[ ");
+
+			for (int v = 0; v < 16; v++) {
+				ivec3 coords = { 0, 0, 0 };
+				coords[face] = layer;
+				coords[working_idx_1] = u;
+				coords[working_idx_2] = v;
+
+				tmp += sprintf(tmp, "%d ", (uint8_t)get_block(coords));
+			}
+
+			tmp += sprintf(tmp, "]\n");
+		}
+
+		return result;
+	}
+
 };
 
 #endif // __MINICHUNK_H__
