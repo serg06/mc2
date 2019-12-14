@@ -134,42 +134,54 @@ namespace WorldTests {
 
 	void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
 		// gen chunk at 0,0
-		Chunk* chunk = gen_chunk_data(0, 0);
+		//Chunk* chunk = gen_chunk_data(0, 0);
 
-		// grab mini at 0,0,0
-		MiniChunk &mini = chunk->minis[0];
+		// generate 128 minichunks
+		Chunk* chunks[8];
+		for (int i = 0; i < 8; i++) {
+			chunks[i] = gen_chunk_data(0, i);
+		}
 
-		// set all to air
-		mini.set_all_air();
+		//// grab mini at 0,0,0
+		//MiniChunk &mini = chunks[0]->minis[0];
 
-		// have a single block -- at (0,0,0) -- be stone
-		// so 3 of its faces should be visible.
+		//// set all to air
+		//mini.set_all_air();
 
-		mini.set_block(5, 5, 5, Block::Stone);
-		mini.set_block(5, 6, 5, Block::Stone);
-		mini.set_block(6, 5, 5, Block::Stone);
-		mini.set_block(6, 6, 5, Block::Stone);
+		//// have a single block -- at (0,0,0) -- be stone
+		//// so 3 of its faces should be visible.
+
+		//mini.set_block(5, 5, 5, Block::Stone);
+		//mini.set_block(5, 6, 5, Block::Stone);
+		//mini.set_block(6, 5, 5, Block::Stone);
+		//mini.set_block(6, 6, 5, Block::Stone);
 
 		// use program
 		glUseProgram(glInfo->gen_layer_program);
 
 		// fill input buffer
-		unsigned data[MINICHUNK_SIZE];
-		for (int i = 0; i < MINICHUNK_SIZE; i++) {
-			data[i] = (uint8_t)mini.data[i];
-		}
-		glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned), data);
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 16; j++) {
+				auto &mini = chunks[i]->minis[j];
 
-		// fill output buf with 0 (DEBUG)
-		unsigned *empty = new unsigned[16 * 16 * 96];
-		memset(empty, 0, 16 * 16 * 96 * sizeof(unsigned));
-		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), empty);
+				unsigned data[MINICHUNK_SIZE];
+				for (int k = 0; k < MINICHUNK_SIZE; k++) {
+					data[k] = (uint8_t)mini.data[k];
+				}
+				glNamedBufferSubData(glInfo->gen_layer_mini_buf, (i*16 + j) * MINICHUNK_SIZE * sizeof(unsigned), MINICHUNK_SIZE * sizeof(unsigned), data);
+			}
+		}
+
+		//// fill output buf with 0 (DEBUG)
+		//unsigned *empty = new unsigned[16 * 16 * 96];
+		//memset(empty, 0, 16 * 16 * 96 * sizeof(unsigned));
+		//glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), empty);
 
 		auto start_compute_1 = std::chrono::high_resolution_clock::now();
 
 		// run program
 		glDispatchCompute(
-			1, // 1 minichunk
+			128, // 128 minichunks
 			6, // 6 faces
 			15 // 15 layers per face
 		);
@@ -184,21 +196,27 @@ namespace WorldTests {
 		auto start_manual_1 = std::chrono::high_resolution_clock::now();
 
 		// for each face
-		for (int i = 0; i < 6; i++) {
-			int face_idx = i % 3;
-			int backface = i < 3;
-			ivec3 face = { 0, 0, 0 };
-			face[face_idx] = backface ? -1 : 1;
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 16; j++) {
+				auto &mini = chunks[i]->minis[j];
+				
+				for (int k = 0; k < 6; k++) {
+					int face_idx = k % 3;
+					int backface = k < 3;
+					ivec3 face = { 0, 0, 0 };
+					face[face_idx] = backface ? -1 : 1;
 
-			// for every item you can get using gen_layer_fast
-			for (int layer_no = 0; layer_no < 15; layer_no++) {
-				// if backface, want layers 1-15 instead of 0-14
-				if (backface) {
-					layer_no++;
-				}
-				World::gen_layer_fast(&mini, face_idx, layer_no, face, tmp);
-				if (backface) {
-					layer_no--;
+					// for every item you can get using gen_layer_fast
+					for (int layer_no = 0; layer_no < 15; layer_no++) {
+						// if backface, want layers 1-15 instead of 0-14
+						if (backface) {
+							layer_no++;
+						}
+						World::gen_layer_fast(&mini, face_idx, layer_no, face, tmp);
+						if (backface) {
+							layer_no--;
+						}
+					}
 				}
 			}
 		}
@@ -211,23 +229,33 @@ namespace WorldTests {
 		OutputDebugString(buf);
 
 
-		// read result
+		//// read and print results
+		//for (int i = 0; i < 8; i++) {
+		//	for (int j = 0; j < 16; j++) {
+		//		unsigned output[16 * 16 * 96]; // 96 16x16 layers
+		//		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * (i*16 + j), 16 * 16 * 96 * sizeof(unsigned), output);
+		//		print_nonzero_cs_output_layers(output);
+		//	}
+		//}
+
+		// read and print results for chunk[0]->minis[4] ((0, 64, 0))
+		// Looks right to me!!
 		unsigned output[16 * 16 * 96]; // 96 16x16 layers
-		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), output);
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * (0*16 + 4), 16 * 16 * 96 * sizeof(unsigned), output);
+		print_nonzero_cs_output_layers(output);
 
-		// count all non-zero faces
-		int num_nonzero = 0;
-		for (int i = 0; i < 16 * 16 * 96; i++) {
-			if (output[i] != 0) {
-				num_nonzero += 1;
-			}
-		}
+		//// count all non-zero faces
+		//int num_nonzero = 0;
+		//for (int i = 0; i < 16 * 16 * 96; i++) {
+		//	if (output[i] != 0) {
+		//		num_nonzero += 1;
+		//	}
+		//}
 
-		unsigned result[16 * 16];
-		ivec3 face = { 0, 0, -1 };
+		//ivec3 face = { 0, 0, -1 };
 		//get_layer_from_cs_output(output, face, 14, result);
 
-		print_nonzero_cs_output_layers(output);
+		//print_nonzero_cs_output_layers(output);
 
 		OutputDebugString("wait here!\n");
 	}
