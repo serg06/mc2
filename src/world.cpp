@@ -135,6 +135,39 @@ namespace WorldTests {
 	void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
 		char buf[256];
 
+		// DO A LITTLE TEST TO LEARN ABOUT CLEAR BUFFER
+#define TYPE GLint
+		TYPE zeros[64];
+		TYPE ones[64];
+		TYPE results[64];
+
+		for (int i = 0; i < 64; i++) {
+			zeros[i] = 0;
+			ones[i] = 1;
+			results[i] = 0;
+		}
+
+		// initialize buffer to zeros
+		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 64 * sizeof(TYPE), zeros);
+
+		//// set 16 1s
+		//glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * sizeof(GLuint), ones);
+
+		TYPE one = 1;
+		TYPE four_ones[4];
+		for (int i = 0; i < 4; i++) {
+			four_ones[i] = 1;
+		}
+		// set 16 1s
+		glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_R32UI, 0, 16 * sizeof(TYPE), GL_RED_INTEGER, GL_UNSIGNED_INT, &one);
+		//glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_RGBA32UI, 0, 16 * sizeof(TYPE), GL_RGBA_INTEGER, GL_UNSIGNED_INT, &four_ones);
+		//glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_R8UI, 0, 16 * sizeof(TYPE), GL_RED_INTEGER, GL_UNSIGNED_BYTE, &one);
+
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 64 * sizeof(TYPE), results);
+
+		OutputDebugString("");
+#undef TYPE
+
 		// gen chunk at 0,0
 		//Chunk* chunk = gen_chunk_data(0, 0);
 
