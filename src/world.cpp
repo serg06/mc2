@@ -135,39 +135,6 @@ namespace WorldTests {
 	void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
 		char buf[256];
 
-		// DO A LITTLE TEST TO LEARN ABOUT CLEAR BUFFER
-#define TYPE GLint
-		TYPE zeros[64];
-		TYPE ones[64];
-		TYPE results[64];
-
-		for (int i = 0; i < 64; i++) {
-			zeros[i] = 0;
-			ones[i] = 1;
-			results[i] = 0;
-		}
-
-		// initialize buffer to zeros
-		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 64 * sizeof(TYPE), zeros);
-
-		//// set 16 1s
-		//glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * sizeof(GLuint), ones);
-
-		TYPE one = 1;
-		TYPE four_ones[4];
-		for (int i = 0; i < 4; i++) {
-			four_ones[i] = 1;
-		}
-		// set 16 1s
-		glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_R32UI, 0, 16 * sizeof(TYPE), GL_RED_INTEGER, GL_UNSIGNED_INT, &one);
-		//glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_RGBA32UI, 0, 16 * sizeof(TYPE), GL_RGBA_INTEGER, GL_UNSIGNED_INT, &four_ones);
-		//glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_R8UI, 0, 16 * sizeof(TYPE), GL_RED_INTEGER, GL_UNSIGNED_BYTE, &one);
-
-		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 64 * sizeof(TYPE), results);
-
-		OutputDebugString("");
-#undef TYPE
-
 		// gen chunk at 0,0
 		//Chunk* chunk = gen_chunk_data(0, 0);
 
@@ -212,10 +179,17 @@ namespace WorldTests {
 		}
 
 		// initialize layers buf with 0 (important!)
-		// TODO: Do this with glClearBuffer instead.
-		unsigned *empty = new unsigned[16 * 16 * 96 * (NUM_CHUNKS_TO_RUN * 16)];
-		memset(empty, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16));
-		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), empty);
+		auto start_init_layers = std::chrono::high_resolution_clock::now();
+
+		// [NVIDIA] Trick GPU into NOT "copying/moving from VIDEO memory to DMA CACHED memory" when we use glClearNamedBufferSubData.
+		unsigned zero = 0;
+		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 1, &zero);
+		
+		// actually initialize
+		glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_RGBA32UI, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), GL_RGBA_INTEGER, GL_UNSIGNED_INT, NULL);
+
+		auto finish_init_layers = std::chrono::high_resolution_clock::now();
+		long result_init_layers = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_layers - start_init_layers).count();
 
 		auto start_compute_1 = std::chrono::high_resolution_clock::now();
 
@@ -346,8 +320,9 @@ namespace WorldTests {
 		}
 		
 		// print time results
-		sprintf(buf, "gen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f);
+		sprintf(buf, "init layers time: %.2f ms\ngen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_init_layers / 1000.0f, result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f);
 		OutputDebugString(buf);
+		OutputDebugString("");
 
 #undef NUM_CHUNKS_TO_RUN
 

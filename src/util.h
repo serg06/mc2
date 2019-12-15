@@ -174,12 +174,6 @@ static inline void WindowsException(char *description) {
 	MessageBox(NULL, description, "Thrown exception", MB_OK);
 }
 
-//static inline void wew() {
-//	glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_RGBA8UI, 0, 16 * sizeof(GLbyte), GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, ones);
-//
-//}
-
-
 double noise2d(double x, double y);
 
 #endif // __UTIL_H__
