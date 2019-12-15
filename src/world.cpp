@@ -178,10 +178,12 @@ namespace WorldTests {
 			}
 		}
 
-		// initialize layers buf with 0 (important!)
+		// initialize layers buf with 0
+		// TODO: REMOVE THIS ONCE WE CAN FILL IN BUF WITH GEN_LAYER()
 		auto start_init_layers = std::chrono::high_resolution_clock::now();
 
 		// [NVIDIA] Trick GPU into NOT "copying/moving from VIDEO memory to DMA CACHED memory" when we use glClearNamedBufferSubData.
+		// [AMD] TODO: make sure you get similar results.
 		unsigned zero = 0;
 		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 1, &zero);
 		
@@ -226,7 +228,13 @@ namespace WorldTests {
 						if (backface) {
 							layer_no++;
 						}
+
+						// generate layer
 						World::gen_layer_fast(&mini, face_idx, layer_no, face, tmp);
+
+						// generate quads for the layer
+						vector<Quad2D> quads2d = World::gen_quads(tmp);
+
 						if (backface) {
 							layer_no--;
 						}
@@ -327,33 +335,32 @@ namespace WorldTests {
 #undef NUM_CHUNKS_TO_RUN
 
 		/*
-		STATS (Release) (8 chunks / 128 minis):
-			Compute shader:
-				generate layers for 128 minis: 0.98 ms
-				read 128*96 layers from GPU: 4.41 ms
-			Manual:
-				generate layers for 128 minis: 14.77 ms
+		STATS (Debug) (16 chunks / 256 minis):
+			num generated quads: 2249
+			init layers time: 13.52 ms
+			gen_layers time: 0.81 ms
+			gen_quads time: 1.90 ms
+			manual time: 326.33 ms
+			bigread time: 10.31 ms
 
-			So compute shader took 36% of the time.
+			Explanation:
+				- Compute shaders are 20x faster than CPU for generating quads, less so for generating layers.
 
-		STATS (Release) (64 chunks / 1024 minis):
-			Compute shader:
-				generate layers for 128 minis: 1.43 ms
-				read 128*96 layers from GPU: 123.85 ms
-			Manual:
-				generate layers for 128 minis: 36.05 ms
+		STATS (Release) (16 chunks / 256 minis):
+			num generated quads: 2249
+			init layers time: 12.58 ms
+			gen_layers time: 0.81 ms
+			gen_quads time: 2.06 ms
+			manual time: 42.50 ms
+			bigread time: 9.29 ms
 
-			So compute shader took 30% of the time again.
+			Explanation:
+				- Compute shaders are ONLY 3x faster than CPU for generating quads, less so for generating layers.
 
-		PROBLEM:
-			Reading back layers from GPU takes so fucking long.
-
-		SOLUTION?:
-			Don't need all that data! Just generate quads right on the GPU.
-
-		NOTE:
-			Shader block size can always be made 128MB, and can usually be infinitely large (until GPU memory fills up.)
-			Thus, using 100KB per mini, we can fit AT LEAST 1024 minis (64 chunks) at once.
+				WHY?
+					- We're running on invisible minis too. (Could just cut those out if we wanted.)
+					- We're spending most of our time initializing layers (without initialization it would be 15x faster!)
+						- We won't have to initialize layers once we fill in missing layers with gen_layer()!
 		*/
 
 		//// count all non-zero faces
