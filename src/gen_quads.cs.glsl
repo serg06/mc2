@@ -16,10 +16,11 @@ layout( local_size_x = 1 ) in;
 
 // 6 ints... jesus that's a LOTTA space.
 // NOTE: mini_idx = layer_idx / 96.
+// MUST MATCH STRUCT IN world.h
 struct Quad2D {
-	uint block_type;
-	ivec2 coords[2];
-	uint layer_idx;
+	ivec2 coords[2]; // aligned to 8 bytes (size of ivec2)
+	uint block_type; // aligned to 4 bytes
+	uint layer_idx;  // aligned to 4 bytes
 };
 
 // layers input

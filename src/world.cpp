@@ -178,10 +178,11 @@ namespace WorldTests {
 			}
 		}
 
-		//// fill output buf with 0 (DEBUG)
-		//unsigned *empty = new unsigned[16 * 16 * 96];
-		//memset(empty, 0, 16 * 16 * 96 * sizeof(unsigned));
-		//glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), empty);
+		// initialize layers buf with 0 (important!)
+		// TODO: Do this with glClearBuffer instead.
+		unsigned *empty = new unsigned[16 * 16 * 96 * (NUM_CHUNKS_TO_RUN * 16)];
+		memset(empty, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16));
+		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), empty);
 
 		auto start_compute_1 = std::chrono::high_resolution_clock::now();
 
@@ -279,6 +280,7 @@ namespace WorldTests {
 		// read back quads
 		Quad2DCS *quads = new Quad2DCS[num_quads];
 		glGetNamedBufferSubData(glInfo->gen_quads_quads_buf, 0, num_quads * sizeof(Quad2DCS), quads);
+		int s = sizeof(Quad2DCS);
 
 		Quad2DCS piece[128];
 		for (int i = 0; i < 128; i++) {
@@ -286,6 +288,28 @@ namespace WorldTests {
 		}
 		for (int i = 0; (i < 128) && (i < num_quads); i++) {
 			piece[i] = quads[i];
+		}
+
+		Quad2DCS highest_results;
+		for (int i = 0; i < num_quads; i++) {
+			if (quads[i].block > highest_results.block) {
+				highest_results.block = quads[i].block;
+			}
+			if (quads[i].corners[0][0] > highest_results.corners[0][0]) {
+				highest_results.corners[0][0] = quads[i].corners[0][0];
+			}
+			if (quads[i].corners[0][1] > highest_results.corners[0][1]) {
+				highest_results.corners[0][1] = quads[i].corners[0][1];
+			}
+			if (quads[i].corners[1][0] > highest_results.corners[1][0]) {
+				highest_results.corners[1][0] = quads[i].corners[1][0];
+			}
+			if (quads[i].corners[1][1] > highest_results.corners[1][1]) {
+				highest_results.corners[1][1] = quads[i].corners[1][1];
+			}
+			if (quads[i].layer_idx > highest_results.layer_idx) {
+				highest_results.layer_idx = quads[i].layer_idx;
+			}
 		}
 		
 		// print time results

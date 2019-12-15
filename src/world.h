@@ -24,11 +24,11 @@
 
 using namespace std;
 
-class Quad2DCS {
-public:
-	GLuint block;
-	ivec2 corners[2];
-	GLuint layer_idx;
+// MUST MATCH STRUCT IN gen_quads compute shader
+struct Quad2DCS {
+	ivec2 corners[2] = { ivec2(0, 0), ivec2(0, 0) };
+	GLuint block = 0;
+	GLuint layer_idx = 0;
 };
 
 class Quad2D {
