@@ -24,6 +24,13 @@
 
 using namespace std;
 
+class Quad2DCS {
+public:
+	GLuint block;
+	ivec2 corners[2];
+	GLuint layer_idx;
+};
+
 class Quad2D {
 public:
 	Block block;

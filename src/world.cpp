@@ -174,7 +174,7 @@ namespace WorldTests {
 					data[k] = (uint8_t)mini.data[k];
 				}
 				// TODO: Shouldn't this be i + j*16? Isn't that how we do it in compute shader?
-				glNamedBufferSubData(glInfo->gen_layer_mini_buf, (i*16 + j) * MINICHUNK_SIZE * sizeof(unsigned), MINICHUNK_SIZE * sizeof(unsigned), data);
+				glNamedBufferSubData(glInfo->gen_layer_mini_buf, (i * 16 + j) * MINICHUNK_SIZE * sizeof(unsigned), MINICHUNK_SIZE * sizeof(unsigned), data);
 			}
 		}
 
@@ -205,7 +205,7 @@ namespace WorldTests {
 		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
 			for (int j = 0; j < 16; j++) {
 				auto &mini = chunks[i]->minis[j];
-				
+
 				for (int k = 0; k < 6; k++) {
 					int face_idx = k % 3;
 					int backface = k < 3;
@@ -242,7 +242,7 @@ namespace WorldTests {
 
 		// read and print results for chunk[0]->minis[4] ((0, 64, 0))
 		unsigned output[16 * 16 * 96]; // 96 16x16 layers
-		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * (0*16 + 4), 16 * 16 * 96 * sizeof(unsigned), output);
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * (0 * 16 + 4), 16 * 16 * 96 * sizeof(unsigned), output);
 		print_nonzero_cs_output_layers(output);
 
 		auto start_bigread = std::chrono::high_resolution_clock::now();
@@ -256,6 +256,7 @@ namespace WorldTests {
 		// generate quads
 		auto start_quads = std::chrono::high_resolution_clock::now();
 
+		// - set quads counter to 0
 		glUseProgram(glInfo->gen_quads_program);
 		GLuint num_quads = 0;
 		glNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
@@ -275,6 +276,18 @@ namespace WorldTests {
 		sprintf(buf, "num generated quads: %u\n", num_quads);
 		OutputDebugString(buf);
 
+		// read back quads
+		Quad2DCS *quads = new Quad2DCS[num_quads];
+		glGetNamedBufferSubData(glInfo->gen_quads_quads_buf, 0, num_quads * sizeof(Quad2DCS), quads);
+
+		Quad2DCS piece[128];
+		for (int i = 0; i < 128; i++) {
+			piece[i].block = 0;
+		}
+		for (int i = 0; (i < 128) && (i < num_quads); i++) {
+			piece[i] = quads[i];
+		}
+		
 		// print time results
 		sprintf(buf, "gen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f);
 		OutputDebugString(buf);
@@ -290,7 +303,7 @@ namespace WorldTests {
 				generate layers for 128 minis: 14.77 ms
 
 			So compute shader took 36% of the time.
-				
+
 		STATS (Release) (64 chunks / 1024 minis):
 			Compute shader:
 				generate layers for 128 minis: 1.43 ms
