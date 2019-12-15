@@ -547,7 +547,6 @@ public:
 			}
 		}
 
-
 		// if face is x, iterate on z then y (best speed)
 		else if (face[0] != 0) {
 			// y

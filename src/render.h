@@ -26,6 +26,7 @@ struct OpenGLInfo {
 	// program
 	GLuint rendering_program;
 	GLuint gen_layer_program;
+	GLuint gen_quads_program;
 
 	// VAOs
 	GLuint vao_cube, vao_quad;
@@ -37,6 +38,8 @@ struct OpenGLInfo {
 	// gen_layer buffers
 	GLuint gen_layer_mini_buf = 0;
 	GLuint gen_layer_layers_buf = 0;
+	GLuint gen_quads_quads_buf = 0;
+	GLuint gen_quads_atomic_buf = 0;
 
 	// textures
 	GLuint grass_top;
@@ -61,6 +64,10 @@ struct OpenGLInfo {
 	// render shader storage block binding points
 	const GLuint gen_layer_mini_ssbidx = 0;
 	const GLuint gen_layer_layers_ssbidx = 1;
+	const GLuint gen_quads_quads_ssbidx = 2;
+
+	// atomic counter binding points
+	const GLuint gen_quads_atomic_abidx = 0;
 
 	// attribute indices
 	const GLuint position_attr_idx = 0; // index of 'position' attribute

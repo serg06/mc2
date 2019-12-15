@@ -133,12 +133,17 @@ namespace WorldTests {
 	}
 
 	void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
+		char buf[256];
+
 		// gen chunk at 0,0
 		//Chunk* chunk = gen_chunk_data(0, 0);
 
-		// generate 128 minichunks
-		Chunk* chunks[64];
-		for (int i = 0; i < 64; i++) {
+		// 16 chunks = 256 minis
+#define NUM_CHUNKS_TO_RUN 16
+
+		// generate minichunks
+		Chunk* chunks[NUM_CHUNKS_TO_RUN];
+		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
 			chunks[i] = gen_chunk_data(0, i);
 		}
 
@@ -160,7 +165,7 @@ namespace WorldTests {
 		glUseProgram(glInfo->gen_layer_program);
 
 		// fill input buffer
-		for (int i = 0; i < 64; i++) {
+		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
 			for (int j = 0; j < 16; j++) {
 				auto &mini = chunks[i]->minis[j];
 
@@ -168,6 +173,7 @@ namespace WorldTests {
 				for (int k = 0; k < MINICHUNK_SIZE; k++) {
 					data[k] = (uint8_t)mini.data[k];
 				}
+				// TODO: Shouldn't this be i + j*16? Isn't that how we do it in compute shader?
 				glNamedBufferSubData(glInfo->gen_layer_mini_buf, (i*16 + j) * MINICHUNK_SIZE * sizeof(unsigned), MINICHUNK_SIZE * sizeof(unsigned), data);
 			}
 		}
@@ -181,14 +187,14 @@ namespace WorldTests {
 
 		// run program
 		glDispatchCompute(
-			128, // 128 minichunks
+			NUM_CHUNKS_TO_RUN * 16,
 			6, // 6 faces
 			15 // 15 layers per face
 		);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 		auto finish_compute_1 = std::chrono::high_resolution_clock::now();
-		long result_compute_1 = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_compute_1 - start_compute_1).count();
+		long result_compute_1 = std::chrono::duration_cast<std::chrono::microseconds>(finish_compute_1 - start_compute_1).count();
 
 		// TODO: REMOVE
 		Block tmp[16][16];
@@ -196,7 +202,7 @@ namespace WorldTests {
 		auto start_manual_1 = std::chrono::high_resolution_clock::now();
 
 		// for each face
-		for (int i = 0; i < 64; i++) {
+		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
 			for (int j = 0; j < 16; j++) {
 				auto &mini = chunks[i]->minis[j];
 				
@@ -222,7 +228,7 @@ namespace WorldTests {
 		}
 
 		auto finish_manual_1 = std::chrono::high_resolution_clock::now();
-		long result_manual_1 = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_manual_1 - start_manual_1).count();
+		long result_manual_1 = std::chrono::duration_cast<std::chrono::microseconds>(finish_manual_1 - start_manual_1).count();
 
 
 		//// read and print results
@@ -241,15 +247,39 @@ namespace WorldTests {
 
 		auto start_bigread = std::chrono::high_resolution_clock::now();
 
-		unsigned *big_output = new unsigned[16 * 16 * 96 * 1024];
-		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * 1024, big_output);
+		unsigned *big_output = new unsigned[16 * 16 * 96 * (NUM_CHUNKS_TO_RUN * 16)];
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), big_output);
 
 		auto finish_bigread = std::chrono::high_resolution_clock::now();
-		long result_bigread = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_bigread - start_bigread).count();
+		long result_bigread = std::chrono::duration_cast<std::chrono::microseconds>(finish_bigread - start_bigread).count();
 
-		char buf[256];
-		sprintf(buf, "compute shader time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_compute_1 / 1000000.0f, result_manual_1 / 1000000.0f, result_bigread / 1000000.0f);
+		// generate quads
+		auto start_quads = std::chrono::high_resolution_clock::now();
+
+		glUseProgram(glInfo->gen_quads_program);
+		GLuint num_quads = 0;
+		glNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+
+		glDispatchCompute(
+			96 * (NUM_CHUNKS_TO_RUN * 16),
+			1,
+			1
+		);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
+
+		auto finish_quads = std::chrono::high_resolution_clock::now();
+		long result_quads = std::chrono::duration_cast<std::chrono::microseconds>(finish_quads - start_quads).count();
+
+		// get number of quads
+		glGetNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+		sprintf(buf, "num generated quads: %u\n", num_quads);
 		OutputDebugString(buf);
+
+		// print time results
+		sprintf(buf, "gen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f);
+		OutputDebugString(buf);
+
+#undef NUM_CHUNKS_TO_RUN
 
 		/*
 		STATS (Release) (8 chunks / 128 minis):

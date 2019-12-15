@@ -102,6 +102,24 @@ namespace {
 		glInfo->gen_layer_program = compile_shaders(shader_fnames);
 	}
 
+	void setup_gen_quads_program(OpenGLInfo* glInfo) {
+		// list of shaders to create program with
+		// TODO: Embed these into binary somehow - maybe generate header file with cmake.
+		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+			{ "../src/gen_quads.cs.glsl", GL_COMPUTE_SHADER },
+		};
+
+		// create program
+		glInfo->gen_quads_program = compile_shaders(shader_fnames);
+
+		// create and bind atomic counter buff
+		glUseProgram(glInfo->gen_quads_program);
+
+		glCreateBuffers(1, &glInfo->gen_quads_atomic_buf);
+		glNamedBufferStorage(glInfo->gen_quads_atomic_buf, sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, glInfo->gen_quads_atomic_abidx, glInfo->gen_quads_atomic_buf);
+	}
+
 	void setup_opengl_vao_cube(OpenGLInfo* glInfo) {
 		const GLfloat(&cube)[108] = shapes::cube_full;
 
@@ -198,6 +216,35 @@ namespace {
 		// alpha blending
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	}
+
+	void setup_opengl_storage_blocks(OpenGLInfo* glInfo) {
+		// size of buffer we'll need
+		// TODO: fill 'er up with bytes instead of uints
+		GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned) * (64 * 16); // 64 chunks / 1024 minis
+		GLuint layers_bufsize = 16 * 16 * (16 * 6) * sizeof(unsigned) * (64 * 16); // 64 chunks / 1024 minis
+		GLuint quads_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (16 * 16); // 16 chunks / 256 minis
+
+		// TODO: adjust storage bits
+
+		// mini buffer
+		// TODO: Change both buffers to use glNamedBufferStorage()
+		glCreateBuffers(1, &glInfo->gen_layer_mini_buf);
+		glNamedBufferStorage(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_mini_ssbidx, glInfo->gen_layer_mini_buf);
+
+		// layers buffer
+		glCreateBuffers(1, &glInfo->gen_layer_layers_buf);
+		glNamedBufferStorage(glInfo->gen_layer_layers_buf, layers_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_layers_ssbidx, glInfo->gen_layer_layers_buf);
+
+		// quads buffer
+		glCreateBuffers(1, &glInfo->gen_quads_quads_buf);
+		glNamedBufferStorage(glInfo->gen_quads_quads_buf, quads_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_quads_quads_ssbidx, glInfo->gen_quads_quads_buf);
 	}
 }
 
@@ -439,30 +486,13 @@ void setup_block_textures(OpenGLInfo* glInfo) {
 	glBindTextureUnit(1, glInfo->grass_side);
 }
 
-void setup_opengl_storage_blocks(OpenGLInfo* glInfo) {
-	// size of buffer we'll need
-	// TODO: fill 'er up with bytes instead of uints
-	GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned) * 1024; // 1 minichunk = 16 layers
-	GLuint layers_bufsize = 16 * 16 * 96 * sizeof(unsigned) * 1024; // (16-1) layers * 6 faces = 90 layers
 
-	// mini buffer
-	// TODO: Change both buffers to use glNamedBufferStorage()
-	glCreateBuffers(1, &glInfo->gen_layer_mini_buf);
-	glNamedBufferStorage(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
-
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_mini_ssbidx, glInfo->gen_layer_mini_buf);
-
-	// layers buffer
-	glCreateBuffers(1, &glInfo->gen_layer_layers_buf);
-	glNamedBufferStorage(glInfo->gen_layer_layers_buf, layers_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
-
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_layers_ssbidx, glInfo->gen_layer_layers_buf);
-}
 
 void setup_opengl(OpenGLInfo* glInfo) {
 	// setup shaders
 	setup_opengl_program(glInfo);
 	setup_gen_layer_program(glInfo);
+	setup_gen_quads_program(glInfo);
 
 	// setup VAOs
 	//setup_opengl_vao_cube(glInfo);
