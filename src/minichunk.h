@@ -20,8 +20,8 @@ public:
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
 	GLuint block_types_buf; // each mini gets its own buf -- easy this way for now
 	bool invisible = false;
-	MiniChunkMesh* mesh;
-	MiniChunkMesh* water_mesh;
+	MiniChunkMesh* mesh = nullptr;
+	MiniChunkMesh* water_mesh = nullptr;
 	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
 	GLuint water_quad_block_type_buf = 0, water_quad_corner1_buf = 0, water_quad_corner2_buf = 0, water_quad_face_buf = 0;
 
@@ -55,11 +55,15 @@ public:
 	// render this minichunk's meshes
 	void render_meshes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
-		if (invisible) {
+		if (invisible || mesh == nullptr) {
 			return;
 		}
 
 		auto &quads = mesh->quads3d;
+
+		if (quads.size() == 0) {
+			return;
+		}
 
 		//char buf[256];
 		//sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads3d.\n", coords[0] * 16, coords[1], coords[2] * 16, quads.size());
@@ -71,16 +75,14 @@ public:
 		// write this chunk's coordinate to coordinates buffer
 		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords);
 
-		if (quads.size() > 0) {
-			// bind to quads attribute binding point
-			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
-			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
-			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
-			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
+		// bind to quads attribute binding point
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
 
-			// DRAW!
-			glDrawArraysInstanced(GL_TRIANGLES, 0, 6, quads.size());
-		}
+		// DRAW!
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, quads.size());
 
 		// unbind VAO jic
 		glBindVertexArray(0);
@@ -89,11 +91,15 @@ public:
 	// render this minichunk's water meshes
 	void render_water_meshes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
-		if (invisible) {
+		if (invisible || water_mesh == nullptr) {
 			return;
 		}
 
 		auto &water_quads = water_mesh->quads3d;
+
+		if (water_quads.size() == 0) {
+			return;
+		}
 
 		//char buf[256];
 		//sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads3d.\n", coords[0] * 16, coords[1], coords[2] * 16, quads.size());
@@ -105,16 +111,14 @@ public:
 		// write this chunk's coordinate to coordinates buffer
 		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords);
 
-		if (water_quads.size() > 0) {
-			// bind to quads attribute binding point
-			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, water_quad_block_type_buf, 0, sizeof(Block));
-			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, water_quad_corner1_buf, 0, sizeof(ivec3));
-			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, water_quad_corner2_buf, 0, sizeof(ivec3));
-			glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, water_quad_face_buf, 0, sizeof(ivec3));
+		// bind to quads attribute binding point
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, water_quad_block_type_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, water_quad_corner1_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, water_quad_corner2_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, water_quad_face_buf, 0, sizeof(ivec3));
 
-			// DRAW!
-			glDrawArraysInstanced(GL_TRIANGLES, 0, 6, water_quads.size());
-		}
+		// DRAW!
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, water_quads.size());
 
 		// unbind VAO jic
 		glBindVertexArray(0);

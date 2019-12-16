@@ -89,7 +89,7 @@ void App::startup() {
 	setup_opengl(&glInfo);
 
 	// run tests
-	WorldTests::run_all_tests(&glInfo);
+	//WorldTests::run_all_tests(&glInfo);
 }
 
 void App::render(float time) {

@@ -240,7 +240,7 @@ namespace {
 
 		// layers buffer
 		glCreateBuffers(1, &glInfo->gen_layer_layers_buf);
-		glNamedBufferStorage(glInfo->gen_layer_layers_buf, layers_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+		glNamedBufferStorage(glInfo->gen_layer_layers_buf, layers_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_layers_ssbidx, glInfo->gen_layer_layers_buf);
 
