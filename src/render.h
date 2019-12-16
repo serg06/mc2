@@ -42,6 +42,7 @@ struct OpenGLInfo {
 	GLuint gen_quads_quads3d_buf = 0;
 	GLuint gen_layer_mini_coords_buf = 0;
 	GLuint gen_quads_atomic_buf = 0;
+	GLuint gen_quads_atomic_buf_tmp = 0;
 
 	// textures
 	GLuint grass_top;

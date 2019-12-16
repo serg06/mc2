@@ -12,6 +12,7 @@
 #include "GLFW/glfw3.h"
 
 #include <assert.h>
+#include <chrono>
 #include <functional>
 #include <string>
 #include <tuple>
@@ -162,7 +163,9 @@ public:
 			}
 		}
 
-		gen_chunks(to_generate);
+		if (to_generate.size() > 0) {
+			gen_chunks(to_generate);
+		}
 	}
 
 	inline void gen_chunks(vector<ivec2> to_generate) {
@@ -1364,34 +1367,47 @@ public:
 	// TODO: assert that there's no duplicates
 	// TODO: assert no more than we can handle (256 minis?)
 	void gen_minichunk_meshes_gpu(OpenGLInfo *glInfo, vector<MiniChunk*> &minis, vector<MiniChunkMesh*> &results) {
+		if (minis.size() == 0) return;
+
 		char buf[1024];
+
+		// all the resulting layers
+		unsigned *layers = new unsigned[16 * 16 * 96 * minis.size()];
+		unsigned *data = new unsigned[MINICHUNK_SIZE * minis.size()];
+
+		auto start_init_local_data = std::chrono::high_resolution_clock::now();
 
 		// for each mini
 		for (int i = 0; i < minis.size(); i++) {
 			auto &mini = minis[i];
 
 			// generate layers that we can't generate ourselves (yet)
-			// TODO: generate all layers at once, no mallocing once per mini bullshit.
-			unsigned *layers = new unsigned[16 * 16 * 96];
-			fill_missed_layers(layers, mini, 0);
-
-			// load layers into GPU
-			// (it's okay that some are uninitialized, since they'll get initialized by running gen_layers)
-			// TODO: load in all at once
-			glNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * i, 16 * 16 * 96 * sizeof(unsigned), layers);
-			delete[] layers;
+			fill_missed_layers(layers, mini, i); // I hope this works!
 
 			// convert mini data to unsigned ints, since that's what GPU wants
-			// TODO: all at once.
-			unsigned data[MINICHUNK_SIZE];
 			for (int k = 0; k < MINICHUNK_SIZE; k++) {
-				data[k] = (uint8_t)mini->data[k];
+				data[i*MINICHUNK_SIZE + k] = (uint8_t)mini->data[k];
 			}
-
-			// load mini data into GPU
-			// TODO: load in all at once.
-			glNamedBufferSubData(glInfo->gen_layer_mini_buf, MINICHUNK_SIZE * sizeof(unsigned) * i, MINICHUNK_SIZE * sizeof(unsigned), data);
 		}
+
+		auto end_init_local_data = std::chrono::high_resolution_clock::now();
+		long result_init_local_data = std::chrono::duration_cast<std::chrono::microseconds>(end_init_local_data - start_init_local_data).count();
+
+		auto start_load_data_gpu = std::chrono::high_resolution_clock::now();
+
+		// load layers into GPU
+		// (it's okay that some are uninitialized, since they'll get initialized by running gen_layers)
+		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * minis.size(), layers);
+		delete[] layers;
+
+		// load mini data into GPU
+		glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned) * minis.size(), data);
+		delete[] data;
+
+		auto end_load_data_gpu = std::chrono::high_resolution_clock::now();
+		long result_load_data_gpu = std::chrono::duration_cast<std::chrono::microseconds>(end_load_data_gpu - start_load_data_gpu).count();
+
+		auto start_gen_layers_quads = std::chrono::high_resolution_clock::now();
 
 		// switch to gen_layers program
 		glUseProgram(glInfo->gen_layer_program);
@@ -1419,14 +1435,33 @@ public:
 		);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
 
-		// get number of generated quads
-		glGetNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
-		sprintf(buf, "gen_minichunk_mesh_gpu num generated quads: %u\n", num_quads);
-		OutputDebugString(buf);
+		auto end_gen_layers_quads = std::chrono::high_resolution_clock::now();
+		long result_gen_layers_quads = std::chrono::duration_cast<std::chrono::microseconds>(end_gen_layers_quads - start_gen_layers_quads).count();
+
+		auto start_read_num_quads = std::chrono::high_resolution_clock::now();
+
+		glCopyNamedBufferSubData(glInfo->gen_quads_atomic_buf, glInfo->gen_quads_atomic_buf_tmp, 0, 0, sizeof(GLuint));
+		glGetNamedBufferSubData(glInfo->gen_quads_atomic_buf_tmp, 0, sizeof(GLuint), &num_quads);
+
+		//// get number of generated quads
+		//glGetNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+
+		auto end_read_num_quads = std::chrono::high_resolution_clock::now();
+		long result_read_num_quads = std::chrono::duration_cast<std::chrono::microseconds>(end_read_num_quads - start_read_num_quads).count();
+
+		//sprintf(buf, "gen_minichunk_mesh_gpu num generated quads: %u\n", num_quads);
+		//OutputDebugString(buf);
+
+		auto start_read_quads = std::chrono::high_resolution_clock::now();
 
 		// read back quad3ds
 		Quad3DCS *quad3ds = new Quad3DCS[num_quads];
 		glGetNamedBufferSubData(glInfo->gen_quads_quads3d_buf, 0, num_quads * sizeof(Quad3DCS), quad3ds);
+
+		auto end_read_quads = std::chrono::high_resolution_clock::now();
+		long result_read_quads = std::chrono::duration_cast<std::chrono::microseconds>(end_read_quads - start_read_quads).count();
+
+		auto start_fill_mesh = std::chrono::high_resolution_clock::now();
 
 		// fill them into mesh
 		// TODO: do this efficiently, not like fuckin this.
@@ -1444,15 +1479,18 @@ public:
 			}
 			q.face = face;
 
-			// make mesh
-			MiniChunkMesh* mesh = new MiniChunkMesh();
-
 			results[quad3ds[i].mini_input_idx]->quads3d.push_back(q);
 		}
 
 		delete[] quad3ds;
 
+		auto end_fill_mesh = std::chrono::high_resolution_clock::now();
+		long result_fill_mesh = std::chrono::duration_cast<std::chrono::microseconds>(end_fill_mesh - start_fill_mesh).count();
+
 		// done
+		sprintf(buf, "\ninit local data: %.2f ms\nload data gpu: %.2f ms\ngen layers, quads: %.2f ms\nread num quads: %.2f\nread quads: %.2f ms\nfill mesh: %.2f ms\n\n", result_init_local_data / 1000.0f, result_load_data_gpu / 1000.0f, result_gen_layers_quads / 1000.0f, result_read_num_quads / 1000.0f, result_read_quads / 1000.0f, result_fill_mesh / 1000.0f);
+		OutputDebugString(buf);
+		OutputDebugString("");
 	}
 
 	MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini);
