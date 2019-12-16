@@ -1167,6 +1167,52 @@ public:
 
 	void add_block(ivec3 xyz, Block block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
+	static void extract_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block(&results)[16][16]) {
+		// TODO: itereate u first
+		for (int v = 0; v < 16; v++) {
+			for (int u = 0; u < 16; u++) {
+				results[u][v] = (uint8_t)output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16];
+			}
+		}
+	}
+
+	static void fill_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block(&layer)[16][16]) {
+		// TODO: itereate u first
+		for (int v = 0; v < 16; v++) {
+			for (int u = 0; u < 16; u++) {
+				output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16] = (uint8_t)layer[u][v];
+			}
+		}
+	}
+
+	// fill in missed layers for a minichunk's layers
+	void fill_missed_layers(unsigned *output, MiniChunk* mini, unsigned global_minichunk_idx) {
+		Block layer[16][16];
+
+		// for each face
+		for (int global_face_idx = 0; global_face_idx < 6; global_face_idx++) {
+			int local_face_idx = global_face_idx % 3;
+			bool backface = global_face_idx < 3;
+
+			ivec3 face = ivec3(0, 0, 0);
+			face[local_face_idx] = backface ? -1 : 1;
+
+			// working indices are always gonna be xy, xz, or yz.
+			int working_idx_1 = local_face_idx == 0 ? 1 : 0;
+			int working_idx_2 = local_face_idx == 2 ? 1 : 2;
+
+			// index of layer to fill
+			// if backface, fill first layer (0), else fill last layer (15)
+			int layer_idx = backface ? 0 : 15;
+
+			// fill layer
+			gen_layer(mini, local_face_idx, layer_idx, face, layer);
+			fill_layer(output, layer_idx, global_face_idx, global_minichunk_idx, layer);
+		}
+
+		OutputDebugString("");
+	}
+
 	MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini);
 };
 

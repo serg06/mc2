@@ -6,6 +6,7 @@
 /* PLACING TESTS IN HERE UNTIL I LEARN HOW TO DO IT PROPERLY */
 /*************************************************************/
 
+
 namespace WorldTests {
 
 	void run_all_tests(OpenGLInfo *glInfo) {
@@ -48,29 +49,13 @@ namespace WorldTests {
 	//	*/
 	//}
 
-	void extract_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block (&results)[16][16]) {
-		// TODO: itereate u first
-		for (int u = 0; u < 16; u++) {
-			for (int v = 0; v < 16; v++) {
-				results[u][v] = (uint8_t)output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16];
-			}
-		}
-	}
+	// compare ALL the layers!
+	static void compare_all_layers(unsigned *output, World* world, MiniChunk* mini, unsigned global_minichunk_idx) {
+		Block output_layer[16][16];
+		Block expected_layer[16][16];
 
-	void fill_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block(&layer)[16][16]) {
-		// TODO: itereate u first
-		for (int u = 0; u < 16; u++) {
-			for (int v = 0; v < 16; v++) {
-				output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16] = (uint8_t)layer[u][v];
-			}
-		}
-	}
-
-	// fill in missed layers for a minichunk's layers
-	// EDIT: Fuck, can't do this without a World object.
-	//       BUT THIS SHOULD WORK!
-	void fill_missed_layers(unsigned *output, MiniChunk* mini, unsigned global_minichunk_idx) {
-		Block layer[16][16];
+		int output_nonzeros = 0;
+		int expected_nonzeros = 0;
 
 		// for each face
 		for (int global_face_idx = 0; global_face_idx < 6; global_face_idx++) {
@@ -84,21 +69,34 @@ namespace WorldTests {
 			int working_idx_1 = local_face_idx == 0 ? 1 : 0;
 			int working_idx_2 = local_face_idx == 2 ? 1 : 2;
 
-			// index of layer to fill
-			// if backface, fill first layer (0), else fill last layer (15)
-			int layer_idx = backface ? 0 : 15;
+			// for each layer
+			for (int layer_idx = 0; layer_idx < 16; layer_idx++) {
+				// get layers
+				World::extract_layer(output, layer_idx, global_face_idx, global_minichunk_idx, output_layer);
+				world->gen_layer(mini, local_face_idx, layer_idx, face, expected_layer);
 
-			// fill layer
-			World::gen_layer_fast(mini, local_face_idx, layer_idx, face, layer);
-			fill_layer(output, layer_idx, global_face_idx, global_minichunk_idx, layer);
+				// compare
+				for (int u = 0; u < 16; u++) {
+					for (int v = 0; v < 16; v++) {
+						if (output_layer[u][v] != Block::Air) {
+							output_nonzeros++;
+						}
+						if (expected_layer[u][v] != Block::Air) {
+							expected_nonzeros++;
+						}
+						assert(output_layer[u][v] == expected_layer[u][v]);
+					}
+				}
+			}
 		}
+
+		assert(output_nonzeros == expected_nonzeros && "failed compare_all_layers");
 
 		OutputDebugString("");
 	}
 
-
 	// compare only the fast layers
-	void compare_fast_layers(unsigned *output, MiniChunk* mini, unsigned global_minichunk_idx) {
+	static void compare_fast_layers(unsigned *output, MiniChunk* mini, unsigned global_minichunk_idx) {
 		Block output_layer[16][16];
 		Block expected_layer[16][16];
 
@@ -125,7 +123,7 @@ namespace WorldTests {
 				}
 
 				// get layers
-				extract_layer(output, layer_idx, global_face_idx, global_minichunk_idx, output_layer);
+				World::extract_layer(output, layer_idx, global_face_idx, global_minichunk_idx, output_layer);
 				World::gen_layer_fast(mini, local_face_idx, layer_idx, face, expected_layer);
 
 				// compare
@@ -147,10 +145,12 @@ namespace WorldTests {
 			}
 		}
 
+		assert(output_nonzeros == expected_nonzeros && "failed compare_fast_layers");
+
 		OutputDebugString("");
 	}
 
-	void print_nonzero_cs_output_layers(unsigned *output) {
+	static void print_nonzero_cs_output_layers(unsigned *output) {
 		// for each face
 		for (int global_face_idx = 0; global_face_idx < 6; global_face_idx++) {
 			bool backface = global_face_idx < 3;
@@ -234,10 +234,10 @@ namespace WorldTests {
 		// NOW TRY RUNNING IT ON THE ACTUAL MINI AT (0,64,0) AND MAKING SURE IT MATCHES GEN_LAYERS!
 	}
 
-	void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
+	static void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
 		World world;
 
-		char buf[256];
+		char buf[1024];
 
 		// gen chunk at 0,0
 		//Chunk* chunk = gen_chunk_data(0, 0);
@@ -290,13 +290,13 @@ namespace WorldTests {
 		// TODO: REMOVE THIS ONCE WE CAN FILL IN BUF WITH GEN_LAYER()
 		auto start_init_layers = std::chrono::high_resolution_clock::now();
 
-		// [NVIDIA] Trick GPU into NOT "copying/moving from VIDEO memory to DMA CACHED memory" when we use glClearNamedBufferSubData.
-		// [AMD] TODO: make sure you get similar results.
-		unsigned zero = 0;
-		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 1, &zero);
+		//// [NVIDIA] Trick GPU into NOT "copying/moving from VIDEO memory to DMA CACHED memory" when we use glClearNamedBufferSubData.
+		//// [AMD] TODO: make sure you get similar results.
+		//unsigned zero = 0;
+		//glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 1, &zero);
 
-		// actually initialize
-		glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_RGBA32UI, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), GL_RGBA_INTEGER, GL_UNSIGNED_INT, NULL);
+		//// actually initialize
+		//glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_RGBA32UI, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), GL_RGBA_INTEGER, GL_UNSIGNED_INT, NULL);
 
 		auto finish_init_layers = std::chrono::high_resolution_clock::now();
 		long result_init_layers = std::chrono::duration_cast<std::chrono::microseconds>(finish_init_layers - start_init_layers).count();
@@ -316,43 +316,45 @@ namespace WorldTests {
 
 		// TODO: REMOVE
 		Block tmp[16][16];
-
+		char *bufp = buf;
 		auto start_manual_1 = std::chrono::high_resolution_clock::now();
 
-		// for each face
+		// manually generate all layers for all minis
+		// for each chunk
 		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
 			Chunk *chunk = world.get_chunk(0, i);
 			assert(chunk != nullptr);
 
+			// for each mini
 			for (int j = 0; j < 16; j++) {
 				auto &mini = chunk->minis[j];
 
+				// for each face
 				for (int k = 0; k < 6; k++) {
 					int face_idx = k % 3;
 					int backface = k < 3;
 					ivec3 face = { 0, 0, 0 };
 					face[face_idx] = backface ? -1 : 1;
 
-					// for every item you can get using gen_layer_fast
-					for (int layer_no = 0; layer_no < 15; layer_no++) {
-						// if backface, want layers 1-15 instead of 0-14
-						if (backface) {
-							layer_no++;
-						}
-
+					// generate 16 layers
+					for (int layer_no = 0; layer_no < 16; layer_no++) {
 						// generate layer
-						World::gen_layer_fast(&mini, face_idx, layer_no, face, tmp);
+						world.gen_layer(&mini, face_idx, layer_no, face, tmp);
+
+						// just to force it to optimize-out tmp
+						bufp += sprintf(bufp, "%d", tmp[7][14]);
+						if (abs(buf - bufp) > 200) {
+							bufp = buf;
+						}
 
 						// generate quads for the layer
 						vector<Quad2D> quads2d = World::gen_quads(tmp);
-
-						if (backface) {
-							layer_no--;
-						}
 					}
 				}
 			}
 		}
+		// just to force it to optimize-out tmp
+		OutputDebugString(buf);
 
 		auto finish_manual_1 = std::chrono::high_resolution_clock::now();
 		long result_manual_1 = std::chrono::duration_cast<std::chrono::microseconds>(finish_manual_1 - start_manual_1).count();
@@ -438,11 +440,6 @@ namespace WorldTests {
 			}
 		}
 
-		// print time results
-		sprintf(buf, "init layers time: %.2f ms\ngen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_init_layers / 1000.0f, result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f);
-		OutputDebugString(buf);
-		OutputDebugString("");
-
 		// now compare layers for minichunk at (0, 64, 0)
 		int mini_idx_0_64_0 = 4;
 		Chunk *chunk_0_0 = world.get_chunk(0, mini_idx_0_64_0 / 16);
@@ -450,8 +447,27 @@ namespace WorldTests {
 		assert(mini_0_64_0.coords == ivec3(0, 64, 0));
 		compare_fast_layers(all_layers, &mini_0_64_0, mini_idx_0_64_0);
 
-		//// now fill in missing layers (for mini (0, 64, 0))
-		//fill_missed_layers(all_layers, &mini_0_64_0, mini_idx_0_64_0);
+		// now fill in missing layers (for mini (0, 64, 0))
+
+		auto start_fill_missed_layers = std::chrono::high_resolution_clock::now();
+
+		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
+			for (int j = 0; j < 16; j++) {
+				// simulate filling all missed layers - instead just fill for same mini every time
+				world.fill_missed_layers(all_layers, &mini_0_64_0, mini_idx_0_64_0);
+			}
+		}
+
+		auto finish_fill_missed_layers = std::chrono::high_resolution_clock::now();
+		long result_fill_missed_layers = std::chrono::duration_cast<std::chrono::microseconds>(finish_fill_missed_layers - start_fill_missed_layers).count();
+
+		// now run again and compare ALL layers
+		compare_all_layers(all_layers, &world, &mini_0_64_0, mini_idx_0_64_0);
+
+		// print time results
+		sprintf(buf, "init layers time: %.2f ms\ngen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\nfill missed layers: %.2fms\n", result_init_layers / 1000.0f, result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f, result_fill_missed_layers / 1000.0f);
+		OutputDebugString(buf);
+		OutputDebugString("");
 
 #undef NUM_CHUNKS_TO_RUN
 
