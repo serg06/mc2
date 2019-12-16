@@ -48,6 +48,66 @@ namespace WorldTests {
 	//	*/
 	//}
 
+	void extract_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block (&results)[16][16]) {
+		for (int u = 0; u < 16; u++) {
+			for (int v = 0; v < 16; v++) {
+				results[u][v] = (uint8_t)output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16];
+			}
+		}
+	}
+
+	void compare_layers(unsigned *output, MiniChunk* mini, unsigned global_minichunk_idx) {
+		Block output_layer[16][16];
+		Block expected_layer[16][16];
+
+		int output_nonzeros = 0;
+		int expected_nonzeros = 0;
+
+		// for each face
+		for (int global_face_idx = 0; global_face_idx < 6; global_face_idx++) {
+			int local_face_idx = global_face_idx % 3;
+			bool backface = global_face_idx < 3;
+
+			ivec3 face = ivec3(0, 0, 0);
+			face[local_face_idx] = backface ? -1 : 1;
+
+			// working indices are always gonna be xy, xz, or yz.
+			int working_idx_1 = local_face_idx == 0 ? 1 : 0;
+			int working_idx_2 = local_face_idx == 2 ? 1 : 2;
+
+			// for each FAST layer
+			for (int layer_idx = 0; layer_idx < 15; layer_idx++) {
+				// if backface, can't do 1st layer
+				if (backface) {
+					layer_idx++;
+				}
+
+				// get layers
+				extract_layer(output, layer_idx, global_face_idx, global_minichunk_idx, output_layer);
+				World::gen_layer_fast(mini, local_face_idx, layer_idx, face, expected_layer);
+
+				// compare
+				for (int u = 0; u < 16; u++) {
+					for (int v = 0; v < 16; v++) {
+						if (output_layer[u][v] != Block::Air) {
+							output_nonzeros++;
+						}
+						if (expected_layer[u][v] != Block::Air) {
+							expected_nonzeros++;
+						}
+						assert(output_layer[u][v] == expected_layer[u][v]);
+					}
+				}
+
+				if (backface) {
+					layer_idx--;
+				}
+			}
+		}
+
+		OutputDebugString("");
+	}
+
 	void print_nonzero_cs_output_layers(unsigned *output) {
 		// for each face
 		for (int global_face_idx = 0; global_face_idx < 6; global_face_idx++) {
@@ -257,14 +317,14 @@ namespace WorldTests {
 		//}
 
 		// read and print results for chunk[0]->minis[4] ((0, 64, 0))
-		unsigned output[16 * 16 * 96]; // 96 16x16 layers
-		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * (0 * 16 + 4), 16 * 16 * 96 * sizeof(unsigned), output);
-		print_nonzero_cs_output_layers(output);
+		unsigned output_0_64_0[16 * 16 * 96]; // 96 16x16 layers
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * (0 * 16 + 4), 16 * 16 * 96 * sizeof(unsigned), output_0_64_0);
+		print_nonzero_cs_output_layers(output_0_64_0);
 
 		auto start_bigread = std::chrono::high_resolution_clock::now();
 
-		unsigned *big_output = new unsigned[16 * 16 * 96 * (NUM_CHUNKS_TO_RUN * 16)];
-		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), big_output);
+		unsigned *all_layers = new unsigned[16 * 16 * 96 * (NUM_CHUNKS_TO_RUN * 16)];
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), all_layers);
 
 		auto finish_bigread = std::chrono::high_resolution_clock::now();
 		long result_bigread = std::chrono::duration_cast<std::chrono::microseconds>(finish_bigread - start_bigread).count();
@@ -331,6 +391,12 @@ namespace WorldTests {
 		sprintf(buf, "init layers time: %.2f ms\ngen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_init_layers / 1000.0f, result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f);
 		OutputDebugString(buf);
 		OutputDebugString("");
+
+		// now compare layers for minichunk at (0, 64, 0)
+		int mini_idx_0_64_0 = 4;
+		MiniChunk* mini_0_64_0 = &chunks[mini_idx_0_64_0 / 16]->minis[mini_idx_0_64_0 % 16];
+		assert(mini_0_64_0->coords = ivec3(0, 64, 0));
+		compare_layers(all_layers, mini_0_64_0, mini_idx_0_64_0);
 
 #undef NUM_CHUNKS_TO_RUN
 
