@@ -269,7 +269,7 @@ namespace WorldTests {
 		// use program
 		glUseProgram(glInfo->gen_layer_program);
 
-		// fill input buffer
+		// fill input buffers
 		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
 			Chunk *chunk = world.get_chunk(0, i);
 			assert(chunk != nullptr);
@@ -281,7 +281,8 @@ namespace WorldTests {
 				for (int k = 0; k < MINICHUNK_SIZE; k++) {
 					data[k] = (uint8_t)mini.data[k];
 				}
-				// TODO: Shouldn't this be i + j*16? Isn't that how we do it in compute shader?
+
+				// load in mini
 				glNamedBufferSubData(glInfo->gen_layer_mini_buf, (i * 16 + j) * MINICHUNK_SIZE * sizeof(unsigned), MINICHUNK_SIZE * sizeof(unsigned), data);
 			}
 		}

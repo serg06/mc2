@@ -224,12 +224,12 @@ namespace {
 		GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned) * (64 * 16); // 64 chunks / 1024 minis
 		GLuint layers_bufsize = 16 * 16 * (16 * 6) * sizeof(unsigned) * (64 * 16); // 64 chunks / 1024 minis
 		GLuint quads2d_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (16 * 16); // 16 chunks / 256 minis
-		GLuint quads3d_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (16 * 16); // no clue if this size is good
+		GLuint quads3d_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (16 * 16); // no clue if this size is good enough
+		GLuint mini_coords_bufsize = sizeof(ivec3) * (64 * 16); // 64 chunks / 1024 minis
 
 		// TODO: adjust storage bits
 
 		// mini buffer
-		// TODO: Change both buffers to use glNamedBufferStorage()
 		glCreateBuffers(1, &glInfo->gen_layer_mini_buf);
 		glNamedBufferStorage(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
 
@@ -252,6 +252,12 @@ namespace {
 		glNamedBufferStorage(glInfo->gen_quads_quads3d_buf, quads3d_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_quads_quads3d_ssbidx, glInfo->gen_quads_quads3d_buf);
+
+		// mini coords buffer
+		glCreateBuffers(1, &glInfo->gen_layer_mini_coords_buf);
+		glNamedBufferStorage(glInfo->gen_layer_mini_coords_buf, mini_coords_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_mini_coords_ssbidx, glInfo->gen_layer_mini_coords_buf);
 	}
 }
 

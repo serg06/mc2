@@ -43,8 +43,8 @@ struct Quad3DCS {
 	uvec4 coords[2];
 	GLuint block;
 	GLuint global_face_idx;
-	GLuint empty1;
-	GLuint empty2;
+	GLuint mini_input_idx;
+	GLuint empty;
 };
 
 class Quad2D {

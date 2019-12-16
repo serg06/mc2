@@ -39,8 +39,8 @@ struct Quad3D {
 	uvec4 coords[2];		// size = 32 | alignment = 16
 	uint block_type;		// size =  4 | alignment =  4
 	uint global_face_idx;
-	uint empty1;
-	uint empty2;
+	uint mini_input_idx;	// index of mini in input buffer
+	uint empty;
 };
 
 
@@ -145,6 +145,7 @@ void main() {
 	uint working_idx_2 = local_face_idx == 2 ? 1 : 2;
 	ivec3 face = {0, 0, 0};
 	face[local_face_idx] = backface ? -1 : 1;
+	uint mini_input_idx = total_mini_layer_idx / 96;
 
 	// create quad merged array
 	// TODO: figure out if this is any faster than initializing with a for loop.
@@ -195,8 +196,8 @@ void main() {
 			// add it to 3D results
 			quad3ds[num_quads].block_type = block;
 			quad3ds[num_quads].global_face_idx = global_face_idx; // from this can get `uint local_face_idx = global_face_idx % 3;` and `bool backface = global_face_idx < 3;`
-			quad3ds[num_quads].empty1 = 12345;
-			quad3ds[num_quads].empty2 = 34567;
+			quad3ds[num_quads].mini_input_idx = mini_input_idx;
+			quad3ds[num_quads].empty = 12345;
 			for (int i = 0; i < 2; i++) {
 				// if NOT backface (i.e. if facing AWAY from cube origin), need to add 1 to layer idx
 				// TODO: remove branch from for loop (2 branches -> 1)
