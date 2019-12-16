@@ -1241,6 +1241,14 @@ public:
 		// got our mesh
 		MiniChunkMesh* mesh = new MiniChunkMesh();
 
+		// generate layers that we can't generate ourselves (yet)
+		unsigned *layers = new unsigned[16 * 16 * 96];
+		fill_missed_layers(layers, mini, 0);
+
+		// load them into GPU
+		// (it's okay that some are uninitialized, since they'll get initialized by running gen_layers)
+		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), layers);
+
 		// switch to gen_layers program
 		glUseProgram(glInfo->gen_layer_program);
 
@@ -1260,22 +1268,6 @@ public:
 			15 // 15 layers per face
 		);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-		// read back layers resunt
-		unsigned *layers = new unsigned[16 * 16 * 96];
-		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), layers);
-
-		// fill in missing layers for mini
-		// TODO: OMG FAST IDEA:
-		// - FILL MISSING LAYERS AT VERY START
-		// - LOAD INTO GPU
-		// - RUN GEN LAYERS (to gen remaining 90 layers)
-		// - RUN GEN QUADS (no read required!)
-		// - read quads result.
-		fill_missed_layers(layers, mini, 0);
-
-		// load it back into GPU
-		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), layers);
 
 		// switch to gen_quads program
 		glUseProgram(glInfo->gen_quads_program);
