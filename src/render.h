@@ -38,7 +38,9 @@ struct OpenGLInfo {
 	// gen_layer buffers
 	GLuint gen_layer_mini_buf = 0;
 	GLuint gen_layer_layers_buf = 0;
-	GLuint gen_quads_quads_buf = 0;
+	GLuint gen_quads_quads2d_buf = 0;
+	GLuint gen_quads_quads3d_buf = 0;
+	GLuint gen_layer_mini_coords_buf = 0;
 	GLuint gen_quads_atomic_buf = 0;
 
 	// textures
@@ -64,7 +66,9 @@ struct OpenGLInfo {
 	// render shader storage block binding points
 	const GLuint gen_layer_mini_ssbidx = 0;
 	const GLuint gen_layer_layers_ssbidx = 1;
-	const GLuint gen_quads_quads_ssbidx = 2;
+	const GLuint gen_quads_quads2d_ssbidx = 2;
+	const GLuint gen_quads_quads3d_ssbidx = 3;
+	const GLuint gen_layer_mini_coords_ssbidx = 4;
 
 	// atomic counter binding points
 	const GLuint gen_quads_atomic_abidx = 0;

@@ -382,7 +382,40 @@ namespace WorldTests {
 		auto finish_bigread = std::chrono::high_resolution_clock::now();
 		long result_bigread = std::chrono::duration_cast<std::chrono::microseconds>(finish_bigread - start_bigread).count();
 
-		// generate quads
+		// now compare layers for minichunk at (0, 64, 0)
+		int mini_idx_0_64_0 = 4;
+		Chunk *chunk_0_0 = world.get_chunk(0, mini_idx_0_64_0 / 16);
+		MiniChunk &mini_0_64_0 = chunk_0_0->minis[mini_idx_0_64_0 % 16];
+		assert(mini_0_64_0.coords == ivec3(0, 64, 0));
+		compare_fast_layers(all_layers, &mini_0_64_0, mini_idx_0_64_0);
+
+		// now fill in missing layers for all minis and load them back in
+		auto start_fill_missed_layers = std::chrono::high_resolution_clock::now();
+
+		// fill
+		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
+			Chunk *chunk = world.get_chunk(0, i);
+			assert(chunk != nullptr);
+
+			for (int j = 0; j < 16; j++) {
+				auto &mini = chunk->minis[j];
+
+				// fill missing layers for this mini
+				world.fill_missed_layers(all_layers, &mini, i * 16 + j);
+			}
+		}
+
+		// load
+		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), all_layers);
+
+
+		auto finish_fill_missed_layers = std::chrono::high_resolution_clock::now();
+		long result_fill_missed_layers = std::chrono::duration_cast<std::chrono::microseconds>(finish_fill_missed_layers - start_fill_missed_layers).count();
+
+		// now run again and compare ALL layers (for mini (0, 64, 0))
+		compare_all_layers(all_layers, &world, &mini_0_64_0, mini_idx_0_64_0);
+
+		// now generate and read quads
 		auto start_quads = std::chrono::high_resolution_clock::now();
 
 		// - set quads counter to 0
@@ -405,67 +438,55 @@ namespace WorldTests {
 		sprintf(buf, "num generated quads: %u\n", num_quads);
 		OutputDebugString(buf);
 
-		// read back quads
-		Quad2DCS *quads = new Quad2DCS[num_quads];
-		glGetNamedBufferSubData(glInfo->gen_quads_quads_buf, 0, num_quads * sizeof(Quad2DCS), quads);
-		int s = sizeof(Quad2DCS);
+		// read back quad2ds
+		Quad2DCS *quad2ds = new Quad2DCS[num_quads];
+		glGetNamedBufferSubData(glInfo->gen_quads_quads2d_buf, 0, num_quads * sizeof(Quad2DCS), quad2ds);
 
-		Quad2DCS piece[128];
+		// read back quad3ds
+		Quad3DCS *quad3ds = new Quad3DCS[num_quads];
+		glGetNamedBufferSubData(glInfo->gen_quads_quads3d_buf, 0, num_quads * sizeof(Quad3DCS), quad3ds);
+
+		// extract piece of quad2ds
+		Quad2DCS piece2d[128];
 		for (int i = 0; i < 128; i++) {
-			piece[i].block = 0;
+			piece2d[i].block = 0;
 		}
 		for (int i = 0; (i < 128) && (i < num_quads); i++) {
-			piece[i] = quads[i];
+			piece2d[i] = quad2ds[i];
 		}
 
+		// extract piece of quad3ds
+		Quad3DCS piece3d[128];
+		memset(piece3d, 0, 128 * sizeof(Quad3DCS));
+		for (int i = 0; (i < 128) && (i < num_quads); i++) {
+			piece3d[i] = quad3ds[i];
+		}
+
+		// check highest 2D result
 		Quad2DCS highest_results;
 		for (int i = 0; i < num_quads; i++) {
-			if (quads[i].block > highest_results.block) {
-				highest_results.block = quads[i].block;
+			if (quad2ds[i].block > highest_results.block) {
+				highest_results.block = quad2ds[i].block;
 			}
-			if (quads[i].corners[0][0] > highest_results.corners[0][0]) {
-				highest_results.corners[0][0] = quads[i].corners[0][0];
+			if (quad2ds[i].corners[0][0] > highest_results.corners[0][0]) {
+				highest_results.corners[0][0] = quad2ds[i].corners[0][0];
 			}
-			if (quads[i].corners[0][1] > highest_results.corners[0][1]) {
-				highest_results.corners[0][1] = quads[i].corners[0][1];
+			if (quad2ds[i].corners[0][1] > highest_results.corners[0][1]) {
+				highest_results.corners[0][1] = quad2ds[i].corners[0][1];
 			}
-			if (quads[i].corners[1][0] > highest_results.corners[1][0]) {
-				highest_results.corners[1][0] = quads[i].corners[1][0];
+			if (quad2ds[i].corners[1][0] > highest_results.corners[1][0]) {
+				highest_results.corners[1][0] = quad2ds[i].corners[1][0];
 			}
-			if (quads[i].corners[1][1] > highest_results.corners[1][1]) {
-				highest_results.corners[1][1] = quads[i].corners[1][1];
+			if (quad2ds[i].corners[1][1] > highest_results.corners[1][1]) {
+				highest_results.corners[1][1] = quad2ds[i].corners[1][1];
 			}
-			if (quads[i].layer_idx > highest_results.layer_idx) {
-				highest_results.layer_idx = quads[i].layer_idx;
-			}
-		}
-
-		// now compare layers for minichunk at (0, 64, 0)
-		int mini_idx_0_64_0 = 4;
-		Chunk *chunk_0_0 = world.get_chunk(0, mini_idx_0_64_0 / 16);
-		MiniChunk &mini_0_64_0 = chunk_0_0->minis[mini_idx_0_64_0 % 16];
-		assert(mini_0_64_0.coords == ivec3(0, 64, 0));
-		compare_fast_layers(all_layers, &mini_0_64_0, mini_idx_0_64_0);
-
-		// now fill in missing layers (for mini (0, 64, 0))
-
-		auto start_fill_missed_layers = std::chrono::high_resolution_clock::now();
-
-		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
-			for (int j = 0; j < 16; j++) {
-				// simulate filling all missed layers - instead just fill for same mini every time
-				world.fill_missed_layers(all_layers, &mini_0_64_0, mini_idx_0_64_0);
+			if (quad2ds[i].layer_idx > highest_results.layer_idx) {
+				highest_results.layer_idx = quad2ds[i].layer_idx;
 			}
 		}
-
-		auto finish_fill_missed_layers = std::chrono::high_resolution_clock::now();
-		long result_fill_missed_layers = std::chrono::duration_cast<std::chrono::microseconds>(finish_fill_missed_layers - start_fill_missed_layers).count();
-
-		// now run again and compare ALL layers
-		compare_all_layers(all_layers, &world, &mini_0_64_0, mini_idx_0_64_0);
 
 		// print time results
-		sprintf(buf, "init layers time: %.2f ms\ngen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\nfill missed layers: %.2fms\n", result_init_layers / 1000.0f, result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f, result_fill_missed_layers / 1000.0f);
+		sprintf(buf, "\ninit layers time: %.2f ms\ngen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\nfill missed layers: %.2fms\n\n", result_init_layers / 1000.0f, result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f, result_fill_missed_layers / 1000.0f);
 		OutputDebugString(buf);
 		OutputDebugString("");
 
@@ -813,7 +834,7 @@ MiniChunkMesh* World::gen_minichunk_mesh(MiniChunk* mini) {
 			// convert quads back to 3D coordinates
 			vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
 
-			// if -x, -y, or -z, move 1 forwards
+			// if not backface (i.e. not facing (0,0,0)), move 1 forwards
 			if (face[0] > 0 || face[1] > 0 || face[2] > 0) {
 				for (auto &quad : quads) {
 					quad.corners[0] += face;

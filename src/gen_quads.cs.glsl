@@ -15,22 +15,48 @@
 layout( local_size_x = 1 ) in; 
 
 // 6 ints... jesus that's a LOTTA space.
-// NOTE: mini_idx = layer_idx / 96.
+// NOTE: mini_idx = total_mini_layer_idx / 96.
 // MUST MATCH STRUCT IN world.h
+// SIZE: 24 bytes (6 ints)
 struct Quad2D {
-	ivec2 coords[2]; // aligned to 8 bytes (size of ivec2)
-	uint block_type; // aligned to 4 bytes
-	uint layer_idx;  // aligned to 4 bytes
+	ivec2 coords[2];			// size = 16 | alignment = 8 (size of ivec2)
+	uint block_type;			// size =  4 | alignment = 4 (size of uint)
+	uint total_mini_layer_idx;	// size =  4 | alignment = 4
 };
+
+//// MUST MATCH STRUCT IN world.h
+//// SIZE: 32 bytes (8 ints)
+//struct Quad3D {
+//	uint coords[2][3];	// size = 24 | alignment = 4 (NOTE: Cannot make this 2 ivec3s, or else alignment would be 12 bytes, which is fucking GROSS.)
+//	uint block_type;	// size =  4 | alignment = 4
+//	uint empty;
+//};
+
+// MUST MATCH STRUCT IN world.h
+// SIZE: 48 bytes (12 ints)
+// TODO: Use the other Quad3D (Can be just 32 bytes, 2/3 of this size.)
+struct Quad3D {
+	uvec4 coords[2];		// size = 32 | alignment = 16
+	uint block_type;		// size =  4 | alignment =  4
+	uint global_face_idx;
+	uint empty1;
+	uint empty2;
+};
+
 
 // layers input
 layout(std430, binding=1) buffer LAYERS { 
 	uint layers[]; 
 };
 
-// quads output
-layout(std430, binding=2) buffer QUADS { 
-	Quad2D global_quads[]; 
+// 2D quads output
+layout(std430, binding=2) buffer QUAD2DS { 
+	Quad2D global_quad2ds[]; 
+};
+
+// 3D quads output
+layout(std430, binding=3) buffer QUAD3DS { 
+	Quad3D global_quad3ds[]; 
 };
 
 layout(binding=0, offset=0) uniform atomic_uint global_num_quads;
@@ -40,8 +66,8 @@ void assert(bool test){}
 
 // get block at these coordinates
 // NOTE: Should iterate on x then z then y for best efficiency.
-uint get_block(const uint layer_idx, const uint u, const uint v) {
-	return layers[u + v * 16 + layer_idx * 16 * 16];
+uint get_block(const uint total_mini_layer_idx, const uint u, const uint v) {
+	return layers[u + v * 16 + total_mini_layer_idx * 16 * 16];
 }
 
 // mark elements as merged
@@ -54,7 +80,7 @@ void mark_as_merged(inout bool merged[16][16], const ivec2 start, const ivec2 ma
 }
 
 // given a layer and start point, find its best dimensions
-ivec2 get_max_size(const uint layer_idx, inout bool merged[16][16], const ivec2 start_point, const uint block_type) {
+ivec2 get_max_size(const uint total_mini_layer_idx, inout bool merged[16][16], const ivec2 start_point, const uint block_type) {
 	assert(block_type != BLOCK_AIR);
 	assert(!merged[start_point[0]][start_point[1]]);
 
@@ -67,7 +93,7 @@ ivec2 get_max_size(const uint layer_idx, inout bool merged[16][16], const ivec2 
 	// maximize width
 	for (int i = start_point[0], j = start_point[1]; i < 16; i++) {
 		// if extended by 1, add 1 to max width
-		if (get_block(layer_idx, i, j) == block_type && !merged[i][j]) {
+		if (!merged[i][j] && get_block(total_mini_layer_idx, i, j) == block_type) {
 			max_size[0]++;
 		}
 		// else give up
@@ -87,7 +113,7 @@ ivec2 get_max_size(const uint layer_idx, inout bool merged[16][16], const ivec2 
 		// check if entire width is correct
 		for (int i = start_point[0]; i < start_point[0] + max_size[0]; i++) {
 			// if wrong block type, give up on extending height
-			if (get_block(layer_idx, i, j) != block_type || merged[i][j]) {
+			if (merged[i][j] || get_block(total_mini_layer_idx, i, j) != block_type) {
 				stop = true;
 				break;
 			}
@@ -108,14 +134,25 @@ ivec2 get_max_size(const uint layer_idx, inout bool merged[16][16], const ivec2 
 
 void main() {
 	// index of the layer we've been assigned
-	uint layer_idx = gl_WorkGroupID.x;
+	uint total_mini_layer_idx = gl_WorkGroupID.x;
+
+	// generate variables (assuming we have minis as inputs (i.e. 96 layers at a time), instead of just one layer at a time)
+	uint global_face_idx = int((total_mini_layer_idx % 96) / 16);
+	uint local_face_idx = global_face_idx % 3;
+	bool backface = global_face_idx < 3;
+	uint layer_idx = total_mini_layer_idx % 16;
+	uint working_idx_1 = local_face_idx == 0 ? 1 : 0;
+	uint working_idx_2 = local_face_idx == 2 ? 1 : 2;
+	ivec3 face = {0, 0, 0};
+	face[local_face_idx] = backface ? -1 : 1;
 
 	// create quad merged array
 	// TODO: figure out if this is any faster than initializing with a for loop.
 	bool merged[16][16] = {{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}};
 
 	// we'll generate at most one quad per square => 256 quads per layer
-	Quad2D quads[MAX_LAYER_QUADS];
+	Quad2D quad2ds[MAX_LAYER_QUADS];
+	Quad3D quad3ds[MAX_LAYER_QUADS];
 	int num_quads = 0;
 
 	// generate quads
@@ -127,7 +164,7 @@ void main() {
 	for (int u = 0; u < 16; u++) {
 		for (int v = 0; v < 16; v++) {
 			// get block
-			uint block = get_block(layer_idx, u, v);
+			uint block = get_block(total_mini_layer_idx, u, v);
 
 			// skip merged & air blocks
 			if (merged[u][v] || block == BLOCK_AIR) continue;
@@ -136,17 +173,42 @@ void main() {
 			ivec2 start = ivec2(u, v);
 
 			// get max size of this quad
-			ivec2 max_size = get_max_size(layer_idx, merged, start, block);
+			ivec2 max_size = get_max_size(total_mini_layer_idx, merged, start, block);
 
-			// add it to results
-			quads[num_quads].block_type = block;
-			quads[num_quads].coords[0] = start;
-			quads[num_quads].coords[1] = start + max_size;
-			quads[num_quads].layer_idx = layer_idx;
-			num_quads++;
+			// save it as corners
+			ivec2 start_and_end[2] = {start, start + max_size};
+
+			// if -x, -y, or +z, flip triangles around so that we're not drawing them backwards
+			// TODO: Run this in a loop at the end?
+			if (face[0] < 0 || face[1] < 0 || face[2] > 0) {
+				ivec2 diffs = start_and_end[1] - start_and_end[0];
+				start_and_end[0][0] += diffs[0];
+				start_and_end[1][0] -= diffs[0];
+			}
+
+			// add it to 2D results
+			quad2ds[num_quads].block_type = block;
+			quad2ds[num_quads].coords[0] = start;
+			quad2ds[num_quads].coords[1] = start + max_size;
+			quad2ds[num_quads].total_mini_layer_idx = total_mini_layer_idx;
+
+			// add it to 3D results
+			quad3ds[num_quads].block_type = block;
+			quad3ds[num_quads].global_face_idx = global_face_idx; // from this can get `uint local_face_idx = global_face_idx % 3;` and `bool backface = global_face_idx < 3;`
+			quad3ds[num_quads].empty1 = 12345;
+			quad3ds[num_quads].empty2 = 34567;
+			for (int i = 0; i < 2; i++) {
+				// if NOT backface (i.e. if facing AWAY from cube origin), need to add 1 to layer idx
+				// TODO: remove branch from for loop (2 branches -> 1)
+				quad3ds[num_quads].coords[i][local_face_idx] = backface ? layer_idx : layer_idx+1;
+				quad3ds[num_quads].coords[i][working_idx_1] = start_and_end[i][0];
+				quad3ds[num_quads].coords[i][working_idx_2] = start_and_end[i][1];
+			}
 
 			// mark all as merged
 			mark_as_merged(merged, start, max_size);
+
+			num_quads++;
 		}
 	}
 
@@ -157,10 +219,9 @@ void main() {
 
 	// store quads
 	for (uint i = 0; i < num_quads; i++) {
-		global_quads[result_quad_idx + i] = quads[i];
+		global_quad2ds[result_quad_idx + i] = quad2ds[i];
+		global_quad3ds[result_quad_idx + i] = quad3ds[i];
 	}
-
-	
 
 	// RESULT SIZE: Should fit at least (MAX_LAYER_QUADS * (16+1) * 3) quads. (NOT (MAX_LAYER_QUADS * 16 * 6) QUADS!)
 }

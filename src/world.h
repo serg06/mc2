@@ -31,6 +31,22 @@ struct Quad2DCS {
 	GLuint layer_idx = 0;
 };
 
+//// MUST MATCH STRUCT IN gen_quads compute shader
+//struct Quad3DCS {
+//	uvec3 coords[2];
+//	GLuint block;
+//  GLuint global_face_idx;
+//};
+
+// MUST MATCH STRUCT IN gen_quads compute shader
+struct Quad3DCS {
+	uvec4 coords[2];
+	GLuint block;
+	GLuint global_face_idx;
+	GLuint empty1;
+	GLuint empty2;
+};
+
 class Quad2D {
 public:
 	Block block;
@@ -1167,8 +1183,9 @@ public:
 
 	void add_block(ivec3 xyz, Block block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
+	// extract layer from output
+	// TODO: memcpy?
 	static void extract_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block(&results)[16][16]) {
-		// TODO: itereate u first
 		for (int v = 0; v < 16; v++) {
 			for (int u = 0; u < 16; u++) {
 				results[u][v] = (uint8_t)output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16];
@@ -1176,8 +1193,9 @@ public:
 		}
 	}
 
+	// fill layer in output
+	// TODO: memcpy?
 	static void fill_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block(&layer)[16][16]) {
-		// TODO: itereate u first
 		for (int v = 0; v < 16; v++) {
 			for (int u = 0; u < 16; u++) {
 				output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16] = (uint8_t)layer[u][v];

@@ -223,7 +223,8 @@ namespace {
 		// TODO: fill 'er up with bytes instead of uints
 		GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned) * (64 * 16); // 64 chunks / 1024 minis
 		GLuint layers_bufsize = 16 * 16 * (16 * 6) * sizeof(unsigned) * (64 * 16); // 64 chunks / 1024 minis
-		GLuint quads_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (16 * 16); // 16 chunks / 256 minis
+		GLuint quads2d_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (16 * 16); // 16 chunks / 256 minis
+		GLuint quads3d_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (16 * 16); // no clue if this size is good
 
 		// TODO: adjust storage bits
 
@@ -240,11 +241,17 @@ namespace {
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_layers_ssbidx, glInfo->gen_layer_layers_buf);
 
-		// quads buffer
-		glCreateBuffers(1, &glInfo->gen_quads_quads_buf);
-		glNamedBufferStorage(glInfo->gen_quads_quads_buf, quads_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+		// quads2d buffer
+		glCreateBuffers(1, &glInfo->gen_quads_quads2d_buf);
+		glNamedBufferStorage(glInfo->gen_quads_quads2d_buf, quads2d_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_quads_quads_ssbidx, glInfo->gen_quads_quads_buf);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_quads_quads2d_ssbidx, glInfo->gen_quads_quads2d_buf);
+
+		// quads3d buffer
+		glCreateBuffers(1, &glInfo->gen_quads_quads3d_buf);
+		glNamedBufferStorage(glInfo->gen_quads_quads3d_buf, quads3d_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_quads_quads3d_ssbidx, glInfo->gen_quads_quads3d_buf);
 	}
 }
 
