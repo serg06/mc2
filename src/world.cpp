@@ -235,6 +235,8 @@ namespace WorldTests {
 	}
 
 	void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
+		World world;
+
 		char buf[256];
 
 		// gen chunk at 0,0
@@ -244,10 +246,11 @@ namespace WorldTests {
 #define NUM_CHUNKS_TO_RUN 16
 
 		// generate minichunks
-		Chunk* chunks[NUM_CHUNKS_TO_RUN];
+		vector<ivec2> to_generate;
 		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
-			chunks[i] = gen_chunk_data(0, i);
+			to_generate.push_back({ 0, i });
 		}
+		world.gen_chunks(to_generate);
 
 		//// grab mini at 0,0,0
 		//MiniChunk &mini = chunks[0]->minis[0];
@@ -268,8 +271,11 @@ namespace WorldTests {
 
 		// fill input buffer
 		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
+			Chunk *chunk = world.get_chunk(0, i);
+			assert(chunk != nullptr);
+
 			for (int j = 0; j < 16; j++) {
-				auto &mini = chunks[i]->minis[j];
+				auto &mini = chunk->minis[j];
 
 				unsigned data[MINICHUNK_SIZE];
 				for (int k = 0; k < MINICHUNK_SIZE; k++) {
@@ -288,7 +294,7 @@ namespace WorldTests {
 		// [AMD] TODO: make sure you get similar results.
 		unsigned zero = 0;
 		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 1, &zero);
-		
+
 		// actually initialize
 		glClearNamedBufferSubData(glInfo->gen_layer_layers_buf, GL_RGBA32UI, 0, 16 * 16 * 96 * sizeof(unsigned) * (NUM_CHUNKS_TO_RUN * 16), GL_RGBA_INTEGER, GL_UNSIGNED_INT, NULL);
 
@@ -315,8 +321,11 @@ namespace WorldTests {
 
 		// for each face
 		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
+			Chunk *chunk = world.get_chunk(0, i);
+			assert(chunk != nullptr);
+
 			for (int j = 0; j < 16; j++) {
-				auto &mini = chunks[i]->minis[j];
+				auto &mini = chunk->minis[j];
 
 				for (int k = 0; k < 6; k++) {
 					int face_idx = k % 3;
@@ -428,7 +437,7 @@ namespace WorldTests {
 				highest_results.layer_idx = quads[i].layer_idx;
 			}
 		}
-		
+
 		// print time results
 		sprintf(buf, "init layers time: %.2f ms\ngen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\n", result_init_layers / 1000.0f, result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f);
 		OutputDebugString(buf);
@@ -436,12 +445,13 @@ namespace WorldTests {
 
 		// now compare layers for minichunk at (0, 64, 0)
 		int mini_idx_0_64_0 = 4;
-		MiniChunk* mini_0_64_0 = &chunks[mini_idx_0_64_0 / 16]->minis[mini_idx_0_64_0 % 16];
-		assert(mini_0_64_0->coords = ivec3(0, 64, 0));
-		compare_fast_layers(all_layers, mini_0_64_0, mini_idx_0_64_0);
+		Chunk *chunk_0_0 = world.get_chunk(0, mini_idx_0_64_0 / 16);
+		MiniChunk &mini_0_64_0 = chunk_0_0->minis[mini_idx_0_64_0 % 16];
+		assert(mini_0_64_0.coords == ivec3(0, 64, 0));
+		compare_fast_layers(all_layers, &mini_0_64_0, mini_idx_0_64_0);
 
-		// now fill in missing layers (for mini (0, 64, 0))
-		fill_missed_layers(all_layers, mini_0_64_0, mini_idx_0_64_0);
+		//// now fill in missing layers (for mini (0, 64, 0))
+		//fill_missed_layers(all_layers, &mini_0_64_0, mini_idx_0_64_0);
 
 #undef NUM_CHUNKS_TO_RUN
 
@@ -486,114 +496,7 @@ namespace WorldTests {
 		//get_layer_from_cs_output(output, face, 14, result);
 
 		//print_nonzero_cs_output_layers(output);
-
-		OutputDebugString("wait here!\n");
 	}
-
-	//void test_gen_layers_compute_shader2(OpenGLInfo *glInfo) {
-	//	// gen chunk at 0,0
-	//	Chunk* chunk = gen_chunk_data(0, 0);
-
-	//	// grab first mini that has stone, grass, and air blocks
-	//	MiniChunk* mini;
-	//	for (auto &mini2 : chunk->minis) {
-	//		bool has_air = false, has_stone = false, has_grass = false;
-	//		for (int i = 0; i < MINICHUNK_SIZE; i++) {
-	//			has_air |= mini2.data[i] == Block::Air;
-	//			has_stone |= mini2.data[i] == Block::Stone;
-	//			has_grass |= mini2.data[i] == Block::Grass;
-	//		}
-
-	//		if (has_air && has_stone && has_grass) {
-	//			mini = &mini2;
-	//		}
-	//	}
-
-	//	if (mini == nullptr) {
-	//		throw "No sufficient minis!";
-	//	}
-
-	//	char buf[256];
-	//	char* s = vec2str(mini->real_coords());
-	//	sprintf(buf, "Grabbed mini: %s.\n", s);
-	//	delete[] s;
-	//	OutputDebugString(buf);
-
-	//	char* layer_str = mini->print_layer(2, 1);
-	//	char* face_str = mini->print_layer(2, 0);
-
-	//	OutputDebugString("LAYER:\n");
-	//	OutputDebugString(layer_str);
-	//	OutputDebugString("FACE:\n");
-	//	OutputDebugString(face_str);
-
-
-	//	// use program
-	//	glUseProgram(glInfo->gen_layer_program);
-
-	//	// fill input buffer
-	//	unsigned data[MINICHUNK_SIZE];
-	//	for (int i = 0; i < MINICHUNK_SIZE; i++) {
-	//		data[i] = (uint8_t)mini->data[i];
-	//	}
-	//	glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned), data);
-
-	//	// TODO: This part and shit.
-	//	//int face_idx = 0;
-	//	//bool backface = true;
-	//	//int working_idx_1, working_idx_2;
-	//	//gen_working_indices(face_idx, working_idx_1, working_idx_2);
-	//	//ivec3 face = { 0, 0, 0 };
-	//	//face[face_idx] = backface ? -1 : 1;
-	//	int face_idx = 2;
-	//	ivec3 face = { 0, 0, -1 };
-
-	//	// run program
-	//	glDispatchCompute(
-	//		1, // 1 minichunk
-	//		6, // 6 faces
-	//		15 // 15 layers per face
-	//	);
-	//	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-	//	// read result
-	//	unsigned output[16 * 16 * 90]; // 90 16x16 layers
-	//	glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 90 * sizeof(unsigned), output);
-
-	//	// read result along z in -z face direction
-	//	unsigned result_layer_idx = face_idx * 15 + 1;
-
-	//	unsigned neg_z_layer[16 * 16];
-	//	memcpy(neg_z_layer, output + result_layer_idx * 16 * 16, 16 * 16 * sizeof(unsigned));
-
-	//	// Get same thing with gen_layer_fast!
-	//	Block expected_blocks[16][16];
-	//	World::gen_layer_fast(mini, 2, 1, face, expected_blocks);
-	//	unsigned expected1[16 * 16];
-	//	unsigned expected2[16 * 16];
-	//	for (int x = 0; x < 16; x++) {
-	//		for (int y = 0; y < 16; y++) {
-	//			expected1[x + y * 16] = (uint8_t)expected_blocks[x][y];
-	//			expected2[y + x * 16] = (uint8_t)expected_blocks[x][y];
-	//		}
-	//	}
-
-	//	bool any_grass = false;
-	//	for (int i = 0; i < 16; i++) {
-	//		for (int j = 0; j < 16; j++) {
-	//			if (expected_blocks[i][j] == Block::Grass) {
-	//				any_grass = true;
-	//			}
-	//		}
-	//	}
-
-	//	//void set_block(const uint u, const uint v, const uint face_idx, const uint layer_idx, const uint val) {
-	//	//	uint result_layer_idx = face_idx * 15 + layer_idx;
-	//	//	layers[u + v * 16 + result_layer_idx * 16 * 16] = val;
-	//	//}
-
-	//	OutputDebugString("wait here!\n");
-	//}
 
 	void test_gen_layer() {
 		// gen chunk at 0,0
