@@ -485,6 +485,23 @@ namespace WorldTests {
 			}
 		}
 
+		// now create ALL QUADS for our minichunks, naturally.
+		// OH MY GOD IT'S THE SAME SIZE WOOO!
+		vector<Quad3D> expected_quads;
+		for (int i = 0; i < NUM_CHUNKS_TO_RUN; i++) {
+			Chunk *chunk = world.get_chunk(0, i);
+			assert(chunk != nullptr);
+
+			for (int j = 0; j < 16; j++) {
+				auto &mini = chunk->minis[j];
+				auto mesh = world.gen_minichunk_mesh(&mini);
+
+				for (auto &quad : mesh->quads3d) {
+					expected_quads.push_back(quad);
+				}
+			}
+		}
+
 		// print time results
 		sprintf(buf, "\ninit layers time: %.2f ms\ngen_layers time: %.2f ms\ngen_quads time: %.2f ms\nmanual time: %.2f ms\nbigread time: %.2f ms\nfill missed layers: %.2fms\n\n", result_init_layers / 1000.0f, result_compute_1 / 1000.0f, result_quads / 1000.0f, result_manual_1 / 1000.0f, result_bigread / 1000.0f, result_fill_missed_layers / 1000.0f);
 		OutputDebugString(buf);
