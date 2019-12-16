@@ -236,6 +236,7 @@ namespace WorldTests {
 
 	static void test_gen_layers_compute_shader(OpenGLInfo *glInfo) {
 		World world;
+		world.glInfo = glInfo;
 
 		char buf[1024];
 

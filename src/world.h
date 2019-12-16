@@ -85,6 +85,7 @@ public:
 	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
 	vmath::ivec2 chunk_cache_ivec2[5] = { ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX) };
 	int chunk_cache_clock_hand = 0; // clock cache
+	OpenGLInfo *glInfo;
 
 	World() {
 
@@ -221,7 +222,8 @@ public:
 				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 
 				if (!mini.invisible) {
-					MiniChunkMesh* mesh = gen_minichunk_mesh(&mini);
+					//MiniChunkMesh* mesh = gen_minichunk_mesh(&mini);
+					MiniChunkMesh* mesh = gen_minichunk_mesh_gpu(glInfo, &mini);
 
 					MiniChunkMesh* non_water = new MiniChunkMesh;
 					MiniChunkMesh* water = new MiniChunkMesh;
@@ -1135,7 +1137,8 @@ public:
 		for (auto mini : minis_to_regenerate) {
 			mini->invisible = mini->all_air() || check_if_covered(*mini);
 			if (!mini->invisible) {
-				MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
+				//MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
+				MiniChunkMesh* mesh = gen_minichunk_mesh_gpu(glInfo, mini);
 
 				MiniChunkMesh* non_water = new MiniChunkMesh;
 				MiniChunkMesh* water = new MiniChunkMesh;
@@ -1229,6 +1232,94 @@ public:
 		}
 
 		OutputDebugString("");
+	}
+
+	// generate mesh for a single minichunk on GPU
+	MiniChunkMesh* gen_minichunk_mesh_gpu(OpenGLInfo *glInfo, MiniChunk* mini) {
+		char buf[1024];
+
+		// got our mesh
+		MiniChunkMesh* mesh = new MiniChunkMesh();
+
+		// switch to gen_layers program
+		glUseProgram(glInfo->gen_layer_program);
+
+		// convert mini data to unsigned ints, since that's what GPU wants
+		unsigned data[MINICHUNK_SIZE];
+		for (int k = 0; k < MINICHUNK_SIZE; k++) {
+			data[k] = (uint8_t)mini->data[k];
+		}
+
+		// load data into GPU
+		glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned), data);
+
+		// gen layers!
+		glDispatchCompute(
+			1, // 1 minichunk
+			6, // 6 faces
+			15 // 15 layers per face
+		);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		// read back layers resunt
+		unsigned *layers = new unsigned[16 * 16 * 96];
+		glGetNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), layers);
+
+		// fill in missing layers for mini
+		// TODO: OMG FAST IDEA:
+		// - FILL MISSING LAYERS AT VERY START
+		// - LOAD INTO GPU
+		// - RUN GEN LAYERS (to gen remaining 90 layers)
+		// - RUN GEN QUADS (no read required!)
+		// - read quads result.
+		fill_missed_layers(layers, mini, 0);
+
+		// load it back into GPU
+		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), layers);
+
+		// switch to gen_quads program
+		glUseProgram(glInfo->gen_quads_program);
+
+		// initialize atomic counter
+		GLuint num_quads = 0;
+		glNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+
+		// gen quads!
+		glDispatchCompute(
+			96, // 96 layers ('cause 1 minichunk)
+			1,
+			1
+		);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
+
+		// get number of generated quads
+		glGetNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+		sprintf(buf, "gen_minichunk_mesh_gpu num generated quads: %u\n", num_quads);
+		OutputDebugString(buf);
+
+		// read back quad3ds
+		Quad3DCS *quad3ds = new Quad3DCS[num_quads];
+		glGetNamedBufferSubData(glInfo->gen_quads_quads3d_buf, 0, num_quads * sizeof(Quad3DCS), quad3ds);
+
+		// fill them into mesh
+		for (int i = 0; i < num_quads; i++) {
+			int local_face_idx = quad3ds[i].global_face_idx % 3;
+			bool backface = quad3ds[i].global_face_idx < 3;
+			ivec3 face = { 0, 0, 0 };
+			face[local_face_idx] = backface ? -1 : 1;
+
+			Quad3D q;
+			q.block = quad3ds[i].block;
+			for (int j = 0; j < 3; j++) {
+				q.corners[0][j] = quad3ds[i].coords[0][j];
+				q.corners[1][j] = quad3ds[i].coords[1][j];
+			}
+			q.face = face;
+
+			mesh->quads3d.push_back(q);
+		}
+
+		return mesh;
 	}
 
 	MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini);

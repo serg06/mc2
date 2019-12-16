@@ -83,6 +83,7 @@ void App::startup() {
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 	world = new World();
+	world->glInfo = &glInfo;
 
 	// prepare opengl
 	setup_opengl(&glInfo);
