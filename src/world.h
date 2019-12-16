@@ -216,36 +216,81 @@ public:
 			}
 		}
 
-		// now that we know everyone who needs new minis, let's do it
+		// figure out all minis to mesh
+		vector<MiniChunk*> minis_to_mesh;
 		for (auto chunk : to_generate_minis) {
 			for (auto &mini : chunk->minis) {
 				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 
 				if (!mini.invisible) {
-					//MiniChunkMesh* mesh = gen_minichunk_mesh(&mini);
-					MiniChunkMesh* mesh = gen_minichunk_mesh_gpu(glInfo, &mini);
-
-					MiniChunkMesh* non_water = new MiniChunkMesh;
-					MiniChunkMesh* water = new MiniChunkMesh;
-
-					for (auto &quad : mesh->quads3d) {
-						if ((Block)quad.block == Block::Water) {
-							water->quads3d.push_back(quad);
-						}
-						else {
-							non_water->quads3d.push_back(quad);
-						}
-					}
-
-					assert(mesh->size() == non_water->size() + water->size());
-
-					mini.mesh = non_water;
-					mini.water_mesh = water;
-
-					mini.update_quads_buf();
+					minis_to_mesh.push_back(&mini);
 				}
 			}
 		}
+
+		// generate all meshes
+		// TODO: free this
+		vector<MiniChunkMesh*> meshes;
+		for (int i = 0; i < minis_to_mesh.size(); i++) {
+			meshes.push_back(new MiniChunkMesh);
+		}
+		gen_minichunk_meshes_gpu(glInfo, minis_to_mesh, meshes);
+
+		assert(minis_to_mesh.size() == meshes.size());
+
+		// load assign meshes to minis
+		for (int i = 0; i < minis_to_mesh.size(); i++) {
+			MiniChunkMesh* mesh = meshes[i];
+
+			MiniChunkMesh* non_water = new MiniChunkMesh;
+			MiniChunkMesh* water = new MiniChunkMesh;
+
+			for (auto &quad : mesh->quads3d) {
+				if ((Block)quad.block == Block::Water) {
+					water->quads3d.push_back(quad);
+				}
+				else {
+					non_water->quads3d.push_back(quad);
+				}
+			}
+
+			assert(mesh->size() == non_water->size() + water->size());
+
+			minis_to_mesh[i]->mesh = non_water;
+			minis_to_mesh[i]->water_mesh = water;
+
+			minis_to_mesh[i]->update_quads_buf();
+		}
+
+		//for (auto chunk : to_generate_minis) {
+		//	for (auto &mini : chunk->minis) {
+		//		mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
+
+		//		if (!mini.invisible) {
+		//			//MiniChunkMesh* mesh = gen_minichunk_mesh(&mini);
+		//			MiniChunkMesh* mesh = gen_minichunk_mesh_gpu(glInfo, &mini);
+
+		//			MiniChunkMesh* non_water = new MiniChunkMesh;
+		//			MiniChunkMesh* water = new MiniChunkMesh;
+
+		//			for (auto &quad : mesh->quads3d) {
+		//				if ((Block)quad.block == Block::Water) {
+		//					water->quads3d.push_back(quad);
+		//				}
+		//				else {
+		//					non_water->quads3d.push_back(quad);
+		//				}
+		//			}
+
+		//			assert(mesh->size() == non_water->size() + water->size());
+
+		//			mini.mesh = non_water;
+		//			mini.water_mesh = water;
+
+		//			mini.update_quads_buf();
+		//		}
+		//	}
+		//}
 
 		// delete malloc'd stuff
 		delete[] chunks;
@@ -1248,6 +1293,7 @@ public:
 		// load them into GPU
 		// (it's okay that some are uninitialized, since they'll get initialized by running gen_layers)
 		glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned), layers);
+		delete[] layers;
 
 		// switch to gen_layers program
 		glUseProgram(glInfo->gen_layer_program);
@@ -1312,6 +1358,101 @@ public:
 		}
 
 		return mesh;
+	}
+
+	// generate meshes for multiple minichunks on GPU
+	// TODO: assert that there's no duplicates
+	// TODO: assert no more than we can handle (256 minis?)
+	void gen_minichunk_meshes_gpu(OpenGLInfo *glInfo, vector<MiniChunk*> &minis, vector<MiniChunkMesh*> &results) {
+		char buf[1024];
+
+		// for each mini
+		for (int i = 0; i < minis.size(); i++) {
+			auto &mini = minis[i];
+
+			// generate layers that we can't generate ourselves (yet)
+			// TODO: generate all layers at once, no mallocing once per mini bullshit.
+			unsigned *layers = new unsigned[16 * 16 * 96];
+			fill_missed_layers(layers, mini, 0);
+
+			// load layers into GPU
+			// (it's okay that some are uninitialized, since they'll get initialized by running gen_layers)
+			// TODO: load in all at once
+			glNamedBufferSubData(glInfo->gen_layer_layers_buf, 16 * 16 * 96 * sizeof(unsigned) * i, 16 * 16 * 96 * sizeof(unsigned), layers);
+			delete[] layers;
+
+			// convert mini data to unsigned ints, since that's what GPU wants
+			// TODO: all at once.
+			unsigned data[MINICHUNK_SIZE];
+			for (int k = 0; k < MINICHUNK_SIZE; k++) {
+				data[k] = (uint8_t)mini->data[k];
+			}
+
+			// load mini data into GPU
+			// TODO: load in all at once.
+			glNamedBufferSubData(glInfo->gen_layer_mini_buf, MINICHUNK_SIZE * sizeof(unsigned) * i, MINICHUNK_SIZE * sizeof(unsigned), data);
+		}
+
+		// switch to gen_layers program
+		glUseProgram(glInfo->gen_layer_program);
+
+		// gen layers!
+		glDispatchCompute(
+			minis.size(), // minis.size() minis
+			6, // 6 faces
+			15 // 15 layers per face
+		);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		// switch to gen_quads program
+		glUseProgram(glInfo->gen_quads_program);
+
+		// initialize atomic counter
+		GLuint num_quads = 0;
+		glNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+
+		// gen quads!
+		glDispatchCompute(
+			96 * minis.size(), // 96 layers per mini
+			1,
+			1
+		);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
+
+		// get number of generated quads
+		glGetNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+		sprintf(buf, "gen_minichunk_mesh_gpu num generated quads: %u\n", num_quads);
+		OutputDebugString(buf);
+
+		// read back quad3ds
+		Quad3DCS *quad3ds = new Quad3DCS[num_quads];
+		glGetNamedBufferSubData(glInfo->gen_quads_quads3d_buf, 0, num_quads * sizeof(Quad3DCS), quad3ds);
+
+		// fill them into mesh
+		// TODO: do this efficiently, not like fuckin this.
+		for (int i = 0; i < num_quads; i++) {
+			int local_face_idx = quad3ds[i].global_face_idx % 3;
+			bool backface = quad3ds[i].global_face_idx < 3;
+			ivec3 face = { 0, 0, 0 };
+			face[local_face_idx] = backface ? -1 : 1;
+
+			Quad3D q;
+			q.block = quad3ds[i].block;
+			for (int j = 0; j < 3; j++) {
+				q.corners[0][j] = quad3ds[i].coords[0][j];
+				q.corners[1][j] = quad3ds[i].coords[1][j];
+			}
+			q.face = face;
+
+			// make mesh
+			MiniChunkMesh* mesh = new MiniChunkMesh();
+
+			results[quad3ds[i].mini_input_idx]->quads3d.push_back(q);
+		}
+
+		delete[] quad3ds;
+
+		// done
 	}
 
 	MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini);
