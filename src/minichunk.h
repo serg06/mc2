@@ -8,6 +8,7 @@
 #include "util.h"
 
 #include <algorithm> // std::find
+#include <mutex>
 #include <vector> // std::find
 
 #define MINICHUNK_WIDTH 16
@@ -22,8 +23,10 @@ public:
 	bool invisible = false;
 	MiniChunkMesh* mesh = nullptr;
 	MiniChunkMesh* water_mesh = nullptr;
+	bool meshes_updated = false;
 	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
 	GLuint water_quad_block_type_buf = 0, water_quad_corner1_buf = 0, water_quad_corner2_buf = 0, water_quad_face_buf = 0;
+	std::mutex mesh_lock;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
 
@@ -55,9 +58,17 @@ public:
 	// render this minichunk's meshes
 	void render_meshes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
-		if (invisible || mesh == nullptr) {
+		if (invisible || mesh == nullptr || mesh->quads3d.size() == 0) {
 			return;
 		}
+
+		// update quads if needed
+		mesh_lock.lock();
+		if (meshes_updated) {
+			meshes_updated = false;
+			update_quads_buf();
+		}
+		mesh_lock.unlock();
 
 		auto &quads = mesh->quads3d;
 
@@ -91,9 +102,17 @@ public:
 	// render this minichunk's water meshes
 	void render_water_meshes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
-		if (invisible || water_mesh == nullptr) {
+		if (invisible || water_mesh == nullptr || water_mesh->quads3d.size() == 0) {
 			return;
 		}
+
+		// update quads if needed
+		mesh_lock.lock();
+		if (meshes_updated) {
+			meshes_updated = false;
+			update_quads_buf();
+		}
+		mesh_lock.unlock();
 
 		auto &water_quads = water_mesh->quads3d;
 
@@ -155,7 +174,6 @@ public:
 		// n/e/s/w
 		return { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH, coords + IUP * MINICHUNK_HEIGHT , coords + IDOWN * MINICHUNK_HEIGHT };
 	}
-
 
 	void update_quads_buf() {
 		if (mesh == nullptr) {

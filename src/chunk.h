@@ -74,9 +74,8 @@ public:
 
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
 			// create mini and populate it
-			MiniChunk mini;
-			mini.data = data + i * MINICHUNK_SIZE;
-			mini.coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
+			minis[i].data = data + i * MINICHUNK_SIZE;
+			minis[i].coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
 
 			//// TODO: Use this as a primary method of drawing, before meshes are generated?
 			//// create CUBE buffer
@@ -85,9 +84,6 @@ public:
 
 			//// fill CUBE buffer, cuz we already have all the data we need
 			//glNamedBufferSubData(mini.block_types_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
-
-			// add mini to our minis list
-			minis[i] = mini;
 		}
 	}
 
@@ -109,7 +105,7 @@ public:
 
 	// render this chunk
 	inline void render(OpenGLInfo* glInfo) {
-		for (auto mini : minis) {
+		for (auto &mini : minis) {
 			//mini.render_cubes(glInfo);
 			mini.render_meshes(glInfo);
 		}

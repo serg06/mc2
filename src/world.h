@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <chrono>
 #include <functional>
+#include <mutex>          // std::mutex
 #include <queue>
 #include <string>
 #include <tuple>
@@ -94,6 +95,8 @@ public:
 	// minis currently having their meshes generated
 	queue<MiniChunk*> chunk_gen_mini_queue; // todo: make this ivec3 instead?
 	vector<MiniChunk*> chunk_gen_minis; // todo: make this ivec3 instead?
+	std::mutex chunk_gen_mini_mutex;
+
 	std::chrono::time_point<std::chrono::high_resolution_clock> last_chunk_sync_check = std::chrono::high_resolution_clock::now();
 
 	World() {
@@ -241,12 +244,14 @@ public:
 
 		// DEBUG
 		// add them all to queue
+		chunk_gen_mini_mutex.lock();
 		for (auto &mini : minis_to_mesh) {
 			chunk_gen_mini_queue.push(mini);
 			//char buf[256];
 			//sprintf(buf, "Adding mini (%d, %d, %d) to queue...\n", mini->coords[0], mini->coords[1], mini->coords[2]);
 			//OutputDebugString(buf);
 		}
+		chunk_gen_mini_mutex.unlock();
 
 
 
@@ -294,8 +299,7 @@ public:
 		//		mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
 
 		//		if (!mini.invisible) {
-		//			//MiniChunkMesh* mesh = gen_minichunk_mesh(&mini);
-		//			MiniChunkMesh* mesh = gen_minichunk_mesh_gpu(glInfo, &mini);
+		//			MiniChunkMesh* mesh = gen_minichunk_mesh(&mini);
 
 		//			MiniChunkMesh* non_water = new MiniChunkMesh;
 		//			MiniChunkMesh* water = new MiniChunkMesh;
@@ -513,9 +517,6 @@ public:
 		char buf[256];
 
 		auto start_of_fn = std::chrono::high_resolution_clock::now();
-
-
-
 		//sprintf(buf, "[%d] Rendering all chunks\n", rendered);
 		//OutputDebugString(buf);
 
@@ -524,12 +525,12 @@ public:
 		//}
 
 		// collect all the minis we're gonna draw
-		vector<MiniChunk> minis_to_draw;
+		vector<MiniChunk*> minis_to_draw;
 		for (auto &[coords_p, chunk] : chunk_map) {
 			for (auto &mini : chunk->minis) {
 				if (!mini.invisible) {
 					if (mini_in_frustum(&mini, planes)) {
-						minis_to_draw.push_back(mini);
+						minis_to_draw.push_back(&mini);
 					}
 				}
 			}
@@ -541,14 +542,14 @@ public:
 		glUseProgram(glInfo->rendering_program);
 
 		for (auto &mini : minis_to_draw) {
-			mini.render_meshes(glInfo);
+			mini->render_meshes(glInfo);
 		}
-		for (auto mini : minis_to_draw) {
-			mini.render_water_meshes(glInfo);
+		for (auto &mini : minis_to_draw) {
+			mini->render_water_meshes(glInfo);
 		}
 
 		// update meshes
-		update_enqueued_chunks_meshes(glInfo);
+		//update_enqueued_chunks_meshes(glInfo);
 		//update_enqueued_chunks_meshes_fast(glInfo);
 
 		rendered++;
@@ -1215,8 +1216,8 @@ public:
 		for (auto mini : minis_to_regenerate) {
 			mini->invisible = mini->all_air() || check_if_covered(*mini);
 			if (!mini->invisible) {
-				//MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
-				MiniChunkMesh* mesh = gen_minichunk_mesh_gpu(glInfo, mini);
+				MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
+				//MiniChunkMesh* mesh = gen_minichunk_mesh_gpu(glInfo, mini);
 
 				MiniChunkMesh* non_water = new MiniChunkMesh;
 				MiniChunkMesh* water = new MiniChunkMesh;
@@ -1807,9 +1808,6 @@ public:
 		OutputDebugString("");
 	}
 
-	// generate meshes for multiple minichunks on GPU
-	// TODO: assert that there's no duplicates
-	// TODO: assert no more than we can handle (256 minis?)
 	void update_enqueued_chunks_meshes(OpenGLInfo *glInfo) {
 		// TODO: define.
 		//int chunks_at_a_time = 16;
@@ -2357,6 +2355,62 @@ public:
 
 		sprintf(buf, "TOTAL FN TIME: %.2f\n", result_total / 1000.0f);
 		OutputDebugString(buf);
+	}
+
+	// generate a minichunk mutex from queue
+	// TODO: make queue a queue+set combo, so only unique minis in there.
+	bool gen_minichunk_mesh_from_queue(vec3 player_pos) {
+		// lock queue lock
+		chunk_gen_mini_mutex.lock();
+
+		// if queue empty, return
+		if (chunk_gen_mini_queue.size() == 0) {
+			chunk_gen_mini_mutex.unlock();
+			return false;
+		}
+
+		// get mini
+		MiniChunk *mini = chunk_gen_mini_queue.front();
+		chunk_gen_mini_queue.pop();
+
+		// no longer need queue
+		chunk_gen_mini_mutex.unlock();
+
+		// lock mini
+ 		mini->mesh_lock.lock();
+
+		// update invisibility
+		mini->invisible = mini->all_air() || check_if_covered(*mini);
+
+		// if visible, update mesh
+		if (!mini->invisible) {
+			MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
+
+			MiniChunkMesh* non_water = new MiniChunkMesh;
+			MiniChunkMesh* water = new MiniChunkMesh;
+
+			for (auto &quad : mesh->quads3d) {
+				if ((Block)quad.block == Block::Water) {
+					water->quads3d.push_back(quad);
+				}
+				else {
+					non_water->quads3d.push_back(quad);
+				}
+			}
+
+			assert(mesh->size() == non_water->size() + water->size());
+
+			mini->mesh = non_water;
+			mini->water_mesh = water;
+			mini->meshes_updated = true;
+			//mini->update_quads_buf();
+		}
+
+		// unlock mini
+		mini->mesh_lock.unlock();
+
+		// generated mini
+		return true;
 	}
 
 	MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini);

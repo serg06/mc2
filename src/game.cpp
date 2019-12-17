@@ -14,8 +14,10 @@
 #include <chrono>
 #include <cmath>
 #include <math.h>
+#include <mutex>          // std::mutex
 #include <numeric>
 #include <string>
+#include <thread>
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 #include <windows.h>
 
@@ -30,12 +32,57 @@
 using namespace std;
 using namespace vmath;
 
+namespace {
+	static bool stop = new bool;
+}
+
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	stop = false;
 	glfwSetErrorCallback(glfw_onError);
 	App::app = new App();
 	App::app->run();
+}
+
+void ChunkGenThread() {
+	if (App::app == nullptr) {
+		throw "No global app.";
+	}
+
+	// get global app
+	App *app = App::app;
+
+	// run
+	while (!stop) {
+		// try to generate a mesh
+		bool success = app->world->gen_minichunk_mesh_from_queue(vec3(app->char_position[0], app->char_position[1], app->char_position[2]));
+
+		// if queue empty, wait a bit before trying again
+		if (!success) {
+			Sleep(100);
+		}
+	}
+}
+
+void ChunkGen() {
+	if (App::app == nullptr) {
+		throw "No global app.";
+	}
+
+	// get global app
+	App *app = App::app;
+
+	// run
+	while (true) {
+		// try to generate a mesh
+		bool success = app->world->gen_minichunk_mesh_from_queue(vec3(app->char_position[0], app->char_position[1], app->char_position[2]));
+
+		// if queue empty, wait a bit before trying again
+		if (!success) {
+			Sleep(100);
+		}
+	}
 }
 
 void App::run() {
@@ -63,6 +110,10 @@ void App::run() {
 	// Start up app
 	startup();
 
+	// Spawn other threads
+	// TODO: destroy it after our while loop ends
+	std::thread chunk_generator(ChunkGenThread);
+
 	// run until user presses ESC or tries to close window
 	last_render_time = (float)glfwGetTime(); // updated in render()
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
@@ -83,6 +134,9 @@ void App::run() {
 		// poll window system for events
 		glfwPollEvents();
 	}
+
+	stop = true;
+	chunk_generator.join();
 
 	shutdown();
 }
@@ -173,9 +227,9 @@ void App::render(float time) {
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(mat4)*2 + sizeof(ivec4), sizeof(GLuint), &in_water); // proj matrix
 
-	// PRINT FPS
-	sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
-	OutputDebugString(buf);
+	//// PRINT FPS
+	//sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
+	//OutputDebugString(buf);
 
 	//// PRINT POSITION/ORIENTATION
 	//sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
