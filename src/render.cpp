@@ -248,7 +248,8 @@ namespace {
 
 		// mini buffer
 		glCreateBuffers(1, &glInfo->gen_layer_mini_buf);
-		glNamedBufferStorage(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
+		//glNamedBufferStorage(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
+		glNamedBufferStorage(glInfo->gen_layer_mini_buf, mini_bufsize, NULL, GL_MAP_WRITE_BIT);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_mini_ssbidx, glInfo->gen_layer_mini_buf);
 
@@ -266,13 +267,14 @@ namespace {
 
 		// quads3d buffer
 		glCreateBuffers(1, &glInfo->gen_quads_quads3d_buf);
-		glNamedBufferStorage(glInfo->gen_quads_quads3d_buf, quads3d_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+		//glNamedBufferStorage(glInfo->gen_quads_quads3d_buf, quads3d_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+		glNamedBufferStorage(glInfo->gen_quads_quads3d_buf, quads3d_bufsize, NULL, GL_MAP_READ_BIT);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_quads_quads3d_ssbidx, glInfo->gen_quads_quads3d_buf);
 
 		// mini coords buffer
 		glCreateBuffers(1, &glInfo->gen_layer_mini_coords_buf);
-		glNamedBufferStorage(glInfo->gen_layer_mini_coords_buf, mini_coords_bufsize, NULL, GL_DYNAMIC_STORAGE_BIT);
+		glNamedBufferStorage(glInfo->gen_layer_mini_coords_buf, mini_coords_bufsize, NULL, GL_MAP_WRITE_BIT);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, glInfo->gen_layer_mini_coords_ssbidx, glInfo->gen_layer_mini_coords_buf);
 	}
