@@ -26,8 +26,6 @@ struct OpenGLInfo {
 	// program
 	GLuint rendering_program;
 	GLuint gen_layer_program;
-	GLuint gen_quads_program;
-	GLuint gen_layers_and_quads_program;
 
 	// VAOs
 	GLuint vao_cube, vao_quad;
@@ -36,19 +34,7 @@ struct OpenGLInfo {
 	GLuint trans_buf = 0; // transformations buffer - currently stores view and projection transformations.
 	GLuint vert_buf = 0; // vertices buffer - currently stores vertices for a single 3D cube
 
-	// gen_layer buffers
-	GLuint gen_layer_mini_buf = 0;
-	GLuint gen_layer_layers_buf = 0;
-	GLuint gen_quads_quads2d_buf = 0;
-	GLuint gen_quads_quads3d_buf = 0;
-	GLuint gen_layer_mini_coords_buf = 0;
-	GLuint gen_quads_atomic_buf = 0;
-	GLuint gen_quads_atomic_buf_tmp = 0;
-
 	// textures
-	GLuint grass_top;
-	GLuint grass_side;
-
 	GLuint top_textures;
 	GLuint side_textures;
 	GLuint bottom_textures;
@@ -64,16 +50,6 @@ struct OpenGLInfo {
 
 	// uniform binding points
 	const GLuint trans_buf_uni_bidx = 0; // transformation buffer's uniform binding-point index
-
-	// render shader storage block binding points
-	const GLuint gen_layer_mini_ssbidx = 0;
-	const GLuint gen_layer_layers_ssbidx = 1;
-	const GLuint gen_quads_quads2d_ssbidx = 2;
-	const GLuint gen_quads_quads3d_ssbidx = 3;
-	const GLuint gen_layer_mini_coords_ssbidx = 4;
-
-	// atomic counter binding points
-	const GLuint gen_quads_atomic_abidx = 0;
 
 	// attribute indices
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
