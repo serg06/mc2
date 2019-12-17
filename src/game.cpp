@@ -21,8 +21,6 @@
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 #include <windows.h>
 
-#define NUM_MESH_GEN_THREADS 1
-
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
 // 3. TODO: Apply C++17 features
@@ -35,13 +33,12 @@ using namespace std;
 using namespace vmath;
 
 namespace {
-	static bool stop = new bool;
+	static bool stop = false;
 }
 
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	stop = false;
 	glfwSetErrorCallback(glfw_onError);
 	App::app = new App();
 	App::app->run();
@@ -125,7 +122,6 @@ void App::startup() {
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 	world = new World();
-	world->glInfo = &glInfo;
 
 	// prepare opengl
 	setup_opengl(&glInfo);
@@ -240,8 +236,6 @@ void App::render(float time) {
 
 // update player's movement based on how much time has passed since we last did it
 void App::update_player_movement(const float dt) {
-	char buf[256];
-
 	/* VELOCITY FALLOFF */
 
 	//   TODO: Handle walking on blocks, in water, etc. Maybe do it based on friction.
@@ -584,7 +578,7 @@ void App::onMouseButton(int button, int action) {
 
 			// if we're not in the way, place it
 			if (result == end(intersecting_blocks)) {
-				world->add_block(desired_position, Block::Grass);
+				world->add_block(desired_position, Block::DiamondBlock);
 			}
 		}
 	}

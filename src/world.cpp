@@ -312,6 +312,9 @@ MiniChunkMesh* World::gen_minichunk_mesh(MiniChunk* mini) {
 				}
 			}
 
+			// TODO: rotate texture sides the correct way. (It's noticeable when placing down diamond block.)
+			// -> Or alternatively, can just rotate texture lmao.
+
 			// convert quads back to 3D coordinates
 			vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
 

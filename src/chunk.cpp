@@ -58,7 +58,6 @@ inline float softmax(float v, float minv, float maxv) {
 }
 
 Chunk* gen_chunk_data(int chunkX, int chunkZ) {
-	char buf[256];
 	FastNoise fn;
 
 	// create chunk

@@ -7,6 +7,7 @@ const std::unordered_map<Block::Value, std::string> Block::top_texture_names = {
 	{ Block::StillWater, "water_square" },
 	{ Block::OakWood, "tree_top" },
 	{ Block::OakLeaves, "leaves" },
+	{ Block::DiamondBlock, "blockDiamond" },
 	{ Block::Outline, "outline" },
 };
 
@@ -16,6 +17,7 @@ const std::unordered_map<Block::Value, std::string> Block::bottom_texture_names 
 	{ Block::StillWater, "water_square" },
 	{ Block::OakWood, "tree_top" },
 	{ Block::OakLeaves, "leaves" },
+	{ Block::DiamondBlock, "blockDiamond" },
 	{ Block::Outline, "outline" },
 };
 
@@ -25,6 +27,7 @@ const std::unordered_map<Block::Value, std::string> Block::side_texture_names = 
 	{ Block::StillWater, "water_square" },
 	{ Block::OakWood, "tree_side" },
 	{ Block::OakLeaves, "leaves" },
+	{ Block::DiamondBlock, "blockDiamond" },
 	{ Block::Outline, "outline" },
 };
 

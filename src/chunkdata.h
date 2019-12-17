@@ -12,10 +12,15 @@
 
 using namespace vmath;
 
-static inline ivec4 clamp_coords_to_world(ivec4 coords) {
-	coords[1] = std::clamp(coords[1], 0, BLOCK_MAX_HEIGHT);
-	return coords;
+
+static inline ivec4 clamp_coords_to_world(const ivec4 &coords) {
+	return { coords[0], std::clamp(coords[1], 0, BLOCK_MAX_HEIGHT), coords[2], 0 };
 }
+
+static inline ivec3 clamp_coords_to_world(const ivec3 &coords) {
+	return { coords[0], std::clamp(coords[1], 0, BLOCK_MAX_HEIGHT), coords[2] };
+}
+
 
 // Chunk Data is always stored as width wide and depth deep
 class ChunkData {

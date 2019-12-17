@@ -62,23 +62,60 @@ public:
 	// map of (chunk coordinate) -> chunk
 	unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
 
-	int rendered = 0;
 	// get_chunk cache
 	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
 	vmath::ivec2 chunk_cache_ivec2[5] = { ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX) };
 	int chunk_cache_clock_hand = 0; // clock cache
-	OpenGLInfo *glInfo;
-	GLsync chunk_sync = NULL;
-	//queue<vmath::ivec2> chunk_gen_queue;
-	// minis currently having their meshes generated
-	queue<MiniChunk*> chunk_gen_mini_queue; // todo: make this ivec3 instead?
-	vector<MiniChunk*> chunk_gen_minis; // todo: make this ivec3 instead?
-	std::mutex chunk_gen_mini_mutex;
 
-	std::chrono::time_point<std::chrono::high_resolution_clock> last_chunk_sync_check = std::chrono::high_resolution_clock::now();
+	// multi-thread-access minis who need their mesh generated
+	queue<MiniChunk*> mesh_gen_queue; // storage
+	unordered_set<MiniChunk*> mesh_gen_set; // uniqueness
+	std::mutex mesh_gen_mutex; // thread-safety
+
+	// count how many times render() has been called
+	int rendered = 0;
 
 	World() {
 
+	}
+
+	// enqueue mesh generation of this mini
+	// expects mesh lock
+	inline void enqueue_mesh_gen(MiniChunk* mini) {
+		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
+		assert(mini != nullptr && "seriously?");
+
+		// check if mini in set
+		auto search = mesh_gen_set.find(mini);
+
+		// already in set, so don't add, just quit
+		if (search != mesh_gen_set.end()) {
+			return;
+		}
+
+		// not in set yet, add.
+		mesh_gen_set.insert(mini);
+		mesh_gen_queue.push(mini);
+	}
+
+	inline MiniChunk* dequeue_mesh_gen() {
+		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
+
+		// no meshes to generate!
+		if (mesh_gen_set.size() == 0) {
+			return nullptr;
+		}
+
+		// get mini
+		MiniChunk* mini = mesh_gen_queue.front();
+		assert(mini != nullptr && "seriously?");
+
+		// remove it from set and queue
+		mesh_gen_queue.pop();
+		mesh_gen_set.erase(mini);
+
+		// done
+		return mini;
 	}
 
 	// add chunk to chunk coords (x, z)
@@ -108,18 +145,6 @@ public:
 		//char buf[256];
 		//sprintf(buf, "Loaded chunks: %d\n", chunk_map.size());
 		//OutputDebugString(buf);
-	}
-
-	// get chunk (generate it if required)
-	inline Chunk* get_chunk_generate_if_required(int x, int z) {
-		auto search = chunk_map.find({ x, z });
-
-		// if doesn't exist, generate it
-		if (search == chunk_map.end()) {
-			gen_chunk(x, z);
-		}
-
-		return chunk_map[{x, z}];
 	}
 
 	// get multiple chunks -- much faster than get_chunk_generate_if_required when n > 1
@@ -157,6 +182,7 @@ public:
 		}
 	}
 
+	// generate all chunks (much faster than gen_chunk)
 	inline void gen_chunks(vector<ivec2> to_generate) {
 		std::unordered_set<ivec2, vecN_hash> set;
 		for (auto coords : to_generate) {
@@ -165,10 +191,9 @@ public:
 		return gen_chunks(set);
 	}
 
-	// generate chunk at (x, z) and add it
+	// generate all chunks (much faster than gen_chunk)
 	inline void gen_chunks(std::unordered_set<ivec2, vecN_hash> to_generate) {
 		// get pointers ready
-		// TODO: vector<>.
 		vector<Chunk*> chunks(to_generate.size());
 
 		// generate chunks and set pointers
@@ -222,45 +247,11 @@ public:
 		}
 
 		// add them all to queue
-		chunk_gen_mini_mutex.lock();
+		mesh_gen_mutex.lock();
 		for (auto &mini : minis_to_mesh) {
-			chunk_gen_mini_queue.push(mini);
-			//char buf[256];
-			//sprintf(buf, "Adding mini (%d, %d, %d) to queue...\n", mini->coords[0], mini->coords[1], mini->coords[2]);
-			//OutputDebugString(buf);
+			enqueue_mesh_gen(mini);
 		}
-		chunk_gen_mini_mutex.unlock();
-
-
-		// generate them all
-		//for (auto chunk : to_generate_minis) {
-		//	for (auto &mini : chunk->minis) {
-		//		mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
-
-		//		if (!mini.invisible) {
-		//			MiniChunkMesh* mesh = gen_minichunk_mesh(&mini);
-
-		//			MiniChunkMesh* non_water = new MiniChunkMesh;
-		//			MiniChunkMesh* water = new MiniChunkMesh;
-
-		//			for (auto &quad : mesh->quads3d) {
-		//				if ((Block)quad.block == Block::StillWater) {
-		//					water->quads3d.push_back(quad);
-		//				}
-		//				else {
-		//					non_water->quads3d.push_back(quad);
-		//				}
-		//			}
-
-		//			assert(mesh->size() == non_water->size() + water->size());
-
-		//			mini.mesh = non_water;
-		//			mini.water_mesh = water;
-
-		//			mini.update_quads_buf();
-		//		}
-		//	}
-		//}
+		mesh_gen_mutex.unlock();
 	}
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
@@ -369,6 +360,7 @@ public:
 	}
 
 	// get a block's type
+	// inefficient when called repeatedly - if you need multiple blocks from one mini/chunk, use get_mini (or get_chunk) and mini.get_block.
 	inline Block get_type(int x, int y, int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 
@@ -383,13 +375,6 @@ public:
 	inline Block get_type(vmath::ivec3 xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
 	inline Block get_type(vmath::ivec4 xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
 
-	// generate chunk at (x, z) and add it
-	inline void gen_chunk(int x, int z) {
-		vector<ivec2> coords;
-		coords.push_back({ x, z });
-		gen_chunks(coords);
-	}
-
 	inline bool check_if_covered(MiniChunk &mini) {
 		// if contains any translucent blocks, don't know how to handle that yet
 		if (mini.any_translucent()) {
@@ -397,40 +382,36 @@ public:
 		}
 
 		// none are air, so only check outside blocks
-		for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
-			for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
-				for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
-					int x = mini.coords[0] * CHUNK_WIDTH + miniX;
-					int y = mini.coords[1] + miniY;
-					int z = mini.coords[2] * CHUNK_DEPTH + miniZ;
-
-					vmath::ivec4 coords = vmath::ivec4(x, y, z, 0);
+		for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
+			for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
+				for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
+					vmath::ivec3 coords = { mini.coords[0] * CHUNK_WIDTH + miniX, mini.coords[1] + miniY,  mini.coords[2] * CHUNK_DEPTH + miniZ };
 
 					// if along east wall, check east
 					if (miniX == CHUNK_WIDTH - 1) {
-						if (get_type(clamp_coords_to_world(coords + IEAST_0)).is_translucent()) return false;
+						if (get_type(clamp_coords_to_world(coords + IEAST)).is_translucent()) return false;
 					}
 					// if along west wall, check west
 					if (miniX == 0) {
-						if (get_type(clamp_coords_to_world(coords + IWEST_0)).is_translucent()) return false;
+						if (get_type(clamp_coords_to_world(coords + IWEST)).is_translucent()) return false;
 					}
 
 					// if along north wall, check north
 					if (miniZ == 0) {
-						if (get_type(clamp_coords_to_world(coords + INORTH_0)).is_translucent()) return false;
+						if (get_type(clamp_coords_to_world(coords + INORTH)).is_translucent()) return false;
 					}
 					// if along south wall, check south
 					if (miniZ == CHUNK_DEPTH - 1) {
-						if (get_type(clamp_coords_to_world(coords + ISOUTH_0)).is_translucent()) return false;
+						if (get_type(clamp_coords_to_world(coords + ISOUTH)).is_translucent()) return false;
 					}
 
 					// if along bottom wall, check bottom
 					if (miniY == 0) {
-						if (get_type(clamp_coords_to_world(coords + IDOWN_0)).is_translucent()) return false;
+						if (get_type(clamp_coords_to_world(coords + IDOWN)).is_translucent()) return false;
 					}
 					// if along top wall, check top
 					if (miniY == MINICHUNK_HEIGHT - 1) {
-						if (get_type(clamp_coords_to_world(coords + IUP_0)).is_translucent()) return false;
+						if (get_type(clamp_coords_to_world(coords + IUP)).is_translucent()) return false;
 					}
 				}
 			}
@@ -440,8 +421,6 @@ public:
 	}
 
 	inline void render(OpenGLInfo* glInfo, const vmath::vec4(&planes)[6]) {
-		char buf[256];
-
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
 		for (auto &[coords_p, chunk] : chunk_map) {
@@ -457,9 +436,12 @@ public:
 		// draw them
 		glUseProgram(glInfo->rendering_program);
 
+		// draw non-water first
 		for (auto &mini : minis_to_draw) {
 			mini->render_meshes(glInfo);
 		}
+
+		// then water
 		for (auto &mini : minis_to_draw) {
 			mini->render_water_meshes(glInfo);
 		}
@@ -611,7 +593,7 @@ public:
 		MiniChunk* face_mini = mini;
 		if (!in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
 			//gen_layer_slow(mini, layers_idx, layer_no, face, result);
-			auto face_mini_coords = mini->coords + (layers_idx == 1 ? face*16 : face);
+			auto face_mini_coords = mini->coords + (layers_idx == 1 ? face * 16 : face);
 			face_mini = (face_mini_coords[1] < 0 || face_mini_coords[1] > BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) ? nullptr : get_mini(face_mini_coords);
 		}
 
@@ -718,22 +700,6 @@ public:
 		return max_size;
 	}
 
-	//// check if a block's face is visible
-	//inline bool is_face_visible(vmath::ivec4 block_coords, vmath::ivec4 axis, int backface) {
-	//	return get_type(block_coords + face_to_direction(face)) == Block::Air;
-	//}
-
-	// position you're at
-	// direction you're looking at
-	inline void render_outline_of_forwards_block(vec4 position, vec4 direction) {
-
-	}
-
-	//// todo: understand
-	//inline float intBound(s, ds) {
-	//	return ds > 0 ? (Math.ceil(s) - s) / ds : (s - Math.floor(s)) / -ds;
-	//}
-
 	static inline float intbound(float s, float ds)
 	{
 		// Some kind of edge case, see:
@@ -747,6 +713,8 @@ public:
 	}
 
 	inline void highlight_block(OpenGLInfo* glInfo, GlfwInfo* windowInfo, int x, int y, int z) {
+		// TODO: Don't recreate buffer every frame!
+
 		// Figure out corners / block types
 		Block blocks[6];
 		ivec3 corner1s[6];
@@ -877,13 +845,6 @@ public:
 	}
 
 	inline void highlight_block(OpenGLInfo* glInfo, GlfwInfo* windowInfo, ivec3 xyz) { return highlight_block(glInfo, windowInfo, xyz[0], xyz[1], xyz[2]); }
-
-
-	// make sure a block isn't air
-	inline bool not_air(ivec3 block_coords, ivec3 face) {
-		return get_type(block_coords) != Block::Air;
-	}
-
 
 	/**
 	* Call the callback with (x,y,z,value,face) of all blocks along the line
@@ -1077,7 +1038,7 @@ public:
 		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, Block::Air);
 
-		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since the block always has at least 3 sides inside its mini.)
+		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since >=3 sides of the destroyed block are facing its own mini.)
 		on_mini_update(mini, { x, y, z });
 	}
 
@@ -1095,72 +1056,22 @@ public:
 
 	void add_block(ivec3 xyz, Block block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
-	// extract layer from output
-	// TODO: memcpy?
-	static void extract_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block(&results)[16][16]) {
-		for (int v = 0; v < 16; v++) {
-			for (int u = 0; u < 16; u++) {
-				results[u][v] = (uint8_t)output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16];
-			}
-		}
-	}
-
-	// fill layer in output
-	// TODO: memcpy?
-	static void fill_layer(unsigned *output, unsigned layer_idx, unsigned global_face_idx, unsigned global_minichunk_idx, Block(&layer)[16][16]) {
-		for (int v = 0; v < 16; v++) {
-			for (int u = 0; u < 16; u++) {
-				output[u + v * 16 + layer_idx * 16 * 16 + global_face_idx * 16 * 16 * 16 + global_minichunk_idx * 6 * 16 * 16 * 16] = (uint8_t)layer[u][v];
-			}
-		}
-	}
-
-	// fill in missed layers for a minichunk's layers
-	void fill_missed_layers(unsigned *output, MiniChunk* mini, unsigned global_minichunk_idx) {
-		Block layer[16][16];
-
-		// for each face
-		for (int global_face_idx = 0; global_face_idx < 6; global_face_idx++) {
-			int local_face_idx = global_face_idx % 3;
-			bool backface = global_face_idx < 3;
-
-			ivec3 face = ivec3(0, 0, 0);
-			face[local_face_idx] = backface ? -1 : 1;
-
-			// working indices are always gonna be xy, xz, or yz.
-			int working_idx_1 = local_face_idx == 0 ? 1 : 0;
-			int working_idx_2 = local_face_idx == 2 ? 1 : 2;
-
-			// index of layer to fill
-			// if backface, fill first layer (0), else fill last layer (15)
-			int layer_idx = backface ? 0 : 15;
-
-			// fill layer
-			gen_layer(mini, local_face_idx, layer_idx, face, layer);
-			fill_layer(output, layer_idx, global_face_idx, global_minichunk_idx, layer);
-		}
-
-		OutputDebugString("");
-	}
-
 	// generate a minichunk mutex from queue
-	// TODO: make queue a queue+set combo, so only unique minis in there.
 	bool gen_minichunk_mesh_from_queue(vec3 player_pos) {
 		// lock queue lock
-		chunk_gen_mini_mutex.lock();
+		mesh_gen_mutex.lock();
 
 		// if queue empty, return
-		if (chunk_gen_mini_queue.size() == 0) {
-			chunk_gen_mini_mutex.unlock();
+		if (mesh_gen_queue.size() == 0) {
+			mesh_gen_mutex.unlock();
 			return false;
 		}
 
 		// get mini
-		MiniChunk *mini = chunk_gen_mini_queue.front();
-		chunk_gen_mini_queue.pop();
+		MiniChunk *mini = dequeue_mesh_gen();
 
 		// no longer need queue
-		chunk_gen_mini_mutex.unlock();
+		mesh_gen_mutex.unlock();
 
 		// lock mini
 		mini->mesh_lock.lock();

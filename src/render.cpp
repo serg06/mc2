@@ -302,10 +302,7 @@ namespace {
 
 		float* red = new float[16 * 16 * MAX_BLOCK_TYPES * 4];
 		for (int i = 0; i < 16 * 16 * MAX_BLOCK_TYPES; i++) {
-			red[i * 4 + 0] = 1.0f; // R
-			red[i * 4 + 1] = 0.0f; // G
-			red[i * 4 + 2] = 0.0f; // B
-			red[i * 4 + 3] = 1.0f; // A
+			((vec4*)red)[i] = { 1.0f, 0.0f, 0.0f, 1.0f };
 		}
 
 		// set all textures as BRIGHT RED, so we know when something's wrong
