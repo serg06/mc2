@@ -177,7 +177,7 @@ public:
 
 	// get all neighboring mini coords, even invalid ones (above/below)
 	inline std::vector<vmath::ivec3> all_neighbors() {
-		// n/e/s/w
+		// n/e/s/w/u/d
 		return { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH, coords + IUP * MINICHUNK_HEIGHT , coords + IDOWN * MINICHUNK_HEIGHT };
 	}
 

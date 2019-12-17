@@ -8,7 +8,6 @@
 
 
 namespace WorldTests {
-
 	void run_all_tests(OpenGLInfo *glInfo) {
 		test_gen_quads();
 		test_mark_as_merged();

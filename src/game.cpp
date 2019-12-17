@@ -21,6 +21,8 @@
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 #include <windows.h>
 
+#define NUM_MESH_GEN_THREADS 2
+
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
 // 3. TODO: Apply C++17 features
@@ -45,6 +47,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	App::app->run();
 }
 
+// thread for generating new chunk meshes
 void ChunkGenThread() {
 	if (App::app == nullptr) {
 		throw "No global app.";
@@ -55,26 +58,6 @@ void ChunkGenThread() {
 
 	// run
 	while (!stop) {
-		// try to generate a mesh
-		bool success = app->world->gen_minichunk_mesh_from_queue(vec3(app->char_position[0], app->char_position[1], app->char_position[2]));
-
-		// if queue empty, wait a bit before trying again
-		if (!success) {
-			Sleep(100);
-		}
-	}
-}
-
-void ChunkGen() {
-	if (App::app == nullptr) {
-		throw "No global app.";
-	}
-
-	// get global app
-	App *app = App::app;
-
-	// run
-	while (true) {
 		// try to generate a mesh
 		bool success = app->world->gen_minichunk_mesh_from_queue(vec3(app->char_position[0], app->char_position[1], app->char_position[2]));
 
@@ -110,9 +93,11 @@ void App::run() {
 	// Start up app
 	startup();
 
-	// Spawn other threads
-	// TODO: destroy it after our while loop ends
-	std::thread chunk_generator(ChunkGenThread);
+	// Spawn mesh generation threads
+	vector<std::thread> mesh_gen_threads;
+	for (int i = 0; i < NUM_MESH_GEN_THREADS; i++) {
+		mesh_gen_threads.push_back(std::thread(ChunkGenThread));
+	}
 
 	// run until user presses ESC or tries to close window
 	last_render_time = (float)glfwGetTime(); // updated in render()
@@ -120,23 +105,17 @@ void App::run() {
 		// run rendering function
 		render((float)glfwGetTime());
 
-		//// display drawing buffer on screen
-		//auto start_of_fn = std::chrono::high_resolution_clock::now();
-
 		glfwSwapBuffers(window);
-
-		//auto end_of_fn = std::chrono::high_resolution_clock::now();
-		//long result_total = std::chrono::duration_cast<std::chrono::milliseconds>(end_of_fn - start_of_fn).count();
-		//char buf[256];
-		//sprintf(buf, "swap buffer total: %dms\n", result_total);
-		//OutputDebugString(buf);
 
 		// poll window system for events
 		glfwPollEvents();
 	}
 
+	// Stop all other threads
 	stop = true;
-	chunk_generator.join();
+	for (auto &thread : mesh_gen_threads) {
+		thread.join();
+	}
 
 	shutdown();
 }
@@ -152,7 +131,7 @@ void App::startup() {
 	setup_opengl(&glInfo);
 
 	// run tests
-	//WorldTests::run_all_tests(&glInfo);
+	WorldTests::run_all_tests(&glInfo);
 }
 
 void App::render(float time) {
