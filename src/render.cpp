@@ -238,11 +238,11 @@ namespace {
 	void setup_opengl_storage_blocks(OpenGLInfo* glInfo) {
 		// size of buffer we'll need
 		// TODO: fill 'er up with bytes instead of uints
-		GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned) * (256 * 16); // 64 chunks / 1024 minis
-		GLuint layers_bufsize = 16 * 16 * (16 * 6) * sizeof(unsigned) * (256 * 16); // 64 chunks / 1024 minis
+		GLuint mini_bufsize = 16 * 16 * 16 * sizeof(unsigned) * (256 * 16); // 256 chunks / 4096 minis
+		GLuint layers_bufsize = 16 * 16 * (16 * 6) * sizeof(unsigned) * (256 * 16); // 256 chunks / 4096 minis
 		GLuint quads2d_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (64 * 16); // 16 chunks / 256 minis
 		GLuint quads3d_bufsize = 16 * 16 * ((16 + 1) * 3) * sizeof(unsigned) * (64 * 16); // no clue if this size is good enough
-		GLuint mini_coords_bufsize = sizeof(ivec3) * (64 * 16); // 64 chunks / 1024 minis
+		GLuint mini_coords_bufsize = sizeof(ivec4) * (1024 * 16); // 1024 chunks / 16384 minis
 
 		// TODO: adjust storage bits
 

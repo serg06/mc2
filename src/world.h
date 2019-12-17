@@ -1546,12 +1546,12 @@ public:
 		OutputDebugString("");
 	}
 
-		// generate meshes for multiple minichunks on GPU
+	// generate meshes for multiple minichunks on GPU
 	// TODO: assert that there's no duplicates
 	// TODO: assert no more than we can handle (256 minis?)
 	void gen_minichunk_meshes_gpu_fast(OpenGLInfo *glInfo, vector<MiniChunk*> &minis, vector<MiniChunkMesh*> &results) {
 		if (minis.size() == 0) return;
-
+		
 		char buf[1024];
 
 		// create a mini with all 0 data to use for invisible minis, -y minis, non-loaded-in minis, etc.
@@ -1614,6 +1614,10 @@ public:
 
 		// total num minis, to add to uniform later
 		int total_num_minis = minis.size() + neighboring_minis.size();
+
+		// DEBUG
+		sprintf(buf, "\ngen meshes for %d minis (%d using total mini datas)\n", minis.size(), total_num_minis);
+		OutputDebugString(buf);
 
 		// prepare mini data in same format as GPU takes
 		// TODO: maybe don't alloc every time, or instead, just MAP TO GPU and generate right there and then.
