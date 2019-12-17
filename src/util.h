@@ -174,6 +174,43 @@ static inline void WindowsException(char *description) {
 	MessageBox(NULL, description, "Thrown exception", MB_OK);
 }
 
+// generate all points in a circle a center
+// TODO: cache
+static inline std::vector<ivec2> gen_circle(int radius, ivec2 center = { 0, 0 }) {
+	std::vector<ivec2> result;
+	for (int x = -radius; x <= radius; x++) {
+		for (int y = -radius; y <= radius; y++) {
+			ivec2 coords = ivec2(x, y);
+			if (length(coords) <= radius) {
+				result.push_back(coords + center);
+			}
+		}
+	}
+	return result;
+}
+
+static inline std::vector<ivec2> gen_diamond(int radius, ivec2 center = { 0, 0 }) {
+	std::vector<ivec2> result;
+	for (int i = -radius; i <= radius; i++) {
+		for (int j = -(radius - abs(i)); j <= radius - abs(i); j++) {
+			result.push_back(center + ivec2(i, j));
+		}
+	}
+	return result;
+}
+
+template <typename T>
+static inline std::vector<int> argsort(int size, const T* data) {
+	// initialize original indices
+	std::vector<int> indices(size);
+	std::iota(indices.begin(), indices.end(), 0);
+
+	// sort indexes based on comparing values in data
+	std::sort(indices.begin(), indices.end(), [&data](int i1, int i2) {return data[i1] < data[i2]; });
+
+	return indices;
+}
+
 double noise2d(double x, double y);
 
 #endif // __UTIL_H__

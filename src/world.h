@@ -378,21 +378,12 @@ public:
 
 	inline MiniChunk* get_mini(ivec3 xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
 
-
 	// generate chunks near player
 	inline void gen_nearby_chunks(vmath::vec4 position, int distance) {
 		assert(distance >= 0 && "invalid distance");
 
 		ivec2 chunk_coords = get_chunk_coords((int)floorf(position[0]), (int)floorf(position[2]));
-
-		vector<ivec2> coords;
-
-		for (int i = -distance; i <= distance; i++) {
-			for (int j = -(distance - abs(i)); j <= distance - abs(i); j++) {
-				coords.push_back({ chunk_coords[0] + i, chunk_coords[1] + j });
-			}
-		}
-
+		vector<ivec2> &coords = gen_circle(distance, chunk_coords);
 		gen_chunks_if_required(coords);
 	}
 

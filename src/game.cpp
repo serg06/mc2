@@ -374,12 +374,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	}
 
 	// indices of position-change array
-	int indices[3] = { 0, 1, 2 };
-
-	// sort indices by position_change value, smallest absolute value to largest absolute value
-	sort(begin(indices), end(indices), [position_change](const int i1, const int i2) {
-		return abs(position_change[i1]) < abs(position_change[i2]);
-	});
+	vector<int> indices = argsort(position_change.size(), &position_change[0]);
 
 	// TODO: Instead of removing 1 or 2 separately, group them together, and remove the ones with smallest length.
 	// E.g. if velocity is (2, 2, 10), and have to either remove (2,2) or (10), remove (2,2) because sqrt(2^2+2^2) = sqrt(8) < 10.
