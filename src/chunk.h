@@ -48,6 +48,17 @@ static inline std::vector<ivec2> surrounding_chunks_s(ivec2 chunk_coord) {
 	};
 }
 
+// get surrounding chunks, but only the ones on the sides
+static inline std::vector<ivec2> surrounding_chunks_sides_s(ivec2 chunk_coord) {
+	return {
+		// sides
+		chunk_coord + ivec2(1, 0),
+		chunk_coord + ivec2(0, 1),
+		chunk_coord + ivec2(-1, 0),
+		chunk_coord + ivec2(0, -1),
+	};
+}
+
 class Chunk : public ChunkData {
 public:
 	vmath::ivec2 coords; // coordinates in chunk format
@@ -106,6 +117,10 @@ public:
 
 	inline std::vector<ivec2> surrounding_chunks() {
 		return surrounding_chunks_s(coords);
+	}
+
+	inline std::vector<ivec2> surrounding_chunks_sides() {
+		return surrounding_chunks_sides_s(coords);
 	}
 };
 

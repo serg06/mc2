@@ -134,7 +134,7 @@ public:
 		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f };
 	}
 
-	// get neighboring mini coords
+	// get valid neighboring mini coords
 	inline std::vector<vmath::ivec3> neighbors() {
 		// n/e/s/w
 		std::vector<vmath::ivec3> result = { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH };
@@ -148,6 +148,12 @@ public:
 		}
 
 		return result;
+	}
+
+	// get all neighboring mini coords, even invalid ones (above/below)
+	inline std::vector<vmath::ivec3> all_neighbors() {
+		// n/e/s/w
+		return { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH, coords + IUP * MINICHUNK_HEIGHT , coords + IDOWN * MINICHUNK_HEIGHT };
 	}
 
 

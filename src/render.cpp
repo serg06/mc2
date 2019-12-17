@@ -123,6 +123,20 @@ namespace {
 		glNamedBufferStorage(glInfo->gen_quads_atomic_buf_tmp, sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 	}
 
+	void setup_gen_layers_and_quads_program(OpenGLInfo* glInfo) {
+		// list of shaders to create program with
+		// TODO: Embed these into binary somehow - maybe generate header file with cmake.
+		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+			{ "../src/gen_layers_quads.cs.glsl", GL_COMPUTE_SHADER },
+		};
+
+		// create program
+		glInfo->gen_layers_and_quads_program = compile_shaders(shader_fnames);
+
+		// everything else is already made in other setup functions!
+	}
+
+
 	void setup_opengl_vao_cube(OpenGLInfo* glInfo) {
 		const GLfloat(&cube)[108] = shapes::cube_full;
 
@@ -509,6 +523,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	setup_opengl_program(glInfo);
 	setup_gen_layer_program(glInfo);
 	setup_gen_quads_program(glInfo);
+	setup_gen_layers_and_quads_program(glInfo);
 
 	// setup VAOs
 	//setup_opengl_vao_cube(glInfo);

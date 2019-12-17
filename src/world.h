@@ -42,7 +42,8 @@ struct Quad2DCS {
 
 // MUST MATCH STRUCT IN gen_quads compute shader
 struct Quad3DCS {
-	uvec4 coords[2];
+	// DEBUG: set back to uvec4
+	ivec4 coords[2];
 	GLuint block;
 	GLuint global_face_idx;
 	GLuint mini_input_idx;
@@ -237,47 +238,53 @@ public:
 			}
 		}
 
-		// add them all to queue
-		for (auto &mini : minis_to_mesh) {
-			chunk_gen_mini_queue.push(mini);
-			char buf[256];
-			sprintf(buf, "Adding mini (%d, %d, %d) to queue...\n", mini->coords[0], mini->coords[1], mini->coords[2]);
-			OutputDebugString(buf);
+		// DEBUG
+		//// add them all to queue
+		//for (auto &mini : minis_to_mesh) {
+		//	chunk_gen_mini_queue.push(mini);
+		//	char buf[256];
+		//	sprintf(buf, "Adding mini (%d, %d, %d) to queue...\n", mini->coords[0], mini->coords[1], mini->coords[2]);
+		//	OutputDebugString(buf);
+		//}
+
+
+
+
+		// generate all meshes
+		// TODO: free this
+		vector<MiniChunkMesh*> meshes;
+		for (int i = 0; i < minis_to_mesh.size(); i++) {
+			meshes.push_back(new MiniChunkMesh);
 		}
-
-		//// generate all meshes
-		//// TODO: free this
-		//vector<MiniChunkMesh*> meshes;
-		//for (int i = 0; i < minis_to_mesh.size(); i++) {
-		//	meshes.push_back(new MiniChunkMesh);
-		//}
+		// DEBUG
 		//gen_minichunk_meshes_gpu(glInfo, minis_to_mesh, meshes);
+		gen_minichunk_meshes_gpu_fast(glInfo, minis_to_mesh, meshes);
 
-		//assert(minis_to_mesh.size() == meshes.size());
+		assert(minis_to_mesh.size() == meshes.size());
 
-		//// load assign meshes to minis
-		//for (int i = 0; i < minis_to_mesh.size(); i++) {
-		//	MiniChunkMesh* mesh = meshes[i];
+		// load assign meshes to minis
+		for (int i = 0; i < minis_to_mesh.size(); i++) {
+			MiniChunkMesh* mesh = meshes[i];
 
-		//	MiniChunkMesh* non_water = new MiniChunkMesh;
-		//	MiniChunkMesh* water = new MiniChunkMesh;
+			MiniChunkMesh* non_water = new MiniChunkMesh;
+			MiniChunkMesh* water = new MiniChunkMesh;
 
-		//	for (auto &quad : mesh->quads3d) {
-		//		if ((Block)quad.block == Block::Water) {
-		//			water->quads3d.push_back(quad);
-		//		}
-		//		else {
-		//			non_water->quads3d.push_back(quad);
-		//		}
-		//	}
+			for (auto &quad : mesh->quads3d) {
+				if ((Block)quad.block == Block::Water) {
+					water->quads3d.push_back(quad);
+				}
+				else {
+					non_water->quads3d.push_back(quad);
+				}
+			}
 
-		//	assert(mesh->size() == non_water->size() + water->size());
+			assert(mesh->size() == non_water->size() + water->size());
 
-		//	minis_to_mesh[i]->mesh = non_water;
-		//	minis_to_mesh[i]->water_mesh = water;
+			minis_to_mesh[i]->mesh = non_water;
+			minis_to_mesh[i]->water_mesh = water;
 
-		//	minis_to_mesh[i]->update_quads_buf();
-		//}
+			minis_to_mesh[i]->update_quads_buf();
+		}
 
 
 
@@ -1532,6 +1539,254 @@ public:
 		long result_fill_mesh = std::chrono::duration_cast<std::chrono::microseconds>(end_fill_mesh - start_fill_mesh).count();
 
 		// done
+		sprintf(buf, "num quads generated: %d\n", num_quads);
+		OutputDebugString(buf);
+		sprintf(buf, "\ninit local data: %.2f ms\nload data gpu: %.2f ms\ngen layers, quads: %.2f ms\nread num quads: %.2f\nread quads: %.2f ms\nfill mesh: %.2f ms\n\n", result_init_local_data / 1000.0f, result_load_data_gpu / 1000.0f, result_gen_layers_quads / 1000.0f, result_read_num_quads / 1000.0f, result_read_quads / 1000.0f, result_fill_mesh / 1000.0f);
+		OutputDebugString(buf);
+		OutputDebugString("");
+	}
+
+		// generate meshes for multiple minichunks on GPU
+	// TODO: assert that there's no duplicates
+	// TODO: assert no more than we can handle (256 minis?)
+	void gen_minichunk_meshes_gpu_fast(OpenGLInfo *glInfo, vector<MiniChunk*> &minis, vector<MiniChunkMesh*> &results) {
+		if (minis.size() == 0) return;
+
+		char buf[1024];
+
+		// create a mini with all 0 data to use for invisible minis, -y minis, non-loaded-in minis, etc.
+		MiniChunk zero_mini;
+		zero_mini.data = new Block[MINICHUNK_SIZE];
+		memset(zero_mini.data, 0, sizeof(Block) * MINICHUNK_SIZE);
+
+		// find all the neighboring minis (EXCLUDING existing minis), and add them to our chunks vector
+		unordered_set<ivec3, vecN_hash> neighboring_mini_coords_set;
+		for (auto &mini : minis) {
+			// add all neighbors, even invalid ones (with y == -16, y == 256)
+			for (auto &neighbor : mini->all_neighbors()) {
+				neighboring_mini_coords_set.insert(neighbor);
+			}
+		}
+
+		// remove all the ones that are already in minis
+		for (auto &mini : minis) {
+			neighboring_mini_coords_set.erase(mini->coords);
+		}
+
+		// convert to vec
+		// TODO: just combine both using hashtable
+		vector<ivec3> neighboring_mini_coords;
+		for (auto mini_coord : neighboring_mini_coords_set) {
+			neighboring_mini_coords.push_back(mini_coord);
+		}
+
+		// convert coords into actual minis
+		vector<MiniChunk*> neighboring_minis;
+		for (auto mini_coord : neighboring_mini_coords) {
+			MiniChunk* mini = nullptr;
+
+			// if invalid coords, zero mini
+			if (mini_coord[1] < 0 || mini_coord[1] > (CHUNK_HEIGHT - MINICHUNK_HEIGHT)) {
+				mini = &zero_mini;
+			}
+			// if valid coords,
+			else {
+				// get mini at coords
+				MiniChunk* mini2 = get_mini(mini_coord);
+
+				// if chunk not loaded in, use zero mini
+				if (mini2 == nullptr) {
+					mini = &zero_mini;
+				}
+				// if invisible, use zero-mini
+				else if (mini2->invisible) {
+					mini = &zero_mini;
+				}
+				// chunk loaded in and visible, use that mini
+				else {
+					mini = mini2;
+				}
+			}
+
+			// add it to our list
+			neighboring_minis.push_back(mini);
+		}
+
+		// total num minis, to add to uniform later
+		int total_num_minis = minis.size() + neighboring_minis.size();
+
+		// prepare mini data in same format as GPU takes
+		// TODO: maybe don't alloc every time, or instead, just MAP TO GPU and generate right there and then.
+
+		auto start_init_local_data = std::chrono::high_resolution_clock::now();
+
+		unsigned *data = new unsigned[MINICHUNK_SIZE * total_num_minis];
+		ivec4 *coords = new ivec4[total_num_minis];
+
+		// prepare all data for minis that we're meshing for
+		// TODO: Use std::copy
+		for (int i = 0; i < minis.size(); i++) {
+			auto &mini = *minis[i];
+			for (int k = 0; k < MINICHUNK_SIZE; k++) {
+				data[i*MINICHUNK_SIZE + k] = (uint8_t)mini.data[k];
+			}
+			coords[i] = ivec4(mini.coords[0], mini.coords[1], mini.coords[2], 0);
+		}
+
+		// prepare all data for neighboring minis
+		// TODO: Use std::copy
+		for (int i = 0; i < neighboring_minis.size(); i++) {
+			int total_mini_idx = minis.size() + i;
+			auto &mini = *neighboring_minis[i];
+			auto &mini_coords = neighboring_mini_coords[i];
+			for (int k = 0; k < MINICHUNK_SIZE; k++) {
+				data[total_mini_idx*MINICHUNK_SIZE + k] = (uint8_t)mini.data[k];
+			}
+			coords[total_mini_idx] = ivec4(mini_coords[0], mini_coords[1], mini_coords[2], 0);
+		}
+
+		auto end_init_local_data = std::chrono::high_resolution_clock::now();
+		long result_init_local_data = std::chrono::duration_cast<std::chrono::microseconds>(end_init_local_data - start_init_local_data).count();
+
+		auto start_load_data_gpu = std::chrono::high_resolution_clock::now();
+
+		// load mini data into GPU
+		glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned) * total_num_minis, data);
+		delete[] data;
+
+		// load coords into GPU
+		glNamedBufferSubData(glInfo->gen_layer_mini_coords_buf, 0, sizeof(ivec4) * total_num_minis, coords);
+
+		auto end_load_data_gpu = std::chrono::high_resolution_clock::now();
+		long result_load_data_gpu = std::chrono::duration_cast<std::chrono::microseconds>(end_load_data_gpu - start_load_data_gpu).count();
+
+		auto start_gen_layers_quads = std::chrono::high_resolution_clock::now();
+
+		// switch to gen_layers_and_quads program
+		glUseProgram(glInfo->gen_layers_and_quads_program);
+
+		// initialize num minis
+		GLuint num_minis = total_num_minis;
+		glUniform1ui(0, num_minis);
+
+		// initialize atomic counter
+		GLuint num_quads = 0;
+		glNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+
+		// gen layers!
+		// TODO: 1 workgroup per mini?
+		glDispatchCompute(
+			96 * minis.size(), // 96 layers per mini
+			1,
+			1
+		);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
+
+		auto end_gen_layers_quads = std::chrono::high_resolution_clock::now();
+		long result_gen_layers_quads = std::chrono::duration_cast<std::chrono::microseconds>(end_gen_layers_quads - start_gen_layers_quads).count();
+
+		// WAIT FOR OPEARTIONS TO COMPLETE (up to 1 second)
+		GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+		GLenum result = glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, 1 * 1000000000);
+		glDeleteSync(sync);
+
+		// MAKE SURE WAITED SUCCESSFULLY
+		switch (result) {
+		case GL_TIMEOUT_EXPIRED:
+			OutputDebugString("~ TIMEOUT EXPIRED WHILE WAITING\n");
+			break;
+		case GL_ALREADY_SIGNALED:
+		case GL_CONDITION_SATISFIED:
+			OutputDebugString("~ SUCCESSFUL WAITING\n");
+			break;
+		case GL_WAIT_FAILED:
+			OutputDebugString("~ WAIT ERROR!?\n");
+			break;
+		default:
+			throw "Huh?";
+			break;
+		}
+
+		auto start_read_num_quads = std::chrono::high_resolution_clock::now();
+
+		// get number of generated quads
+		glGetNamedBufferSubData(glInfo->gen_quads_atomic_buf, 0, sizeof(GLuint), &num_quads);
+
+		auto end_read_num_quads = std::chrono::high_resolution_clock::now();
+		long result_read_num_quads = std::chrono::duration_cast<std::chrono::microseconds>(end_read_num_quads - start_read_num_quads).count();
+
+		auto start_read_quads = std::chrono::high_resolution_clock::now();
+
+		// read back quad3ds
+		Quad3DCS *quad3ds = new Quad3DCS[num_quads];
+		glGetNamedBufferSubData(glInfo->gen_quads_quads3d_buf, 0, num_quads * sizeof(Quad3DCS), quad3ds);
+
+		auto end_read_quads = std::chrono::high_resolution_clock::now();
+		long result_read_quads = std::chrono::duration_cast<std::chrono::microseconds>(end_read_quads - start_read_quads).count();
+
+		if (quad3ds[0].empty != 12345) {
+			// if error == (cannot find face coords in list)
+			if (quad3ds[0].empty == 1) {
+				Quad3DCS error_q = quad3ds[0];
+				ivec4 own_coords = error_q.coords[0];
+				ivec4 face_coords = error_q.coords[1];
+
+				int own_idx = -1;
+				int face_idx = -1;
+
+				for (int i = 0; i < total_num_minis; i++) {
+					if (coords[i] == own_coords) {
+						if (own_idx != -1) {
+							throw "duplicate";
+						}
+						own_idx = i;
+					}
+					if (coords[i] == face_coords) {
+						if (face_idx != -1) {
+							throw "duplicate";
+						}
+						face_idx = i;
+					}
+				}
+			}
+
+
+			// a-ha! Missing coords!
+			
+			throw "error";
+		}
+		delete[] coords;
+
+		auto start_fill_mesh = std::chrono::high_resolution_clock::now();
+
+		// fill them into mesh
+		// TODO: do this efficiently, not like fuckin this.
+		for (int i = 0; i < num_quads; i++) {
+			int local_face_idx = quad3ds[i].global_face_idx % 3;
+			bool backface = quad3ds[i].global_face_idx < 3;
+			ivec3 face = { 0, 0, 0 };
+			face[local_face_idx] = backface ? -1 : 1;
+
+			Quad3D q;
+			q.block = quad3ds[i].block;
+			for (int j = 0; j < 3; j++) {
+				q.corners[0][j] = quad3ds[i].coords[0][j];
+				q.corners[1][j] = quad3ds[i].coords[1][j];
+			}
+			q.face = face;
+
+			results[quad3ds[i].mini_input_idx]->quads3d.push_back(q);
+		}
+
+		zero_mini.free_data();
+		delete[] quad3ds;
+
+		auto end_fill_mesh = std::chrono::high_resolution_clock::now();
+		long result_fill_mesh = std::chrono::duration_cast<std::chrono::microseconds>(end_fill_mesh - start_fill_mesh).count();
+
+		// done
+		sprintf(buf, "num quads generated: %d\n", num_quads);
+		OutputDebugString(buf);
 		sprintf(buf, "\ninit local data: %.2f ms\nload data gpu: %.2f ms\ngen layers, quads: %.2f ms\nread num quads: %.2f\nread quads: %.2f ms\nfill mesh: %.2f ms\n\n", result_init_local_data / 1000.0f, result_load_data_gpu / 1000.0f, result_gen_layers_quads / 1000.0f, result_read_num_quads / 1000.0f, result_read_quads / 1000.0f, result_fill_mesh / 1000.0f);
 		OutputDebugString(buf);
 		OutputDebugString("");
@@ -1543,7 +1798,7 @@ public:
 	void update_enqueued_chunks_meshes(OpenGLInfo *glInfo) {
 		// TODO: define.
 		//int chunks_at_a_time = 16;
-		int minis_at_a_time = 16 * 16;
+		int minis_at_a_time = 64 * 16;
 
 		// if not waiting on any chunks
 		if (chunk_sync == NULL) {
@@ -1572,7 +1827,7 @@ public:
 
 			// LOAD IN LAYERS
 			auto start_initload_layers = std::chrono::high_resolution_clock::now();
-			
+
 			unsigned *layers = new unsigned[16 * 16 * 96 * minis.size()];
 
 			// for each mini
@@ -1662,7 +1917,7 @@ public:
 		// if ARE waiting on chunks
 		else {
 			// check if it's done
-			GLint result = GL_UNSIGNALED;
+			GLint result;
 			glGetSynciv(chunk_sync, GL_SYNC_STATUS, sizeof(GLint), NULL, &result);
 
 			// if it's not done, quit

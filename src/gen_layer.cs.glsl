@@ -30,7 +30,7 @@ const bool translucent_blocks[256] = {
 
 layout( local_size_x = 16, local_size_y = 16 ) in; 
 
-// minichunk input (TODO: support multiple minichunks)
+// minichunk input
 layout(std430, binding=0) buffer MINI { 
 	uint mini[]; 
 };

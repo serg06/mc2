@@ -27,6 +27,7 @@ struct OpenGLInfo {
 	GLuint rendering_program;
 	GLuint gen_layer_program;
 	GLuint gen_quads_program;
+	GLuint gen_layers_and_quads_program;
 
 	// VAOs
 	GLuint vao_cube, vao_quad;
