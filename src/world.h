@@ -550,13 +550,6 @@ public:
 			mini.render_water_meshes(glInfo);
 		}
 
-		auto end_of_fn = std::chrono::high_resolution_clock::now();
-		long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
-		if (result_total / 1000.0f > 20) {
-			sprintf(buf, "RENDER TIME: %.2f\n", result_total / 1000.0f);
-			OutputDebugString(buf);
-		}
-
 		rendered++;
 	}
 
@@ -1559,9 +1552,9 @@ public:
 	void gen_minichunk_meshes_gpu_fast(OpenGLInfo *glInfo, vector<MiniChunk*> &minis, vector<MiniChunkMesh*> &results) {
 		if (minis.size() == 0) return;
 
-		char buf[1024];
-
 		auto start_of_fn = std::chrono::high_resolution_clock::now();
+
+		char buf[1024];
 
 		// create a mini with all 0 data to use for invisible minis, -y minis, non-loaded-in minis, etc.
 		MiniChunk zero_mini;
@@ -2049,6 +2042,8 @@ public:
 				return;
 			}
 
+			OutputDebugString("1 start...\n");
+
 			auto start_init_local_data = std::chrono::high_resolution_clock::now();
 
 			// we have chunks to start generating
@@ -2246,6 +2241,8 @@ public:
 			if (result != GL_SIGNALED) {
 				return;
 			}
+
+			OutputDebugString("2 start...\n");
 
 			// done! Let's read back num_quads and get that shit on!
 			glDeleteSync(chunk_sync);

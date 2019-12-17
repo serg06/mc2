@@ -11,6 +11,7 @@
 
 #include <algorithm> // howbig?
 #include <assert.h>
+#include <chrono>
 #include <cmath>
 #include <math.h>
 #include <numeric>
@@ -94,6 +95,8 @@ void App::startup() {
 
 void App::render(float time) {
 	char buf[256];
+
+	auto start_of_fn = std::chrono::high_resolution_clock::now();
 
 	// change in time
 	const float dt = time - last_render_time;
@@ -181,6 +184,14 @@ void App::render(float time) {
 	if (staring_at[1] >= 0) {
 		world->highlight_block(&glInfo, &windowInfo, staring_at);
 	}
+
+	auto end_of_fn = std::chrono::high_resolution_clock::now();
+	long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
+	if (result_total / 1000.0f > 50) {
+		sprintf(buf, "TOTAL GAME::RENDER TIME: %.2f\n", result_total / 1000.0f);
+		OutputDebugString(buf);
+	}
+
 
 	//// TODO: Draw box around the square we're looking at.
 	//world->render_outline_of_forwards_block(char_position, direction);

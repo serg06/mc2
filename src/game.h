@@ -56,6 +56,7 @@ public:
 	int num_chunks = 0;
 	ivec3 staring_at = { 0, -1, 0 }; // the block you're staring at (invalid by default)
 	ivec3 staring_at_face; // the face you're staring at on the block you're staring at
+	int wew = 0;
 
 	App() {}
 	void run();
