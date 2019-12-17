@@ -515,9 +515,6 @@ public:
 		auto start_of_fn = std::chrono::high_resolution_clock::now();
 
 
-		// update meshes
-		//update_enqueued_chunks_meshes(glInfo);
-		update_enqueued_chunks_meshes_fast(glInfo);
 
 		//sprintf(buf, "[%d] Rendering all chunks\n", rendered);
 		//OutputDebugString(buf);
@@ -538,8 +535,6 @@ public:
 			}
 		}
 
-
-
 		//sprintf(buf, "Drawing %d/%d\tvisible minis.\n", minis_to_draw.size(), num_visible);
 		//OutputDebugString(buf);
 
@@ -552,7 +547,9 @@ public:
 			mini.render_water_meshes(glInfo);
 		}
 
-
+		// update meshes
+		update_enqueued_chunks_meshes(glInfo);
+		//update_enqueued_chunks_meshes_fast(glInfo);
 
 		rendered++;
 	}
@@ -1816,7 +1813,7 @@ public:
 	void update_enqueued_chunks_meshes(OpenGLInfo *glInfo) {
 		// TODO: define.
 		//int chunks_at_a_time = 16;
-		int minis_at_a_time = 64 * 16;
+		int minis_at_a_time = 1 * 16;
 
 		// if not waiting on any chunks
 		if (chunk_sync == NULL) {
@@ -1835,18 +1832,13 @@ public:
 				// move mini from queue to current processing minis
 				MiniChunk* mini = chunk_gen_mini_queue.front();
 				chunk_gen_mini_queue.pop();
-
-				//char buf[256];
-				//sprintf(buf, "Popping mini (%d, %d, %d) to queue...\n", mini->coords[0], mini->coords[1], mini->coords[2]);
-				//OutputDebugString(buf);
-
 				minis.push_back(mini);
 			}
 
 			// LOAD IN LAYERS
 			auto start_initload_layers = std::chrono::high_resolution_clock::now();
 
-			unsigned *layers = new unsigned[16 * 16 * 96 * minis.size()];
+			unsigned *layers = (unsigned*)glMapNamedBufferRange(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * minis.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 			// for each mini
 			for (int i = 0; i < minis.size(); i++) {
@@ -1856,10 +1848,12 @@ public:
 				fill_missed_layers(layers, mini, i);
 			}
 
-			// load layers into GPU
-			// (it's okay that some are uninitialized, since they'll get initialized by running gen_layers)
-			glNamedBufferSubData(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * minis.size(), layers);
-			delete[] layers;
+			// flush
+			glFlushMappedNamedBufferRange(glInfo->gen_layer_layers_buf, 0, 16 * 16 * 96 * sizeof(unsigned) * minis.size());
+
+			// unmap buffers
+			glUnmapNamedBuffer(glInfo->gen_layer_layers_buf);
+
 
 			auto end_initload_layers = std::chrono::high_resolution_clock::now();
 			long result_initload_layers = std::chrono::duration_cast<std::chrono::microseconds>(end_initload_layers - start_initload_layers).count();
@@ -1868,23 +1862,20 @@ public:
 			auto start_initload_minidata = std::chrono::high_resolution_clock::now();
 
 			// LOAD IN MINIS
-			unsigned *data = new unsigned[MINICHUNK_SIZE * minis.size()];
+			unsigned *data = (unsigned*)glMapNamedBufferRange(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned) * minis.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 			// for each mini
 			for (int i = 0; i < minis.size(); i++) {
 				auto &mini = minis[i];
-
-				// convert mini data to unsigned ints, since that's what GPU wants
-				for (int k = 0; k < MINICHUNK_SIZE; k++) {
-					data[i*MINICHUNK_SIZE + k] = (uint8_t)mini->data[k];
-				}
+				// load it in
+				std::copy(mini->data, mini->data + MINICHUNK_SIZE, data + i * MINICHUNK_SIZE);
 			}
 
+			// flush
+			glFlushMappedNamedBufferRange(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned) * minis.size());
 
-
-			// load mini data into GPU
-			glNamedBufferSubData(glInfo->gen_layer_mini_buf, 0, MINICHUNK_SIZE * sizeof(unsigned) * minis.size(), data);
-			delete[] data;
+			// unmap buffers
+			glUnmapNamedBuffer(glInfo->gen_layer_mini_buf);
 
 			auto end_initload_minidata = std::chrono::high_resolution_clock::now();
 			long result_initload_minidata = std::chrono::duration_cast<std::chrono::microseconds>(end_initload_minidata - start_initload_minidata).count();
@@ -1962,8 +1953,9 @@ public:
 			auto start_read_quads = std::chrono::high_resolution_clock::now();
 
 			// read back quad3ds
-			Quad3DCS *quad3ds = new Quad3DCS[num_quads];
-			glGetNamedBufferSubData(glInfo->gen_quads_quads3d_buf, 0, num_quads * sizeof(Quad3DCS), quad3ds);
+			Quad3DCS *quad3ds = (Quad3DCS*)glMapNamedBufferRange(glInfo->gen_quads_quads3d_buf, 0, num_quads * sizeof(Quad3DCS), GL_MAP_READ_BIT);
+			//Quad3DCS *quad3ds = new Quad3DCS[num_quads];
+			//glGetNamedBufferSubData(glInfo->gen_quads_quads3d_buf, 0, num_quads * sizeof(Quad3DCS), quad3ds);
 
 			auto end_read_quads = std::chrono::high_resolution_clock::now();
 			long result_read_quads = std::chrono::duration_cast<std::chrono::microseconds>(end_read_quads - start_read_quads).count();
@@ -1995,7 +1987,7 @@ public:
 				results[quad3ds[i].mini_input_idx]->quads3d.push_back(q);
 			}
 
-			delete[] quad3ds;
+			glUnmapNamedBuffer(glInfo->gen_quads_quads3d_buf);
 
 			auto end_fill_mesh = std::chrono::high_resolution_clock::now();
 			long result_fill_mesh = std::chrono::duration_cast<std::chrono::microseconds>(end_fill_mesh - start_fill_mesh).count();

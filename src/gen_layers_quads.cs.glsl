@@ -177,7 +177,6 @@ void main() {
 
 	// if edge layer
 	if ((layer_idx == 0 && backface) || (layer_idx == 15 && !backface)) {
-		// hopefully this causes a crash if we don't find a value for this
 		face_mini_idx = -1;
 
 		// get own mini's coords
