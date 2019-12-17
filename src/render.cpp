@@ -141,7 +141,7 @@ namespace {
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_face_attr_idx);
 
 		// vao: set up formats for cube's attributes, 1 at a time
-		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_block_type_attr_idx, 1, GL_BYTE, 0);
+		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_block_type_attr_idx, 1, GL_UNSIGNED_BYTE, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner1_attr_idx, 3, GL_INT, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner2_attr_idx, 3, GL_INT, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_face_attr_idx, 3, GL_INT, 0);
@@ -381,35 +381,6 @@ namespace {
 		glBindTextureUnit(2, glInfo->top_textures);
 		glBindTextureUnit(3, glInfo->side_textures);
 		glBindTextureUnit(4, glInfo->bottom_textures);
-	}
-
-	// create texture object, fill it with block texture, store it in texture object
-	void load_block_texture(GLuint* texture, const char* tex_name) {
-		// create texture
-		glCreateTextures(GL_TEXTURE_2D, 1, texture);
-
-		// allocate space (32-bit float RGBA 16x16)
-		glTextureStorage2D(*texture, 1, GL_RGBA32F, 16, 16);
-
-		float data[16 * 16 * 4];
-		load_block_texture_data(tex_name, data);
-
-		// load data into texture
-		glTextureSubImage2D(*texture,
-			0,              // Level 0
-			0, 0,           // Offset 0, 0
-			16, 16,         // 16 x 16 texels, replace entire image
-			GL_RGBA,        // Four channel data
-			GL_FLOAT,       // Floating point data
-			data);          // Pointer to data
-
-							// wrap!
-		glTextureParameteri(*texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTextureParameteri(*texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-		// filter
-		glTextureParameteri(*texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTextureParameteri(*texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
 }
 

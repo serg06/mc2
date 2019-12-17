@@ -25,31 +25,10 @@
 #include <vmath.h>
 #include <windows.h>
 
+// radius from center of minichunk that must be included in view frustum
+#define FRUSTUM_MINI_RADIUS_ALLOWANCE 28.0f
+
 using namespace std;
-
-// MUST MATCH STRUCT IN gen_quads compute shader
-struct Quad2DCS {
-	ivec2 corners[2] = { ivec2(0, 0), ivec2(0, 0) };
-	GLuint block = 0;
-	GLuint layer_idx = 0;
-};
-
-//// MUST MATCH STRUCT IN gen_quads compute shader
-//struct Quad3DCS {
-//	uvec3 coords[2];
-//	GLuint block;
-//  GLuint global_face_idx;
-//};
-
-// MUST MATCH STRUCT IN gen_quads compute shader
-struct Quad3DCS {
-	// DEBUG: set back to uvec4
-	ivec4 coords[2];
-	GLuint block;
-	GLuint global_face_idx;
-	GLuint mini_input_idx;
-	GLuint empty;
-};
 
 class Quad2D {
 public:
@@ -275,7 +254,7 @@ public:
 		//	MiniChunkMesh* water = new MiniChunkMesh;
 
 		//	for (auto &quad : mesh->quads3d) {
-		//		if ((Block)quad.block == Block::Water) {
+		//		if ((Block)quad.block == Block::StillWater) {
 		//			water->quads3d.push_back(quad);
 		//		}
 		//		else {
@@ -304,7 +283,7 @@ public:
 		//			MiniChunkMesh* water = new MiniChunkMesh;
 
 		//			for (auto &quad : mesh->quads3d) {
-		//				if ((Block)quad.block == Block::Water) {
+		//				if ((Block)quad.block == Block::StillWater) {
 		//					water->quads3d.push_back(quad);
 		//				}
 		//				else {
@@ -502,17 +481,8 @@ public:
 		return true;
 	}
 
-	//float(&pleft)[4], float(&pright)[4], float(&ptop)[4], float(&pbottom)[4], float(&pnear)[4], float(&pfar)[4]
 	inline void render(OpenGLInfo* glInfo, const vmath::vec4(&planes)[6]) {
 		char buf[256];
-
-		auto start_of_fn = std::chrono::high_resolution_clock::now();
-		//sprintf(buf, "[%d] Rendering all chunks\n", rendered);
-		//OutputDebugString(buf);
-
-		//for (auto &[coords_p, chunk] : chunk_map) {
-		//	chunk->render(glInfo);
-		//}
 
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
@@ -526,9 +496,7 @@ public:
 			}
 		}
 
-		//sprintf(buf, "Drawing %d/%d\tvisible minis.\n", minis_to_draw.size(), num_visible);
-		//OutputDebugString(buf);
-
+		// draw them
 		glUseProgram(glInfo->rendering_program);
 
 		for (auto &mini : minis_to_draw) {
@@ -538,20 +506,15 @@ public:
 			mini->render_water_meshes(glInfo);
 		}
 
-		// update meshes
-		//update_enqueued_chunks_meshes(glInfo);
-		//update_enqueued_chunks_meshes_fast(glInfo);
-
 		rendered++;
 	}
 
 	// check if a mini is visible in a frustum
 	static inline bool mini_in_frustum(MiniChunk* mini, const vmath::vec4(&planes)[6]) {
-		float radius = 28.0f;
-		return sphere_in_frustrum(mini->center_coords_v3(), radius, planes);
+		return sphere_in_frustrum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
 	}
 
-	static constexpr inline void gen_working_indices(int &layers_idx, int &working_idx_1, int &working_idx_2) {
+	static constexpr inline void gen_working_indices(const int &layers_idx, int &working_idx_1, int &working_idx_2) {
 		// working indices are always gonna be xy, xz, or yz.
 		working_idx_1 = layers_idx == 0 ? 1 : 0;
 		working_idx_2 = layers_idx == 2 ? 1 : 2;
@@ -559,7 +522,7 @@ public:
 
 	// convert 2D quads to 3D quads
 	// face: for offset
-	static inline vector<Quad3D> quads_2d_3d(vector<Quad2D> &quads2d, int layers_idx, int layer_no, ivec3 face) {
+	static inline vector<Quad3D> quads_2d_3d(const vector<Quad2D> &quads2d, const int layers_idx, const int layer_no, const ivec3 &face) {
 		vector<Quad3D> result;
 
 		// working variable
@@ -751,7 +714,7 @@ public:
 	}
 
 	static inline bool is_face_visible(Block &block, Block &face_block) {
-		return face_block.is_transparent() || (block != Block::Water && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
+		return face_block.is_transparent() || (block != Block::StillWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
 	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, Block(&result)[16][16]) {
@@ -967,16 +930,10 @@ public:
 		glCreateBuffers(1, &quad_face_buf);
 
 		// allocate them just enough space
-		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * 6, NULL, GL_DYNAMIC_STORAGE_BIT); // allocate 2 matrices of space for transforms, and allow editing
-
-		// fill 'em up!
-		glNamedBufferSubData(quad_block_type_buf, 0, sizeof(Block) * 6, blocks);
-		glNamedBufferSubData(quad_corner1_buf, 0, sizeof(ivec3) * 6, corner1s);
-		glNamedBufferSubData(quad_corner2_buf, 0, sizeof(ivec3) * 6, corner2s);
-		glNamedBufferSubData(quad_face_buf, 0, sizeof(ivec3) * 6, faces);
+		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * 6, blocks, NULL); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, corner1s, NULL); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, corner2s, NULL); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * 6, faces, NULL); // allocate 2 matrices of space for transforms, and allow editing
 
 		// DRAW!
 
@@ -1213,7 +1170,7 @@ public:
 				MiniChunkMesh* water = new MiniChunkMesh;
 
 				for (auto &quad : mesh->quads3d) {
-					if ((Block)quad.block == Block::Water) {
+					if ((Block)quad.block == Block::StillWater) {
 						water->quads3d.push_back(quad);
 					}
 					else {
@@ -1336,7 +1293,7 @@ public:
 			MiniChunkMesh* water = new MiniChunkMesh;
 
 			for (auto &quad : mesh->quads3d) {
-				if ((Block)quad.block == Block::Water) {
+				if ((Block)quad.block == Block::StillWater) {
 					water->quads3d.push_back(quad);
 				}
 				else {

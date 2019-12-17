@@ -125,7 +125,7 @@ Chunk* gen_chunk_data(int chunkX, int chunkZ) {
 
 					// generate logs
 					for (int dy = 1; dy <= 5; dy++) {
-						chunk->set_block(x, y + dy, z, Block::OakLog);
+						chunk->set_block(x, y + dy, z, Block::OakWood);
 					}
 				}
 			}
@@ -133,7 +133,7 @@ Chunk* gen_chunk_data(int chunkX, int chunkZ) {
 			// Fill water
 			if (y < WATER_HEIGHT - 1) {
 				for (int y2 = y + 1; y2 < WATER_HEIGHT; y2++) {
-					chunk->set_block(x, y2, z, Block::Water);
+					chunk->set_block(x, y2, z, Block::StillWater);
 				}
 			}
 		}

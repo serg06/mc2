@@ -120,7 +120,8 @@ static inline bool in_range(const vecN<T, len> &vec, const vecN<T, len> &min, co
 // Memory leak, delete returned result.
 template <typename T, const int len>
 static inline char* vec2str(vecN<T, len> vec) {
-	char* result = new char[vec.size() * 16 + 4];
+	int bufsize = vec.size() * 16 + 4;
+	char* result = new char[bufsize];
 	char* tmp = result;
 
 	tmp += sprintf(tmp, "(");
@@ -132,6 +133,8 @@ static inline char* vec2str(vecN<T, len> vec) {
 	}
 
 	tmp += sprintf(tmp, ")");
+
+	assert(tmp - result <= bufsize && "buffer overflow");
 
 	return result;
 }
@@ -145,7 +148,7 @@ inline void hash_combine(std::size_t& seed, const T& v)
 }
 
 // check if sphere is inside frustrum planes
-static inline bool sphere_in_frustrum(vec3 &pos, float &radius, const vmath::vec4 (&frustum_planes)[6]) {
+static inline bool sphere_in_frustrum(const vec3 &pos, const float radius, const vmath::vec4 (&frustum_planes)[6]) {
 	bool res = true;
 	for (auto &plane : frustum_planes) {
 		if (plane[0] * pos[0] + plane[1] * pos[1] + plane[2] * pos[2] + plane[3] <= -radius) {
@@ -159,8 +162,7 @@ static inline bool sphere_in_frustrum(vec3 &pos, float &radius, const vmath::vec
 // extract planes from projection matrix
 static inline void extract_planes_from_projmat(const vmath::mat4 &proj_mat, const vmath::mat4 &mv_mat, vmath::vec4 (&planes)[6])
 {
-	vmath::mat4 mat = proj_mat * mv_mat;
-	mat = mat.transpose();
+	const vmath::mat4 &mat = (proj_mat * mv_mat).transpose();
 
 	planes[0] = mat[3] + mat[0];
 	planes[1] = mat[3] - mat[0];
