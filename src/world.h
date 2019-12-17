@@ -1349,7 +1349,6 @@ public:
 			mini->mesh = non_water;
 			mini->water_mesh = water;
 			mini->meshes_updated = true;
-			//mini->update_quads_buf();
 		}
 
 		// unlock mini

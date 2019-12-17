@@ -24,8 +24,13 @@ public:
 	MiniChunkMesh* mesh = nullptr;
 	MiniChunkMesh* water_mesh = nullptr;
 	bool meshes_updated = false;
+	// TODO: When someone else sets invisibility, we want to delete bufs as well.
 	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
-	GLuint water_quad_block_type_buf = 0, water_quad_corner1_buf = 0, water_quad_corner2_buf = 0, water_quad_face_buf = 0;
+
+	// number of quads inside the buffer, as reading from mesh is not always reliable
+	GLuint num_nonwater_quads = 0;
+	GLuint num_water_quads = 0;
+
 	std::mutex mesh_lock;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
@@ -58,7 +63,7 @@ public:
 	// render this minichunk's meshes
 	void render_meshes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
-		if (invisible || mesh == nullptr || mesh->quads3d.size() == 0) {
+		if (invisible || mesh == nullptr) {
 			return;
 		}
 
@@ -102,7 +107,7 @@ public:
 	// render this minichunk's water meshes
 	void render_water_meshes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
-		if (invisible || water_mesh == nullptr || water_mesh->quads3d.size() == 0) {
+		if (invisible || water_mesh == nullptr) {
 			return;
 		}
 
@@ -113,7 +118,8 @@ public:
 			update_quads_buf();
 		}
 		mesh_lock.unlock();
-
+		
+		auto &quads = mesh->quads3d;
 		auto &water_quads = water_mesh->quads3d;
 
 		if (water_quads.size() == 0) {
@@ -131,13 +137,13 @@ public:
 		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords);
 
 		// bind to quads attribute binding point
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, water_quad_block_type_buf, 0, sizeof(Block));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, water_quad_corner1_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, water_quad_corner2_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, water_quad_face_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
 
 		// DRAW!
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, water_quads.size());
+		glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, water_quads.size(), quads.size());
 
 		// unbind VAO jic
 		glBindVertexArray(0);
@@ -175,6 +181,7 @@ public:
 		return { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH, coords + IUP * MINICHUNK_HEIGHT , coords + IDOWN * MINICHUNK_HEIGHT };
 	}
 
+	// assumes mesh lock
 	void update_quads_buf() {
 		if (mesh == nullptr || water_mesh == nullptr) {
 			throw "bad";
@@ -189,136 +196,106 @@ public:
 		glDeleteBuffers(1, &quad_corner2_buf);
 		glDeleteBuffers(1, &quad_face_buf);
 
-		glDeleteBuffers(1, &water_quad_block_type_buf);
-		glDeleteBuffers(1, &water_quad_corner1_buf);
-		glDeleteBuffers(1, &water_quad_corner2_buf);
-		glDeleteBuffers(1, &water_quad_face_buf);
+		num_nonwater_quads = quads.size();
+		num_water_quads = water_quads.size();
 
-		// create new ones with just the right sizes
+		// if no quads, we done
+		if (quads.size() + water_quads.size() == 0) {
+			invisible = true;
+			return;
+		}
+
+		// quads exist, let's set up buffers
+
+		// create
 		glCreateBuffers(1, &quad_block_type_buf);
 		glCreateBuffers(1, &quad_corner1_buf);
 		glCreateBuffers(1, &quad_corner2_buf);
 		glCreateBuffers(1, &quad_face_buf);
 
-		glCreateBuffers(1, &water_quad_block_type_buf);
-		glCreateBuffers(1, &water_quad_corner1_buf);
-		glCreateBuffers(1, &water_quad_corner2_buf);
-		glCreateBuffers(1, &water_quad_face_buf);
+		// allocate
+		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * (quads.size() + water_quads.size()), NULL, GL_MAP_WRITE_BIT);
+		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * (quads.size() + water_quads.size()), NULL, GL_MAP_WRITE_BIT);
+		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * (quads.size() + water_quads.size()), NULL, GL_MAP_WRITE_BIT);
+		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * (quads.size() + water_quads.size()), NULL, GL_MAP_WRITE_BIT);
 
+		// map
+		// TODO: Try without invalidate range? Maybe glfwSwapBuffers will be faster?
+		Block* blocks = (Block*)glMapNamedBufferRange(quad_block_type_buf, 0, sizeof(Block) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		ivec3* corner1s = (ivec3*)glMapNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		ivec3* corner2s = (ivec3*)glMapNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		ivec3* faces = (ivec3*)glMapNamedBufferRange(quad_face_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
-		// if quads exist
-		if (quads.size() > 0) {
-			// allocate
-			glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * quads.size(), NULL, GL_MAP_WRITE_BIT);
-			glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * quads.size(), NULL, GL_MAP_WRITE_BIT);
-			glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * quads.size(), NULL, GL_MAP_WRITE_BIT);
-			glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * quads.size(), NULL, GL_MAP_WRITE_BIT);
+		// update quads
+		for (int i = 0; i < quads.size(); i++) {
+			// update blocks
+			blocks[i] = (Block)quads[i].block;
+			faces[i] = quads[i].face;
 
-			// map
-			// TODO: Try without invalidate range? Maybe swap buffers will be faster?
-			// TODO: combine both on same buffer -- first half is quads, second half is water quads.
-			Block* blocks = (Block*)glMapNamedBufferRange(quad_block_type_buf, 0, sizeof(Block) * quads.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-			ivec3* corner1s = (ivec3*)glMapNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * quads.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-			ivec3* corner2s = (ivec3*)glMapNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * quads.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-			ivec3* faces = (ivec3*)glMapNamedBufferRange(quad_face_buf, 0, sizeof(ivec3) * quads.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+			ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
 
-			// update quads
-			for (int i = 0; i < quads.size(); i++) {
-				// update blocks
-				blocks[i] = (Block)quads[i].block;
-				faces[i] = quads[i].face;
+			// make sure at least one dimension is killed - i.e, it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
+			int num_diffs_0 = 0;
+			int zero_idx = 0;
 
-				ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
-
-				// make sure at least one dimension is killed - i.e, it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
-				int num_diffs_0 = 0;
-				int zero_idx = 0;
-
-				for (int i = 0; i < 3; i++) {
-					if (diffs[i] == 0) {
-						num_diffs_0 += 1;
-						zero_idx = i;
-					}
+			for (int i = 0; i < 3; i++) {
+				if (diffs[i] == 0) {
+					num_diffs_0 += 1;
+					zero_idx = i;
 				}
-
-				assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
-
-				// working indices are always gonna be xy, xz, or yz.
-				int working_idx_1, working_idx_2;
-				gen_working_indices(zero_idx, working_idx_1, working_idx_2);
-
-				corner1s[i] = quads[i].corners[0];
-				corner2s[i] = quads[i].corners[1];
 			}
 
-			// flush
-			glFlushMappedNamedBufferRange(quad_block_type_buf, 0, sizeof(Block) * quads.size());
-			glFlushMappedNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * quads.size());
-			glFlushMappedNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * quads.size());
-			glFlushMappedNamedBufferRange(quad_face_buf, 0, sizeof(ivec3) * quads.size());
+			// this assert has saved me so many times!
+			assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
 
-			// unmap
-			glUnmapNamedBuffer(quad_block_type_buf);
-			glUnmapNamedBuffer(quad_corner1_buf);
-			glUnmapNamedBuffer(quad_corner2_buf);
-			glUnmapNamedBuffer(quad_face_buf);
+			// working indices are always gonna be xy, xz, or yz.
+			int working_idx_1, working_idx_2;
+			gen_working_indices(zero_idx, working_idx_1, working_idx_2);
+
+			corner1s[i] = quads[i].corners[0];
+			corner2s[i] = quads[i].corners[1];
 		}
 
-		// if water quads exist
-		if (water_quads.size() > 0) {
-			// allocate
-			glNamedBufferStorage(water_quad_block_type_buf, sizeof(Block) * water_quads.size(), NULL, GL_MAP_WRITE_BIT);
-			glNamedBufferStorage(water_quad_corner1_buf, sizeof(ivec3) * water_quads.size(), NULL, GL_MAP_WRITE_BIT);
-			glNamedBufferStorage(water_quad_corner2_buf, sizeof(ivec3) * water_quads.size(), NULL, GL_MAP_WRITE_BIT);
-			glNamedBufferStorage(water_quad_face_buf, sizeof(ivec3) * water_quads.size(), NULL, GL_MAP_WRITE_BIT);
+		// update water quads
+		for (int i = 0; i < water_quads.size(); i++) {
+			// update blocks
+			blocks[i + quads.size()] = (Block)water_quads[i].block;
+			faces[i + quads.size()] = water_quads[i].face;
 
-			// map
-			Block* water_blocks = (Block*)glMapNamedBufferRange(water_quad_block_type_buf, 0, sizeof(Block) * water_quads.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-			ivec3* water_corner1s = (ivec3*)glMapNamedBufferRange(water_quad_corner1_buf, 0, sizeof(ivec3) * water_quads.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-			ivec3* water_corner2s = (ivec3*)glMapNamedBufferRange(water_quad_corner2_buf, 0, sizeof(ivec3) * water_quads.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-			ivec3* water_faces = (ivec3*)glMapNamedBufferRange(water_quad_face_buf, 0, sizeof(ivec3) * water_quads.size(), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+			ivec3 diffs = water_quads[i].corners[1] - water_quads[i].corners[0];
 
-			// update water quads
-			for (int i = 0; i < water_quads.size(); i++) {
-				// update blocks
-				water_blocks[i] = (Block)water_quads[i].block;
-				water_faces[i] = water_quads[i].face;
+			// make sure at least one dimension is killed - i.e, it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
+			int num_diffs_0 = 0;
+			int zero_idx = 0;
 
-				ivec3 diffs = water_quads[i].corners[1] - water_quads[i].corners[0];
-
-				// make sure at least one dimension is killed - i.e, it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
-				int num_diffs_0 = 0;
-				int zero_idx = 0;
-
-				for (int i = 0; i < 3; i++) {
-					if (diffs[i] == 0) {
-						num_diffs_0 += 1;
-						zero_idx = i;
-					}
+			for (int i = 0; i < 3; i++) {
+				if (diffs[i] == 0) {
+					num_diffs_0 += 1;
+					zero_idx = i;
 				}
-
-				assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
-
-				// working indices are always gonna be xy, xz, or yz.
-				int working_idx_1, working_idx_2;
-				gen_working_indices(zero_idx, working_idx_1, working_idx_2);
-
-				water_corner1s[i] = water_quads[i].corners[0];
-				water_corner2s[i] = water_quads[i].corners[1];
 			}
 
-			// flush
-			glFlushMappedNamedBufferRange(water_quad_block_type_buf, 0, sizeof(Block) * water_quads.size());
-			glFlushMappedNamedBufferRange(water_quad_corner1_buf, 0, sizeof(ivec3) * water_quads.size());
-			glFlushMappedNamedBufferRange(water_quad_corner2_buf, 0, sizeof(ivec3) * water_quads.size());
-			glFlushMappedNamedBufferRange(water_quad_face_buf, 0, sizeof(ivec3) * water_quads.size());
+			assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
 
-			// unmap
-			glUnmapNamedBuffer(water_quad_block_type_buf);
-			glUnmapNamedBuffer(water_quad_corner1_buf);
-			glUnmapNamedBuffer(water_quad_corner2_buf);
-			glUnmapNamedBuffer(water_quad_face_buf);
+			// working indices are always gonna be xy, xz, or yz.
+			int working_idx_1, working_idx_2;
+			gen_working_indices(zero_idx, working_idx_1, working_idx_2);
+
+			corner1s[i + quads.size()] = water_quads[i].corners[0];
+			corner2s[i + quads.size()] = water_quads[i].corners[1];
 		}
+
+		// flush
+		glFlushMappedNamedBufferRange(quad_block_type_buf, 0, sizeof(Block) * (quads.size() + water_quads.size()));
+		glFlushMappedNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
+		glFlushMappedNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
+		glFlushMappedNamedBufferRange(quad_face_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
+
+		// unmap
+		glUnmapNamedBuffer(quad_block_type_buf);
+		glUnmapNamedBuffer(quad_corner1_buf);
+		glUnmapNamedBuffer(quad_corner2_buf);
+		glUnmapNamedBuffer(quad_face_buf);
 	}
 
 	inline char* print_layer(int face, int layer) {
