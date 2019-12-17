@@ -538,6 +538,8 @@ public:
 			}
 		}
 
+
+
 		//sprintf(buf, "Drawing %d/%d\tvisible minis.\n", minis_to_draw.size(), num_visible);
 		//OutputDebugString(buf);
 
@@ -549,6 +551,8 @@ public:
 		for (auto mini : minis_to_draw) {
 			mini.render_water_meshes(glInfo);
 		}
+
+
 
 		rendered++;
 	}
