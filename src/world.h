@@ -1813,7 +1813,7 @@ public:
 	void update_enqueued_chunks_meshes(OpenGLInfo *glInfo) {
 		// TODO: define.
 		//int chunks_at_a_time = 16;
-		int minis_at_a_time = 1 * 16;
+		int minis_at_a_time = 1 * 8;
 
 		// if not waiting on any chunks
 		if (chunk_sync == NULL) {
