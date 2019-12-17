@@ -154,6 +154,11 @@ public:
 		return { coords[0] * 16, coords[1], coords[2] * 16 };
 	}
 
+	// get MiniChunk's base coords in real coordinates
+	static inline vmath::ivec3 real_coords(vmath::ivec3 &coords) {
+		return { coords[0] * 16, coords[1], coords[2] * 16 };
+	}
+
 	// get MiniChunk's center coords in real coordinates
 	inline vmath::vec3 center_coords_v3() {
 		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f };

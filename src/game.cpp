@@ -21,7 +21,7 @@
 #include <vmath.h> // TODO: Upgrade version, or use better library?
 #include <windows.h>
 
-#define NUM_MESH_GEN_THREADS 2
+#define NUM_MESH_GEN_THREADS 1
 
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features

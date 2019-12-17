@@ -69,7 +69,7 @@ namespace WorldTests {
 
 		// Do the same with gen_layer_fast
 		Block expected[16][16];
-		World::gen_layer_fast(mini, 2, 1, face, expected);
+		World::gen_layer_generalized(mini, mini, 2, 1, face, expected);
 
 		// Make sure they're the same
 		for (int x = 0; x < 16; x++) {

@@ -168,7 +168,8 @@ public:
 	// generate chunk at (x, z) and add it
 	inline void gen_chunks(std::unordered_set<ivec2, vecN_hash> to_generate) {
 		// get pointers ready
-		Chunk** chunks = new Chunk*[to_generate.size()];
+		// TODO: vector<>.
+		vector<Chunk*> chunks(to_generate.size());
 
 		// generate chunks and set pointers
 		int i = 0;
@@ -220,7 +221,6 @@ public:
 			}
 		}
 
-		// DEBUG
 		// add them all to queue
 		chunk_gen_mini_mutex.lock();
 		for (auto &mini : minis_to_mesh) {
@@ -232,46 +232,7 @@ public:
 		chunk_gen_mini_mutex.unlock();
 
 
-
-
-		//// generate all meshes
-		//// TODO: free this
-		//vector<MiniChunkMesh*> meshes;
-		//for (int i = 0; i < minis_to_mesh.size(); i++) {
-		//	meshes.push_back(new MiniChunkMesh);
-		//}
-		//// DEBUG
-		////gen_minichunk_meshes_gpu(glInfo, minis_to_mesh, meshes);
-		//gen_minichunk_meshes_gpu_fast(glInfo, minis_to_mesh, meshes);
-
-		//assert(minis_to_mesh.size() == meshes.size());
-
-		//// load assign meshes to minis
-		//for (int i = 0; i < minis_to_mesh.size(); i++) {
-		//	MiniChunkMesh* mesh = meshes[i];
-
-		//	MiniChunkMesh* non_water = new MiniChunkMesh;
-		//	MiniChunkMesh* water = new MiniChunkMesh;
-
-		//	for (auto &quad : mesh->quads3d) {
-		//		if ((Block)quad.block == Block::StillWater) {
-		//			water->quads3d.push_back(quad);
-		//		}
-		//		else {
-		//			non_water->quads3d.push_back(quad);
-		//		}
-		//	}
-
-		//	assert(mesh->size() == non_water->size() + water->size());
-
-		//	minis_to_mesh[i]->mesh = non_water;
-		//	minis_to_mesh[i]->water_mesh = water;
-
-		//	minis_to_mesh[i]->update_quads_buf();
-		//}
-
-
-
+		// generate them all
 		//for (auto chunk : to_generate_minis) {
 		//	for (auto &mini : chunk->minis) {
 		//		mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
@@ -300,9 +261,6 @@ public:
 		//		}
 		//	}
 		//}
-
-		// delete malloc'd stuff
-		delete[] chunks;
 	}
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
@@ -523,17 +481,19 @@ public:
 	// convert 2D quads to 3D quads
 	// face: for offset
 	static inline vector<Quad3D> quads_2d_3d(const vector<Quad2D> &quads2d, const int layers_idx, const int layer_no, const ivec3 &face) {
-		vector<Quad3D> result;
+		vector<Quad3D> result(quads2d.size());
 
 		// working variable
-		Quad3D quad3d;
 
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
 
 		// for each quad
-		for (auto quad2d : quads2d) {
+		for (int i = 0; i < quads2d.size(); i++) {
+			auto &quad3d = result[i];
+			auto &quad2d = quads2d[i];
+
 			// set block
 			quad3d.block = (uint8_t)quad2d.block;
 
@@ -547,15 +507,13 @@ public:
 
 			// set face
 			quad3d.face = face;
-
-			result.push_back(quad3d);
 		}
 
 		return result;
 	}
 
 	// generate layer by grabbing face blocks directly from the minichunk
-	static inline void gen_layer_fast(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, Block(&result)[16][16]) {
+	static inline void gen_layer_generalized(MiniChunk* mini, MiniChunk* face_mini, int layers_idx, int layer_no, const ivec3 face, Block(&result)[16][16]) {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -564,6 +522,7 @@ public:
 		ivec3 coords = { 0, 0, 0 };
 		coords[layers_idx] = layer_no;
 		ivec3 face_coords = coords + face;
+		face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
 
 		// make sure face not out of bounds
 		assert(in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15)) && "Face outside minichunk.");
@@ -572,7 +531,6 @@ public:
 		memset(result, (uint8_t)Block::Air, sizeof(result));
 
 		// for each coordinate
-
 		// if face is y, iterate on x then z (best speed)
 		// if face is z, iterate on x then y (best speed)
 		if (face[1] != 0 || face[2] != 0) {
@@ -580,21 +538,21 @@ public:
 			for (int v = 0; v < 16; v++) {
 				// x
 				for (int u = 0; u < 16; u++) {
-					// set working indices (TODO: move u to outer loop)
 					coords[working_idx_1] = u;
 					coords[working_idx_2] = v;
 
 					// get block at these coordinates
 					Block block = mini->get_block(coords);
 
-					// dgaf about air blocks
-					if (block == Block::Air) {
+					// dgaf about air blocks and about invalid minis
+					if (block == Block::Air || face_mini == nullptr) {
 						continue;
 					}
 
 					// get face block
 					face_coords = coords + face;
-					Block face_block = mini->get_block(face_coords);
+					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
+					Block face_block = face_mini->get_block(face_coords);
 
 					// if block's face is visible, set it
 					if (is_face_visible(block, face_block)) {
@@ -610,99 +568,21 @@ public:
 			for (int u = 0; u < 16; u++) {
 				// z
 				for (int v = 0; v < 16; v++) {
-					// set working indices (TODO: move u to outer loop)
 					coords[working_idx_1] = u;
 					coords[working_idx_2] = v;
 
 					// get block at these coordinates
 					Block block = mini->get_block(coords);
 
-					// dgaf about air blocks
-					if (block == Block::Air) {
+					// dgaf about air blocks and about invalid minis
+					if (block == Block::Air || face_mini == nullptr) {
 						continue;
 					}
 
 					// get face block
 					face_coords = coords + face;
-					Block face_block = mini->get_block(face_coords);
-
-					// if block's face is visible, set it
-					if (is_face_visible(block, face_block)) {
-						result[u][v] = block;
-					}
-				}
-			}
-		}
-	}
-
-	// generate layer by grabbing face blocks using get_type()
-	inline void gen_layer_slow(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, Block(&result)[16][16]) {
-		// working indices are always gonna be xy, xz, or yz.
-		int working_idx_1, working_idx_2;
-		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
-
-		// coordinates of current block
-		ivec3 coords = { 0, 0, 0 };
-		coords[layers_idx] = layer_no;
-
-		// minichunk's coordinates
-		ivec3 minichunk_offset = mini->real_coords();
-
-		// reset all to air
-		memset(result, (uint8_t)Block::Air, sizeof(result));
-
-		// for each coordinate
-
-		// if face is y, iterate on x then z (best speed)
-		// if face is z, iterate on x then y (best speed)
-		if (face[1] != 0 || face[2] != 0) {
-			// y or z
-			for (int v = 0; v < 16; v++) {
-				// x
-				for (int u = 0; u < 16; u++) {
-					// set working indices (TODO: move u to outer loop)
-					coords[working_idx_1] = u;
-					coords[working_idx_2] = v;
-
-					// get block at these coordinates
-					Block block = mini->get_block(coords);
-
-					// dgaf about air blocks
-					if (block == Block::Air) {
-						continue;
-					}
-
-					// get face block
-					Block face_block = get_type(minichunk_offset + coords + face);
-
-					// if block's face is visible, set it
-					if (is_face_visible(block, face_block)) {
-						result[u][v] = block;
-					}
-				}
-			}
-		}
-
-		// if face is x, iterate on z then y (best speed)
-		else if (face[0] != 0) {
-			// y
-			for (int u = 0; u < 16; u++) {
-				// z
-				for (int v = 0; v < 16; v++) {
-					// set working indices (TODO: move u to outer loop)
-					coords[working_idx_1] = u;
-					coords[working_idx_2] = v;
-
-					// get block at these coordinates
-					Block block = mini->get_block(coords);
-
-					// dgaf about air blocks
-					if (block == Block::Air) {
-						continue;
-					}
-
-					// get face block
-					Block face_block = get_type(minichunk_offset + coords + face);
+					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
+					Block face_block = face_mini->get_block(face_coords);
 
 					// if block's face is visible, set it
 					if (is_face_visible(block, face_block)) {
@@ -727,13 +607,16 @@ public:
 		coords[layers_idx] = layer_no;
 		ivec3 face_coords = coords + face;
 
-		// choose function based on whether we can gather face data from inside the minichunk
-		if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
-			return gen_layer_fast(mini, layers_idx, layer_no, face, result);
+		// figure out which mini has our face layer (usually ours)
+		MiniChunk* face_mini = mini;
+		if (!in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
+			//gen_layer_slow(mini, layers_idx, layer_no, face, result);
+			auto face_mini_coords = mini->coords + (layers_idx == 1 ? face*16 : face);
+			face_mini = (face_mini_coords[1] < 0 || face_mini_coords[1] > BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) ? nullptr : get_mini(face_mini_coords);
 		}
-		else {
-			return gen_layer_slow(mini, layers_idx, layer_no, face, result);
-		}
+
+		// generate layer
+		gen_layer_generalized(mini, face_mini, layers_idx, layer_no, face, result);
 	}
 
 	// given 2D array of block numbers, generate optimal quads
@@ -1280,7 +1163,7 @@ public:
 		chunk_gen_mini_mutex.unlock();
 
 		// lock mini
- 		mini->mesh_lock.lock();
+		mini->mesh_lock.lock();
 
 		// update invisibility
 		mini->invisible = mini->all_air() || check_if_covered(*mini);
