@@ -215,4 +215,16 @@ static inline std::vector<int> argsort(int size, const T* data) {
 
 double noise2d(double x, double y);
 
+static inline int powi(int x, unsigned p) {
+	while (p > 1) {
+		x *= p--;
+	}
+	if (p == 1) {
+		return x;
+	}
+	else {
+		return 1;
+	}
+}
+
 #endif // __UTIL_H__

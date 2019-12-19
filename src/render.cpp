@@ -169,7 +169,7 @@ namespace {
 
 		// bind them
 		// bind transform buffer to transform uniform
-		glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_buf); 
+		glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_buf);
 
 		// allocate 
 		// allocate enough space for 2 transform matrices + current chunk coords + bool in_water
@@ -223,10 +223,14 @@ namespace {
 	}
 
 	// load texture data for a block
-	void load_block_texture_data(const char* tex_name, float(&data)[16 * 16 * 4]) {
+	void load_block_texture_data(const char* tex_name, float (&data)[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4], unsigned mipmap_level) {
 		char fname[256];
 		sprintf(fname, "./textures/blocks/%s.png", tex_name);
 		load_texture_data(fname, 16, 16, data);
+
+		if (mipmap_level > 4) {
+			throw "err";
+		}
 
 		/* SPECIAL CASES START */
 
@@ -282,22 +286,39 @@ namespace {
 		}
 
 		/* SPECIAL CASES END */
+
+		int start = 0;
+		for (int i = 1; i < mipmap_level; i++) {
+			int width = 16 / powi(2, i);
+			for (int j = 0; j < width*width; j++) {
+				data[start + j * 4 + 0] = data[i * 4 * powi(2 * 2, i) + 0];
+				data[start + j * 4 + 1] = data[i * 4 * powi(2 * 2, i) + 1];
+				data[start + j * 4 + 2] = data[i * 4 * powi(2 * 2, i) + 2];
+				data[start + j * 4 + 3] = fmax(data[i * 4 * powi(2 * 2, i) + 0], 0.8f);
+			}
+			start = width * width * 4;
+		}
+
+		// set mipmaps
 	}
 
 	void setup_texture_arrays(OpenGLInfo* glInfo) {
-		// data for one texture
-		float data[16 * 16 * 4];
+		// data for one texture, plus all mipmaps
+		float data[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4];
+
+		int mipmap_levels = 0;
 
 		// create textures
 		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->top_textures);
 		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->side_textures);
 		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->bottom_textures);
 
-		auto tex_arrays = { glInfo->top_textures, glInfo->side_textures, glInfo->bottom_textures };
+		// texture arrays
+		const auto tex_arrays = { glInfo->top_textures, glInfo->side_textures, glInfo->bottom_textures };
 
 		// allocate space (32-bit float RGBA 16x16) (TODO: GL_RGBA8 instead.)
 		for (auto tex_arr : tex_arrays) {
-			glTextureStorage3D(tex_arr, 1, GL_RGBA32F, 16, 16, MAX_BLOCK_TYPES);
+			glTextureStorage3D(tex_arr, mipmap_levels + 1, GL_RGBA32F, 16, 16, MAX_BLOCK_TYPES);
 		}
 
 		float* red = new float[16 * 16 * MAX_BLOCK_TYPES * 4];
@@ -330,7 +351,7 @@ namespace {
 
 			// if they exist, load them in
 			if (top.size() > 0) {
-				load_block_texture_data(top.c_str(), data);
+				load_block_texture_data(top.c_str(), data, mipmap_levels);
 				glTextureSubImage3D(glInfo->top_textures,
 					0,			// Level 0
 					0, 0, i,	// Offset 0, 0, block_id
@@ -341,7 +362,7 @@ namespace {
 			}
 
 			if (side.size() > 0) {
-				load_block_texture_data(side.c_str(), data);
+				load_block_texture_data(side.c_str(), data, mipmap_levels);
 				glTextureSubImage3D(glInfo->side_textures,
 					0,			// Level 0
 					0, 0, i,	// Offset 0, 0, block_id
@@ -352,7 +373,7 @@ namespace {
 			}
 
 			if (bottom.size() > 0) {
-				load_block_texture_data(bottom.c_str(), data);
+				load_block_texture_data(bottom.c_str(), data, mipmap_levels);
 				glTextureSubImage3D(glInfo->bottom_textures,
 					0,			// Level 0
 					0, 0, i,	// Offset 0, 0, block_id
@@ -365,12 +386,15 @@ namespace {
 
 		// for each texture array
 		for (auto tex_arr : tex_arrays) {
+			// generate mipmaps
+			//glGenerateTextureMipmap(tex_arr);
+
 			// wrap!
 			glTextureParameteri(tex_arr, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTextureParameteri(tex_arr, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 			// filter
-			glTextureParameteri(tex_arr, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTextureParameteri(tex_arr, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // TODO: try the 3 other options.
 			glTextureParameteri(tex_arr, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		}
 
