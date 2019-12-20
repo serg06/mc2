@@ -9,14 +9,6 @@ layout (location = 0) in uint char_code;
 out uint vs_char_code;
 out uint vs_char_idx;
 
-layout (std140, binding = 1) uniform UNI_IN
-{
-	// member					base alignment			base offset		size	aligned offset	extra info
-	ivec4 start_pos;			// 16					0				16		16 				
-	ivec4 screen_dimensions;	// 16					0				16		32 				
-} uni;
-
-
 void main(void)
 {
 	// geometry shader does all the work

@@ -250,7 +250,7 @@ static constexpr inline void extract_from_atlas(float* atlas, unsigned atlas_wid
 	for (int y = 0; y < tex_height; y++) {
 		for (int x = 0; x < tex_width; x++) {
 			for (int i = 0; i < components; i++) {
-				result[(x + y * tex_width) * components + i] = atlas[((start_x + x) + (start_y + y) * atlas_width) * components + i];
+				result[(y * tex_width + x) * components + i] = atlas[((start_x + x) + (start_y + y) * (atlas_width * tex_width)) * components + i];
 			}
 		}
 	}

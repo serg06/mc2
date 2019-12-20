@@ -155,7 +155,7 @@ namespace {
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner2_attr_idx);
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_face_attr_idx);
 
-		// vao: set up formats for cube's attributes, 1 at a time
+		// vao: set up formats for Quad's attributes, 1 at a time
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_block_type_attr_idx, 1, GL_UNSIGNED_BYTE, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner1_attr_idx, 3, GL_INT, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner2_attr_idx, 3, GL_INT, 0);
@@ -178,17 +178,45 @@ namespace {
 		glBindVertexArray(0);
 	}
 
+	void setup_opengl_vao_text(OpenGLInfo* glInfo) {
+		// vao: create VAO for text, so we can tell OpenGL how to use it when it's bound
+		glCreateVertexArrays(1, &glInfo->vao_text);
+
+		// vao: enable all text's attributes, 1 at a time
+		glEnableVertexArrayAttrib(glInfo->vao_text, glInfo->text_char_code_attr_idx);
+
+		// vao: set up formats for text's attributes, 1 at a time
+		glVertexArrayAttribIFormat(glInfo->vao_text, glInfo->text_char_code_attr_idx, 1, GL_UNSIGNED_BYTE, 0);
+
+		// vao: match attributes to binding indices
+		glVertexArrayAttribBinding(glInfo->vao_text, glInfo->text_char_code_attr_idx, glInfo->text_char_code_bidx);
+
+		// buffers: create
+		glCreateBuffers(1, &glInfo->text_buf);
+
+		// buffers: allocate
+		glNamedBufferStorage(glInfo->text_buf, sizeof(char) * MAX_CHARS_HORIZONTAL, NULL, GL_MAP_WRITE_BIT);
+
+		// buffers: bind once and for all
+		glVertexArrayVertexBuffer(glInfo->vao_text, glInfo->text_char_code_bidx, glInfo->text_buf, 0, sizeof(char));
+	}
+
 	void setup_opengl_uniforms(OpenGLInfo* glInfo) {
 		// create buffers
 		glCreateBuffers(1, &glInfo->trans_buf);
+		glCreateBuffers(1, &glInfo->text_uni_buf);
 
 		// bind them
 		// bind transform buffer to transform uniform
 		glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_buf);
+		// want to bind my uni buf, but I get performance warnings when I do it here... gonna do it in draw call instead
 
 		// allocate 
+
 		// allocate enough space for 2 transform matrices + current chunk coords + bool in_water
-		glNamedBufferStorage(glInfo->trans_buf, sizeof(mat4) * 2 + sizeof(ivec4) + sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT);
+		// todo: use map, then invalidate range when writing
+		glNamedBufferStorage(glInfo->trans_buf, 2 * sizeof(mat4) + sizeof(ivec4) + sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT);
+		glNamedBufferStorage(glInfo->text_uni_buf, 2 * sizeof(ivec2) + 2 * sizeof(GLuint), NULL, GL_MAP_WRITE_BIT);
 	}
 
 	void setup_opengl_extra_props(OpenGLInfo* glInfo) {
@@ -419,7 +447,6 @@ namespace {
 		glBindTextureUnit(glInfo->bottom_textures_tunit, glInfo->bottom_textures);
 	}
 
-
 	void setup_font_textures(OpenGLInfo* glInfo) {
 		// the font atlas that comes with Minecraft
 		// technically we only need 8*8*1 elements, or even less, since we don't need 4 frickin floats to say either 1 or 0, but eh, not like we're struggling for space.
@@ -469,6 +496,14 @@ namespace {
 				char_tex);		// Pointer to data
 		}
 
+		// clamp texture to edge, in case float inaccuracy tries to screw with us
+		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		// filter
+		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // TODO: try the 3 other options.
+		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 		// bind them!
 		glBindTextureUnit(glInfo->font_textures_tunit, glInfo->font_textures);
 	}
@@ -482,6 +517,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	// setup VAOs
 	//setup_opengl_vao_cube(glInfo);
 	setup_opengl_vao_quad(glInfo);
+	setup_opengl_vao_text(glInfo);
 
 	// setup uniforms
 	setup_opengl_uniforms(glInfo);
@@ -492,4 +528,38 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	// set up textures
 	setup_block_textures(glInfo);
 	setup_font_textures(glInfo);
+}
+
+// render text right here and now, bam!
+void render_text(OpenGLInfo* glInfo, const ivec2 start_pos, const ivec2 screen_dimensions, const char* text, const unsigned size) {
+	if (size == 0) return;
+	assert((start_pos[0] + size) <= MAX_CHARS_HORIZONTAL && "bro your text is gonna leave the screen bro");
+
+	// bind program/VAO
+	glUseProgram(glInfo->text_rendering_program);
+	glBindVertexArray(glInfo->vao_text);
+	glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->text_uni_bidx, glInfo->text_uni_buf);
+
+	// update uniform buffer
+	char* uni = (char*)glMapNamedBufferRange(glInfo->text_uni_buf, 0, 2 * sizeof(ivec2) + 2 * sizeof(GLuint), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+	*((ivec2*)(uni + 0)) = start_pos;
+	*((ivec2*)(uni + sizeof(ivec2))) = screen_dimensions;
+	*((GLuint*)(uni + 2 * sizeof(ivec2))) = TOP_LEFT; // orientation
+	*((GLuint*)(uni + 2 * sizeof(ivec2) + sizeof(GLuint))) = size; // string size
+
+	glFlushMappedNamedBufferRange(glInfo->text_uni_buf, 0, 2 * sizeof(ivec2) + 2 * sizeof(GLuint));
+	glUnmapNamedBuffer(glInfo->text_uni_buf);
+
+	// update text buffer
+	char* buftext = (char*)glMapNamedBufferRange(glInfo->text_buf, 0, sizeof(char) * MAX_CHARS_HORIZONTAL, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+	std::copy(text, text + size, buftext);
+
+	glFlushMappedNamedBufferRange(glInfo->text_buf, 0, sizeof(char) * MAX_CHARS_HORIZONTAL);
+	glUnmapNamedBuffer(glInfo->text_buf);
+
+	// draw!
+	glDrawArrays(GL_POINTS, 0, size);
+
+	// unbind VAO jic
+	glBindVertexArray(0);
 }

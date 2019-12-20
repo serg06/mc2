@@ -232,6 +232,10 @@ void App::render(float time) {
 
 	//// TODO: Draw box around the square we're looking at.
 	//world->render_outline_of_forwards_block(char_position, direction);
+
+	render_text(&glInfo, { 0, 0 }, { windowInfo.width, windowInfo.height }, "hello", 5);
+	render_text(&glInfo, { 0, 1 }, { windowInfo.width, windowInfo.height }, "yes hello there", 15);
+	render_text(&glInfo, { 0, 2 }, { windowInfo.width, windowInfo.height }, "kiddo", 5);
 }
 
 // update player's movement based on how much time has passed since we last did it
