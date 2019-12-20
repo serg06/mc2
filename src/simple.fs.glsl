@@ -23,14 +23,10 @@ layout (std140, binding = 0) uniform UNI_IN
 
 out vec4 color;
 
-// our grass texture!
-layout (binding = 0) uniform sampler2D grass_top;
-layout (binding = 1) uniform sampler2D grass_side;
-
 // texture arrays
-layout (binding = 2) uniform sampler2DArray top_textures;
-layout (binding = 3) uniform sampler2DArray side_textures;
-layout (binding = 4) uniform sampler2DArray bottom_textures;
+layout (binding = 0) uniform sampler2DArray top_textures;
+layout (binding = 1) uniform sampler2DArray side_textures;
+layout (binding = 2) uniform sampler2DArray bottom_textures;
 
 float soft_increase(float x) {
 	return -1/((x+1)) + 1;

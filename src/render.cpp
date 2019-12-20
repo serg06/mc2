@@ -18,6 +18,7 @@
 #define BLOCK_TEXTURE_WIDTH 16
 #define BLOCK_TEXTURE_HEIGHT 16
 #define TEXTURE_COMPONENTS 4
+#define MAX_CHARS 256
 
 namespace fs = std::experimental::filesystem;
 using namespace vmath;
@@ -73,9 +74,8 @@ void setup_glfw(GlfwInfo* windowInfo, GLFWwindow** window) {
 }
 
 namespace {
-	void setup_opengl_program(OpenGLInfo* glInfo) {
+	void setup_game_rendering_program(OpenGLInfo* glInfo) {
 		// list of shaders to create program with
-		// TODO: Embed these into binary somehow - maybe generate header file with cmake.
 		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
 			{ "../src/simple.vs.glsl", GL_VERTEX_SHADER },
 			//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
@@ -85,10 +85,25 @@ namespace {
 		};
 
 		// create program
-		glInfo->rendering_program = compile_shaders(shader_fnames);
+		glInfo->game_rendering_program = compile_shaders(shader_fnames);
 
 		// use our program object for rendering
-		glUseProgram(glInfo->rendering_program);
+		glUseProgram(glInfo->game_rendering_program);
+	}
+
+	void setup_text_rendering_program(OpenGLInfo* glInfo) {
+	// list of shaders to create program with
+		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+			{ "../src/render_text.vs.glsl", GL_VERTEX_SHADER },
+			{ "../src/render_text.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "../src/render_text.fs.glsl", GL_FRAGMENT_SHADER },
+		};
+
+		// create program
+		glInfo->text_rendering_program = compile_shaders(shader_fnames);
+
+		// use our program object for rendering
+		glUseProgram(glInfo->text_rendering_program);
 	}
 
 	void setup_opengl_vao_cube(OpenGLInfo* glInfo) {
@@ -222,8 +237,8 @@ namespace {
 		stbi_image_free(imgdata);
 	}
 
-	// load texture data for a block
-	void load_block_texture_data(const char* tex_name, float (&data)[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4], unsigned mipmap_level) {
+	// load texture data for a block, plus generate mipmaps up to mipmap_level
+	void load_block_texture_data(const char* tex_name, float(&data)[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4], unsigned mipmap_level) {
 		char fname[256];
 		sprintf(fname, "./textures/blocks/%s.png", tex_name);
 		load_texture_data(fname, 16, 16, data);
@@ -302,7 +317,7 @@ namespace {
 		// set mipmaps
 	}
 
-	void setup_texture_arrays(OpenGLInfo* glInfo) {
+	void setup_block_textures(OpenGLInfo* glInfo) {
 		// data for one texture, plus all mipmaps
 		float data[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4];
 
@@ -399,15 +414,70 @@ namespace {
 		}
 
 		// bind them!
-		glBindTextureUnit(2, glInfo->top_textures);
-		glBindTextureUnit(3, glInfo->side_textures);
-		glBindTextureUnit(4, glInfo->bottom_textures);
+		glBindTextureUnit(glInfo->top_textures_tunit, glInfo->top_textures);
+		glBindTextureUnit(glInfo->side_textures_tunit, glInfo->side_textures);
+		glBindTextureUnit(glInfo->bottom_textures_tunit, glInfo->bottom_textures);
+	}
+
+
+	void setup_font_textures(OpenGLInfo* glInfo) {
+		// the font atlas that comes with Minecraft
+		// technically we only need 8*8*1 elements, or even less, since we don't need 4 frickin floats to say either 1 or 0, but eh, not like we're struggling for space.
+		float *atlas = new float[8 * 8 * MAX_CHARS * 4];
+
+		// create textures
+		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->font_textures);
+
+		// allocate space (32-bit float RGBA 16x16) (TODO: Use a smaller datatype. Hell, could even use a fucking bitmap. (As in 1 bit per pixel.))
+		glTextureStorage3D(glInfo->font_textures, 1, GL_RGBA32F, 8, 8, MAX_CHARS);
+
+		// fill all with red for debugging
+		float* red = new float[8 * 8 * MAX_CHARS * 4];
+		for (int i = 0; i < 8 * 8 * MAX_BLOCK_TYPES; i++) {
+			((vec4*)red)[i] = { 1.0f, 0.0f, 0.0f, 1.0f };
+		}
+
+		glTextureSubImage3D(glInfo->font_textures,
+			0,							// Level 0
+			0, 0, 0,					// Offset 0, 0, 0
+			8, 8, MAX_BLOCK_TYPES,		// 8 x 8 x MAX_CHARS texels, replace entire image
+			GL_RGBA,					// Four channel data
+			GL_FLOAT,					// Floating point data
+			red);
+
+		delete[] red;
+
+		// load in textures
+		// 16x16 atlas of 8x8 characters
+		load_texture_data("font/default.png", 16 * 8, 16 * 8, atlas);
+
+		// enough space for one character from the atlas
+		float char_tex[8 * 8 * 4];
+
+		// for each character
+		for (int i = 0; i < MAX_CHARS; i++) {
+			// extract texture
+			extract_from_atlas(atlas, 16, 16, 4, 8, 8, i, char_tex);
+
+			// write it into our 2D texture array
+			glTextureSubImage3D(glInfo->font_textures,
+				0,			// Level 0
+				0, 0, i,	// Offset 0, 0, char ascii code
+				8, 8, 1,	// 8 x 8 x 1 texels, replace one texture
+				GL_RGBA,	// Four channel data
+				GL_FLOAT,	// Floating point data
+				char_tex);		// Pointer to data
+		}
+
+		// bind them!
+		glBindTextureUnit(glInfo->font_textures_tunit, glInfo->font_textures);
 	}
 }
 
 void setup_opengl(OpenGLInfo* glInfo) {
 	// setup shaders
-	setup_opengl_program(glInfo);
+	setup_game_rendering_program(glInfo);
+	setup_text_rendering_program(glInfo);
 
 	// setup VAOs
 	//setup_opengl_vao_cube(glInfo);
@@ -420,5 +490,6 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	setup_opengl_extra_props(glInfo);
 
 	// set up textures
-	setup_texture_arrays(glInfo);
+	setup_block_textures(glInfo);
+	setup_font_textures(glInfo);
 }

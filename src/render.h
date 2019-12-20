@@ -24,8 +24,8 @@ struct GlfwInfo {
 // all the OpenGL info for our game
 struct OpenGLInfo {
 	// program
-	GLuint rendering_program;
-	GLuint gen_layer_program;
+	GLuint game_rendering_program;
+	GLuint text_rendering_program;
 
 	// VAOs
 	GLuint vao_cube, vao_quad;
@@ -38,6 +38,13 @@ struct OpenGLInfo {
 	GLuint top_textures;
 	GLuint side_textures;
 	GLuint bottom_textures;
+	GLuint font_textures;
+	
+	// texture units to bind to
+	GLuint top_textures_tunit = 0;
+	GLuint side_textures_tunit = 1;
+	GLuint bottom_textures_tunit = 2;
+	GLuint font_textures_tunit = 3;
 
 	// render binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index

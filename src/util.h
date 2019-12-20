@@ -148,7 +148,7 @@ inline void hash_combine(std::size_t& seed, const T& v)
 }
 
 // check if sphere is inside frustrum planes
-static inline bool sphere_in_frustrum(const vec3 &pos, const float radius, const vmath::vec4 (&frustum_planes)[6]) {
+static inline bool sphere_in_frustrum(const vec3 &pos, const float radius, const vmath::vec4(&frustum_planes)[6]) {
 	bool res = true;
 	for (auto &plane : frustum_planes) {
 		if (plane[0] * pos[0] + plane[1] * pos[1] + plane[2] * pos[2] + plane[3] <= -radius) {
@@ -160,7 +160,7 @@ static inline bool sphere_in_frustrum(const vec3 &pos, const float radius, const
 }
 
 // extract planes from projection matrix
-static inline void extract_planes_from_projmat(const vmath::mat4 &proj_mat, const vmath::mat4 &mv_mat, vmath::vec4 (&planes)[6])
+static inline void extract_planes_from_projmat(const vmath::mat4 &proj_mat, const vmath::mat4 &mv_mat, vmath::vec4(&planes)[6])
 {
 	const vmath::mat4 &mat = (proj_mat * mv_mat).transpose();
 
@@ -232,6 +232,31 @@ static constexpr inline T pown(T x, unsigned p) {
 
 	return result;
 }
+
+// extract a piece of a texture atlas
+// assuming uniform atlas -- i.e. every texture is the same size
+//
+// atlas_width		:	number of textures stored horizontally
+// atlas_height		:	number of textures stored vertically
+// tex_width		:	width  of each texture in pixels
+// tex_height		:	height of each texture in pixels
+// idx				:	index of texture piece in atlas
+static constexpr inline void extract_from_atlas(float* atlas, unsigned atlas_width, unsigned atlas_height, unsigned components, unsigned tex_width, unsigned tex_height, unsigned idx, float* result) {
+	// coordinates of top-left texture texel in the atlas
+	unsigned start_x = (idx % atlas_width) * tex_width;
+	unsigned start_y = (idx / atlas_width) * tex_height;
+
+	// boom baby!
+	for (int y = 0; y < tex_height; y++) {
+		for (int x = 0; x < tex_width; x++) {
+			for (int i = 0; i < components; i++) {
+				result[(x + y * tex_width) * components + i] = atlas[((start_x + x) + (start_y + y) * atlas_width) * components + i];
+			}
+		}
+	}
+}
+
+
 
 
 #endif // __UTIL_H__

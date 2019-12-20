@@ -434,7 +434,7 @@ public:
 		}
 
 		// draw them
-		glUseProgram(glInfo->rendering_program);
+		glUseProgram(glInfo->game_rendering_program);
 
 		// draw non-water first
 		for (auto &mini : minis_to_draw) {
