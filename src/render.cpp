@@ -289,12 +289,12 @@ namespace {
 
 		int start = 0;
 		for (int i = 1; i < mipmap_level; i++) {
-			int width = 16 / powi(2, i);
+			int width = 16 / pown(2, i);
 			for (int j = 0; j < width*width; j++) {
-				data[start + j * 4 + 0] = data[i * 4 * powi(2 * 2, i) + 0];
-				data[start + j * 4 + 1] = data[i * 4 * powi(2 * 2, i) + 1];
-				data[start + j * 4 + 2] = data[i * 4 * powi(2 * 2, i) + 2];
-				data[start + j * 4 + 3] = fmax(data[i * 4 * powi(2 * 2, i) + 0], 0.8f);
+				data[start + j * 4 + 0] = data[i * 4 * pown(2 * 2, i) + 0];
+				data[start + j * 4 + 1] = data[i * 4 * pown(2 * 2, i) + 1];
+				data[start + j * 4 + 2] = data[i * 4 * pown(2 * 2, i) + 2];
+				data[start + j * 4 + 3] = fmax(data[i * 4 * pown(2 * 2, i) + 0], 0.8f);
 			}
 			start = width * width * 4;
 		}

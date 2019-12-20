@@ -215,13 +215,23 @@ static inline std::vector<int> argsort(int size, const T* data) {
 
 double noise2d(double x, double y);
 
-// x^p
-static inline int powi(int &x, unsigned &p) {
-	int result = 1;
-	for (int i = 0; i < p; i++) {
-		result *= x;
+// super fast x^p using Exponentiation by Squaring
+// works for ints, doubles, you name it
+// succeptible to overflows when used with ints/similar
+template<typename T>
+static constexpr inline T pown(T x, unsigned p) {
+	T result = 1;
+
+	while (p) {
+		if (p & 0x1) {
+			result *= x;
+		}
+		x *= x;
+		p >>= 1;
 	}
+
 	return result;
 }
+
 
 #endif // __UTIL_H__
