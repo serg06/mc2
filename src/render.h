@@ -9,7 +9,7 @@
 
 #define TRANSFORM_BUFFER_COORDS_OFFSET (2*sizeof(vmath::mat4))
 // max chars displayed on screen horizontally
-#define MAX_CHARS_HORIZONTAL 32
+#define MAX_CHARS_HORIZONTAL 48
 
 // all the GLFW info for our app
 struct GlfwInfo {

@@ -1,11 +1,7 @@
 #version 450 core
 
-#define CHAR_WIDTH 8
-#define CHAR_HEIGHT 8
-#define MAX_CHARS_HORIZONTAL 32
-#define GLOBAL_LETTER_STRETCH 0.9f
+#define MAX_CHARS_HORIZONTAL 48
 #define SPACE_BETWEEN_LINES (0.2f)
-#define ALIGN_TO_TOP 1
 
 // get char code, output char quad + texture coordinates
 layout (points) in;

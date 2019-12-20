@@ -138,6 +138,7 @@ void App::render(float time) {
 	// change in time
 	const float dt = time - last_render_time;
 	last_render_time = time;
+	fps = (1 - 5 * dt) * fps + 5;
 
 	/* CHANGES IN WORLD */
 
@@ -229,13 +230,20 @@ void App::render(float time) {
 		OutputDebugString(buf);
 	}
 
+	// display debug info
+	if (show_debug_info) {
+		char buf[256];
+		ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
 
-	//// TODO: Draw box around the square we're looking at.
-	//world->render_outline_of_forwards_block(char_position, direction);
+		sprintf(buf, "FPS: %-4.2f", fps);
+		render_text(&glInfo, { 0, 0 }, screen_dimensions, buf, strlen(buf));
 
-	render_text(&glInfo, { 0, 0 }, { windowInfo.width, windowInfo.height }, "hello", 5);
-	render_text(&glInfo, { 0, 1 }, { windowInfo.width, windowInfo.height }, "yes hello there", 15);
-	render_text(&glInfo, { 0, 2 }, { windowInfo.width, windowInfo.height }, "kiddo", 5);
+		sprintf(buf, "Position: (%6.1f, %6.1f, %6.1f)", char_position[0], char_position[1], char_position[2]);
+		render_text(&glInfo, { 0, 1 }, screen_dimensions, buf, strlen(buf));
+
+		sprintf(buf, "Facing:   (%6.1f, %6.1f, %6.1f)", direction[0], direction[1], direction[2]);
+		render_text(&glInfo, { 0, 2 }, screen_dimensions, buf, strlen(buf));
+	}
 }
 
 // update player's movement based on how much time has passed since we last did it
@@ -474,6 +482,11 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 			else {
 				glEnable(GL_CULL_FACE);
 			}
+		}
+
+		// F3 = toggle debug info
+		if (key == GLFW_KEY_F3) {
+			show_debug_info = !show_debug_info;
 		}
 	}
 

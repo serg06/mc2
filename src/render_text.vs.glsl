@@ -1,8 +1,5 @@
 #version 450 core
 
-#define CHAR_WIDTH 8
-#define CHAR_HEIGHT 8
-
 // ascii character code
 layout (location = 0) in uint char_code;
 
