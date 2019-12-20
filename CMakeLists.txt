@@ -7,7 +7,7 @@ set(PROJECT_NAME game)
 set(TEST_PROJECT_NAME test)
 
 file(GLOB_RECURSE sources src/*.cpp src/*.h)
-file(GLOB_RECURSE data src/*.glsl)
+file(GLOB_RECURSE shaders src/*.glsl)
 file(GLOB_RECURSE tests test/*.cpp test/*.h)
 
 # set the project name
@@ -39,7 +39,8 @@ add_library(fastnoise include/FastNoise/FastNoise.cpp)
 add_library(kenp_noise include/kenp_noise/kenp_noise.h include/kenp_noise/kenp_noise.cpp)
 
 # add source files (so they compile) and data (so we see it in IDE)
-add_executable(${PROJECT_NAME} WIN32 ${sources} ${data})
+source_group(Shaders FILES ${shaders})
+add_executable(${PROJECT_NAME} WIN32 ${sources} ${shaders})
 
 # link executable to libraries
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
