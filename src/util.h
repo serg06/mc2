@@ -219,12 +219,7 @@ static inline int powi(int x, unsigned p) {
 	while (p > 1) {
 		x *= p--;
 	}
-	if (p == 1) {
-		return x;
-	}
-	else {
-		return 1;
-	}
+	return p == 1 ? x : 1;
 }
 
 #endif // __UTIL_H__
