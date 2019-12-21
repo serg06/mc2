@@ -60,7 +60,7 @@ public:
 		glBindVertexArray(0);
 	}
 
-	// render this minichunk's meshes
+	// render this minichunk's texture meshes
 	void render_meshes(OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
 		if (invisible || mesh == nullptr) {
@@ -98,7 +98,7 @@ public:
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
 
 		// DRAW!
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, quads.size());
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, quads.size());
 
 		// unbind VAO jic
 		glBindVertexArray(0);
@@ -143,7 +143,7 @@ public:
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
 
 		// DRAW!
-		glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, water_quads.size(), quads.size());
+		glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, water_quads.size(), quads.size());
 
 		// unbind VAO jic
 		glBindVertexArray(0);

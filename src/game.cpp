@@ -235,7 +235,7 @@ void App::render(float time) {
 		char buf[256];
 		ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
 
-		sprintf(buf, "FPS: %-4.2f", fps);
+		sprintf(buf, "FPS: %-4.2f (%d ms) (%d distance)", fps, (int)(dt * 1000), min_render_distance);
 		render_text(&glInfo, { 0, 0 }, screen_dimensions, buf, strlen(buf));
 
 		sprintf(buf, "Position: (%6.1f, %6.1f, %6.1f)", char_position[0], char_position[1], char_position[2]);

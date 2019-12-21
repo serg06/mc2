@@ -819,7 +819,7 @@ public:
 		glEnable(GL_DEPTH_TEST);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 6);
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 6);
 
 		// restore original properties
 		if (cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);

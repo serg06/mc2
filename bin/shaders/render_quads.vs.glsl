@@ -67,21 +67,17 @@ void main(void)
 	diffs2[working_idx_2] = diffs[working_idx_2];
 
 	// upside down coordinates to correct texture rotation
-	vec2 possible_tex_coords[6];
+	vec2 possible_tex_coords[4];
 	possible_tex_coords[0] = vec2(diffs[working_idx_1], diffs[working_idx_2]);
 	possible_tex_coords[1] = vec2(0, diffs[working_idx_2]);
 	possible_tex_coords[2] = vec2(diffs[working_idx_1], 0);
-	possible_tex_coords[3] = vec2(diffs[working_idx_1], 0);
-	possible_tex_coords[4] = vec2(0, diffs[working_idx_2]);
-	possible_tex_coords[5] = vec2(0,0);
-	
-	vec4 possible_offsets[6];
+	possible_tex_coords[3] = vec2(0,0);
+
+	vec4 possible_offsets[4];
 	possible_offsets[0] = vec4(q_corner1, 0);
 	possible_offsets[1] = vec4(q_corner1, 0) + diffs1;
 	possible_offsets[2] = vec4(q_corner1, 0) + diffs2;
-	possible_offsets[3] = vec4(q_corner1, 0) + diffs2;
-	possible_offsets[4] = vec4(q_corner1, 0) + diffs1;
-	possible_offsets[5] = vec4(q_corner2, 0);
+	possible_offsets[3] = vec4(q_corner2, 0);
 
 	offset_in_chunk = possible_offsets[gl_VertexID];
 	vs_tex_coords = possible_tex_coords[gl_VertexID];
