@@ -7,7 +7,7 @@ set(PROJECT_NAME game)
 set(TEST_PROJECT_NAME test)
 
 file(GLOB_RECURSE sources src/*.cpp src/*.h)
-file(GLOB_RECURSE shaders src/*.glsl)
+file(GLOB_RECURSE shaders bin/shaders/*.glsl)
 file(GLOB_RECURSE tests test/*.cpp test/*.h)
 
 # set the project name

@@ -4,6 +4,8 @@ build/
 # Project builds into here
 bin/*
 !bin/textures/
+!bin/font/
+!bin/shaders/
 
 # Libraries which we compile ourselves
 lib/

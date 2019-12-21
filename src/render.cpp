@@ -77,11 +77,9 @@ namespace {
 	void setup_game_rendering_program(OpenGLInfo* glInfo) {
 		// list of shaders to create program with
 		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
-			{ "../src/simple.vs.glsl", GL_VERTEX_SHADER },
-			//{"../src/simple.tcs.glsl", GL_TESS_CONTROL_SHADER },
-			//{"../src/simple.tes.glsl", GL_TESS_EVALUATION_SHADER },
-			//{ "../src/simple.gs.glsl", GL_GEOMETRY_SHADER },
-			{ "../src/simple.fs.glsl", GL_FRAGMENT_SHADER },
+			{ "shaders/render_quads.vs.glsl", GL_VERTEX_SHADER },
+			//{ "shaders/render_quads.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "shaders/render_quads.fs.glsl", GL_FRAGMENT_SHADER },
 		};
 
 		// create program
@@ -94,9 +92,9 @@ namespace {
 	void setup_text_rendering_program(OpenGLInfo* glInfo) {
 	// list of shaders to create program with
 		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
-			{ "../src/render_text.vs.glsl", GL_VERTEX_SHADER },
-			{ "../src/render_text.gs.glsl", GL_GEOMETRY_SHADER },
-			{ "../src/render_text.fs.glsl", GL_FRAGMENT_SHADER },
+			{ "shaders/render_text.vs.glsl", GL_VERTEX_SHADER },
+			{ "shaders/render_text.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "shaders/render_text.fs.glsl", GL_FRAGMENT_SHADER },
 		};
 
 		// create program

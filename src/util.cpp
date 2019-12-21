@@ -267,102 +267,6 @@ void main(void)
 	const char tcsshader_src[] = R"()";
 	const char tesshader_src[] = R"()";
 
-	GLuint compile_shaders_hardcoded(std::vector <std::tuple<std::string, GLenum>> shader_fnames) {
-		GLuint program;
-		std::vector <GLuint> shaders; // store compiled shaders
-
-		// for each input shader
-		for (const auto&[fname, shadertype] : shader_fnames)
-		{
-			// get src
-			const GLchar * shader_src_ptr;
-
-			switch (shadertype) {
-			case GL_VERTEX_SHADER:
-				if (vshader_src[0] == '\0') {
-					throw "missing vshader source";
-				}
-				shader_src_ptr = vshader_src;
-				break;
-			case GL_FRAGMENT_SHADER:
-				if (fshader_src[0] == '\0') {
-					throw "missing fshader source";
-				}
-				shader_src_ptr = fshader_src;
-				break;
-			case GL_GEOMETRY_SHADER:
-				if (gshader_src[0] == '\0') {
-					throw "missing fshader source";
-				}
-				shader_src_ptr = gshader_src;
-				break;
-			default:
-				throw "missing a shader source";
-			}
-
-			// Create and compile shader
-			const GLuint shader = glCreateShader(shadertype); // create empty shader
-			glShaderSource(shader, 1, &shader_src_ptr, NULL); // set shader source code
-			glCompileShader(shader); // compile shader
-
-			// CHECK IF COMPILATION SUCCESSFUL
-			GLint status = GL_TRUE;
-			glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-			if (status == GL_FALSE)
-			{
-				GLint logLen;
-				glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
-				std::vector <char> log(logLen);
-				GLsizei written;
-				glGetShaderInfoLog(shader, logLen, &written, log.data());
-
-				OutputDebugString("compilation error with shader ");
-				OutputDebugString(fname.c_str());
-				OutputDebugString(":\n\n");
-				OutputDebugString(log.data());
-				OutputDebugString("\n");
-				exit(1);
-			}
-
-			// Save shader for later
-			shaders.push_back(shader);
-		}
-
-		// Create program, attach shaders to it, and link it
-		program = glCreateProgram(); // create (empty?) program
-
-									 // attach shaders
-		for (const GLuint &shader : shaders) {
-			glAttachShader(program, shader);
-		}
-
-		glLinkProgram(program); // link together all attached shaders
-
-		// CHECK IF LINKING SUCCESSFUL
-		GLint status = GL_TRUE;
-		glGetProgramiv(program, GL_LINK_STATUS, &status);
-		if (status == GL_FALSE)
-		{
-			GLint logLen;
-			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
-			std::vector <char> log(logLen);
-			GLsizei written;
-			glGetProgramInfoLog(program, logLen, &written, log.data());
-
-			OutputDebugString("linking error with program:\n\n");
-			OutputDebugString(log.data());
-			OutputDebugString("\n");
-			exit(1);
-		}
-
-
-		// Delete the shaders as the program has them now
-		for (const GLuint &shader : shaders) {
-			glDeleteShader(shader);
-		}
-
-		return program;
-	}
 }
 
 GLuint link_program(GLuint program) {
@@ -391,8 +295,6 @@ GLuint link_program(GLuint program) {
 }
 
 GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnames) {
-	//return compile_shaders_hardcoded(shader_fnames);
-
 	GLuint program;
 	std::vector <GLuint> shaders; // store compiled shaders
 
@@ -403,9 +305,9 @@ GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnam
 		std::ifstream shader_file(fname);
 
 		if (!shader_file.is_open()) {
-			OutputDebugString("could not open shader file: ");
-			OutputDebugString(fname.c_str());
-			OutputDebugString("\n");
+			char buf[1024];
+			sprintf(buf, "could not open shader file: %s\n", fname.c_str());
+			WindowsException(buf);
 			exit(1);
 		}
 
