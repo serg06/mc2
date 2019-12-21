@@ -178,10 +178,6 @@ void App::render(float time) {
 		64 * CHUNK_WIDTH // only support 64 chunks for now
 	);
 
-	//for (int i = 0; i < 4; i++) {
-	//	proj_matrix[i] = normalize(proj_matrix[i]);
-	//}
-
 	/* BACKGROUND / SKYBOX */
 
 	// Draw background color
@@ -194,22 +190,10 @@ void App::render(float time) {
 	Block face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
 	GLuint in_water = face_block == Block::StillWater;
 
-	if (in_water) {
-		OutputDebugString("FACE IN WATER!\n");
-	}
-
 	// Update transformation buffer with matrices
 	glNamedBufferSubData(glInfo.trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
 	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(GLuint), &in_water); // proj matrix
-
-	// PRINT FPS
-	sprintf(buf, "Drawing (took %d ms) (render distance = %d)\n", (int)(dt * 1000), min_render_distance);
-	OutputDebugString(buf);
-
-	//// PRINT POSITION/ORIENTATION
-	//sprintf(buf, "Position: (%.1f, %.1f, %.1f) | Facing: (%.1f, %.1f, %.1f)\n", char_position[0], char_position[1], char_position[2], direction[0], direction[1], direction[2]);
-	//OutputDebugString(buf);
 
 	// extract projection matrix planes
 	vec4 planes[6];
@@ -235,7 +219,7 @@ void App::render(float time) {
 		char buf[256];
 		ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
 
-		sprintf(buf, "FPS: %-4.2f (%d ms) (%d distance)", fps, (int)(dt * 1000), min_render_distance);
+		sprintf(buf, "FPS: %-4.1f (%d ms) (%d distance)", fps, (int)(dt * 1000), min_render_distance);
 		render_text(&glInfo, { 0, 0 }, screen_dimensions, buf, strlen(buf));
 
 		sprintf(buf, "Position: (%6.1f, %6.1f, %6.1f)", char_position[0], char_position[1], char_position[2]);
@@ -243,6 +227,9 @@ void App::render(float time) {
 
 		sprintf(buf, "Facing:   (%6.1f, %6.1f, %6.1f)", direction[0], direction[1], direction[2]);
 		render_text(&glInfo, { 0, 2 }, screen_dimensions, buf, strlen(buf));
+
+		sprintf(buf, "Face in water: %d", (int)in_water);
+		render_text(&glInfo, { 0, 3 }, screen_dimensions, buf, strlen(buf));
 	}
 }
 

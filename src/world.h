@@ -435,15 +435,15 @@ public:
 			}
 		}
 
+		if (minis_to_draw.size() == 0) return;
+
 		// draw them
 		glUseProgram(glInfo->game_rendering_program);
 
-		// draw non-water first
 		for (auto &mini : minis_to_draw) {
 			mini->render_meshes(glInfo);
 		}
-
-		// then water
+		
 		for (auto &mini : minis_to_draw) {
 			mini->render_water_meshes(glInfo);
 		}
