@@ -37,6 +37,8 @@
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
+#include <limits>
+#include <map>
 #include <numeric>
 #include <tuple>
 #include <vector>
@@ -257,7 +259,81 @@ static constexpr inline void extract_from_atlas(float* atlas, unsigned atlas_wid
 	}
 }
 
+// TODO: Could be slightly improved with `const`, `&`, and `private:` in the right places, but otherwise it works great.
+template <typename K, typename V>
+class interval_map
+{
+	std::map<K, V> my_map;
+	typedef class std::map<K, V>::iterator iter;
 
+	// fill with 0 by default
+	interval_map() : interval_map(0) {
+	}
 
+	// create interval map with default v
+	interval_map(V v) {
+		my_map.insert(my_map.end(), { std::numeric_limits<K>::lowest(), v });
+	}
+
+	// map [begin, end) -> v
+	// O(log N)
+	void set_interval(K begin, K end, const V v) {
+		if (begin >= end) return;
+
+		// get interval that `begin` intersects with (inclusive)
+		iter begin_intersect = --my_map.upper_bound(begin);
+
+		// get interval that `end` intersects with (inclusive)
+		iter end_intersect = --my_map.upper_bound(end);
+
+		// if required, insert at start
+		iter inserted_start = my_map.end();
+		if (begin_intersect->second != v) {
+			inserted_start = my_map.insert_or_assign(begin_intersect, begin, v);
+		}
+
+		// if required, insert at end
+		iter inserted_end = my_map.end();
+		if (end_intersect->second != v) {
+			inserted_end = my_map.insert_or_assign(end_intersect, end, end_intersect->second);
+		}
+
+		// delete everyone inside
+		iter del_start = inserted_start != my_map.end() ? inserted_start : begin_intersect;
+		if (del_start->first == begin) {
+			del_start++;
+		}
+
+		iter del_end = inserted_end != my_map.end() ? inserted_end : end_intersect;
+
+		if (del_start != my_map.end()) {
+			my_map.erase(del_start, del_end);
+		}
+	}
+
+	// iterator which traverses elements in sorted order (smallest to largest)
+	// O(1)
+	constexpr inline iter &begin() {
+		return my_map.begin();
+	}
+
+	// end of elements
+	// O(1)
+	constexpr inline iter &end() {
+		return my_map.end();
+	}
+
+	// get iterator containing key `k`
+	// O(log N)
+	constexpr inline iter get_interval(K k) {
+		return --my_map.upper_bound(k);
+	}
+
+	// get value at key `k`
+	// O(log N)
+	const V operator[](K const& k) {
+		return (--my_map.upper_bound(k))->second;
+	}
+};
 
 #endif // __UTIL_H__
