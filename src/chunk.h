@@ -64,9 +64,8 @@ public:
 	vmath::ivec2 coords; // coordinates in chunk format
 	MiniChunk minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT];
 
-	Chunk() : ChunkData(CHUNK_WIDTH, CHUNK_HEIGHT, CHUNK_DEPTH) {}
-
-	Chunk(Block* data, vmath::ivec2 coords) : ChunkData(data, CHUNK_WIDTH, CHUNK_HEIGHT, CHUNK_DEPTH), coords(coords) {}
+	Chunk() : Chunk({ 0, 0 }) {}
+	Chunk(vmath::ivec2 coords) : coords(coords), ChunkData(CHUNK_WIDTH, CHUNK_HEIGHT, CHUNK_DEPTH) {};
 
 	// split chunk into minichunks
 	inline void gen_minichunks() {
@@ -118,6 +117,9 @@ public:
 	inline std::vector<ivec2> surrounding_chunks_sides() {
 		return surrounding_chunks_sides_s(coords);
 	}
+
+	// generate this chunk
+	void generate();
 };
 
 // simple chunk hash function
@@ -128,11 +130,6 @@ struct chunk_hash
 		return std::hash<int>()(chunk->coords[0]) ^ std::hash<int>()(chunk->coords[1]);
 	}
 };
-
-
-Chunk* gen_chunk_data(int, int);
-
-inline Chunk* gen_chunk_data(ivec2 vec) { return gen_chunk_data(vec[0], vec[1]); }
 
 // TODO: This maybe?
 //#define EL_TYPE uint8_t

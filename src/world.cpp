@@ -18,7 +18,8 @@ namespace WorldTests {
 
 	void test_gen_layer() {
 		// gen chunk at 0,0
-		Chunk* chunk = gen_chunk_data(0, 0);
+		Chunk* chunk = new Chunk({ 0, 0 });
+		chunk->generate();
 
 		// grab first mini that has stone, grass, and air blocks
 		MiniChunk* mini;

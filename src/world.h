@@ -200,7 +200,8 @@ public:
 		int i = 0;
 		for (auto coords : to_generate) {
 			// generate it
-			Chunk* c = gen_chunk_data(coords);
+			Chunk* c = new Chunk(coords);
+			c->generate();
 
 			// add it to world so that we can use get_type in following code
 			add_chunk(coords[0], coords[1], c);

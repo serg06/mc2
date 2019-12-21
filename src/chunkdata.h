@@ -25,38 +25,31 @@ static inline ivec3 clamp_coords_to_world(const ivec3 &coords) {
 // Chunk Data is always stored as width wide and depth deep
 class ChunkData {
 public:
-	Block * data;
+	Block * data = nullptr;
 
-	int width;
-	int height;
-	int depth;
+	int width = 0;
+	int height = 0;
+	int depth = 0;
 
 	// Memory leak, delete this when un-loading chunk from world.
-	ChunkData(int width, int height, int depth) : ChunkData(new Block[width * height * depth], width, height, depth) {}
+	ChunkData(int width, int height, int depth) : ChunkData(width, height, depth, nullptr) {}
 
-	ChunkData(Block* data, int width, int height, int depth) : data(data), width(width), height(height), depth(depth) {
+	ChunkData(int width, int height, int depth, Block* data) : width(width), height(height), depth(depth), data(data) {
 		assert(0 < width && "invalid chunk width");
 		assert(0 < depth && "invalid chunk depth");
 		assert(0 < height && "invalid chunk height");
 	}
 
-	inline int size() {
-		return width * height * depth;
+	inline void allocate() {
+		data = new Block[width * height * depth];
 	}
 
-	// get a ChunkData object pointing to a sub-piece of this chunk's data
-	ChunkData* get_piece(unsigned offset, unsigned size) {
-		assert(data != nullptr && "data is null");
-		assert(size > 0 && "invalid size");
-		assert(offset < this->size() && "invalid offset");
-		assert(offset + size <= this->size() && "invalid offset/size");
+	inline void free() {
+		delete[] data;
+	}
 
-		// chunk data grows in y direction, so size needs to be divisible by width*depth
-		assert((size % (width*depth)) == 0 && "invalid size, not divisible by width*depth");
-
-		int new_height = size / (width*depth);
-
-		return new ChunkData(data + offset, width, new_height, depth);
+	inline int size() {
+		return width * height * depth;
 	}
 
 	// get block at these coordinates
