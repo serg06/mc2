@@ -10,6 +10,6 @@ bin/*
 # Libraries which we compile ourselves
 lib/
 
-# Libpng generated headers
-include/libpng/pnglibconf.h
+# files I use for testing purposes, and nothing else
+include/stb_image_write.h
 

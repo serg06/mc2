@@ -7,6 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
 #include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include <experimental/filesystem>
 #include <string>
@@ -19,6 +20,7 @@
 #define BLOCK_TEXTURE_HEIGHT 16
 #define TEXTURE_COMPONENTS 4
 #define MAX_CHARS 256
+#define BLOCKS_NUM_MIPMAPS 3
 
 namespace fs = std::experimental::filesystem;
 using namespace vmath;
@@ -172,7 +174,7 @@ namespace {
 		glBindVertexArray(glInfo->vao_quad);
 
 		// instance attribute
-		glVertexAttribDivisor(glInfo->q_base_coords_attr_idx, 1); 
+		glVertexAttribDivisor(glInfo->q_base_coords_attr_idx, 1);
 
 		glBindVertexArray(0);
 	}
@@ -264,13 +266,103 @@ namespace {
 		stbi_image_free(imgdata);
 	}
 
+
+	// by using vec4s this is kinda hard-coded to have components=4. Probably should do something else.
+	static const inline vec4& get_pixel(const float* data, const unsigned width, const unsigned height, const unsigned components, const unsigned x, const unsigned y) {
+		return *(vec4*)(data + (x + y * width) * components);
+	}
+
+	static inline void set_pixel(const float* data, const unsigned width, const unsigned height, const unsigned components, const unsigned x, const unsigned y, const vec4 &pixel) {
+		*(vec4*)(data + (x + y * width) * components) = pixel;
+	}
+
+	static void gen_mipmap(float* source, float* dest, int src_width, int src_height, int components) {
+	// make sure width & height are even
+		assert(!(src_width & 0x1) && "width not even");
+		assert(!(src_height & 0x1) && "height not even");
+
+		// make sure they're > 0
+		assert(src_width > 0 && "width <= 0");
+		assert(src_height > 0 && "height <= 0");
+		assert(components > 0 && "invalid # of components");
+
+		// calculate destination width/height
+		int dst_width = src_width >> 1;
+		int dst_height = src_height >> 1;
+
+		// set all pixel data
+		for (int y = 0; y < dst_height; y++) {
+			for (int x = 0; x < dst_width; x++) {
+				vec4 pixels[4];
+				
+				// extract all the pixels that we're gonna merge int one
+				for (int dy = 0; dy < 2; dy++) {
+					for (int dx = 0; dx < 2; dx++) {
+						pixels[dx + dy * 2] = get_pixel(source, src_width, src_height, components, x * 2 + dx, y * 2 + dy);
+					}
+				}
+
+				// examine pixels
+				vec4 pixel_sum = vec4(0);
+				bool any_partially_translucent = false;
+				int num_transparent = 0; 
+				for (int i = 0; i < 4; i++) {
+					// record if any pixels are partially translucent (i.e. neither opaque nor transparent)
+					// so far, this should only happen for water
+					if (0.01 < pixels[i][3] && pixels[i][3] < 0.99) {
+						any_partially_translucent = true;
+					}
+					// if pixel is visible, add it to sum, allowing it to have an effect on final output pixel
+					if (0.01 < pixels[i][3]) {
+						pixel_sum += pixels[i];
+					}
+					// count fully-transparent pixels
+					else {
+						num_transparent++;
+					}
+				}
+
+				// output pixel
+				vec4 pixel_result;
+
+				// if all were transparent, just output an empty pixel
+				if (num_transparent == 4) {
+					pixel_result = vec4(0);
+				}
+				// if some non-transparent ones, output linear combination of non-transparent ones
+				else {
+					pixel_result = pixel_sum / ((float)(4 - num_transparent));
+				}
+
+				// double check that opaque result is opaque
+				if (!any_partially_translucent) {
+					if (pixel_result[3] > 0) {
+						pixel_result[3] = 1.0f;
+					}
+				}
+
+				set_pixel(dest, dst_width, dst_height, components, x, y, pixel_result);
+			}
+		}
+	}
+
+	//static void write_png(char* fname, float* data, int width, int height, int components) {
+	//	int whc = width * height * components;
+	//	char *fixed = new char[whc];
+	//	for (int i = 0; i < whc; i++) {
+	//		fixed[i] = data[i] * 255.0f;
+	//	}
+	//	stbi_write_png(fname, width, height, components, fixed, width * components);
+	//	delete[] fixed;
+	//}
+
 	// load texture data for a block, plus generate mipmaps up to mipmap_level
-	void load_block_texture_data(const char* tex_name, float(&data)[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4], unsigned mipmap_level) {
+	void load_block_texture_data(const char* tex_name, float(&data)[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4], unsigned num_mipmaps) {
 		char fname[256];
 		sprintf(fname, "./textures/blocks/%s.png", tex_name);
 		load_texture_data(fname, 16, 16, data);
 
-		if (mipmap_level > 4) {
+		if (num_mipmaps > 4) {
 			throw "err";
 		}
 
@@ -329,26 +421,26 @@ namespace {
 
 		/* SPECIAL CASES END */
 
-		int start = 0;
-		for (int i = 1; i < mipmap_level; i++) {
-			int width = 16 / pown(2, i);
-			for (int j = 0; j < width*width; j++) {
-				data[start + j * 4 + 0] = data[i * 4 * pown(2 * 2, i) + 0];
-				data[start + j * 4 + 1] = data[i * 4 * pown(2 * 2, i) + 1];
-				data[start + j * 4 + 2] = data[i * 4 * pown(2 * 2, i) + 2];
-				data[start + j * 4 + 3] = fmax(data[i * 4 * pown(2 * 2, i) + 0], 0.8f);
-			}
-			start = width * width * 4;
-		}
+		// generate mipmaps
+		float* prev_mipmap_location = data;
+		float* this_mipmap_location = data + pown(2, 4) * pown(2, 4) * 4;
+		int current_width = 8;
+		int current_height = 8;
 
-		// set mipmaps
+		for (int mipmap_level = 1; mipmap_level <= num_mipmaps; mipmap_level++) {
+			gen_mipmap(prev_mipmap_location, this_mipmap_location, current_width * 2, current_height * 2, 4);
+
+			prev_mipmap_location = this_mipmap_location;
+			this_mipmap_location += current_width * current_height * 4;
+
+			current_width >>= 1;
+			current_height >>= 1;
+		}
 	}
 
 	void setup_block_textures(OpenGLInfo* glInfo) {
 		// data for one texture, plus all mipmaps
 		float data[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4];
-
-		int mipmap_levels = 0;
 
 		// create textures
 		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->top_textures);
@@ -360,7 +452,7 @@ namespace {
 
 		// allocate space (32-bit float RGBA 16x16) (TODO: GL_RGBA8 instead.)
 		for (auto tex_arr : tex_arrays) {
-			glTextureStorage3D(tex_arr, mipmap_levels + 1, GL_RGBA32F, 16, 16, MAX_BLOCK_TYPES);
+			glTextureStorage3D(tex_arr, BLOCKS_NUM_MIPMAPS + 1, GL_RGBA32F, 16, 16, MAX_BLOCK_TYPES);
 		}
 
 		float* red = new float[16 * 16 * MAX_BLOCK_TYPES * 4];
@@ -393,50 +485,65 @@ namespace {
 
 			// if they exist, load them in
 			if (top.size() > 0) {
-				load_block_texture_data(top.c_str(), data, mipmap_levels);
-				glTextureSubImage3D(glInfo->top_textures,
-					0,			// Level 0
-					0, 0, i,	// Offset 0, 0, block_id
-					16, 16, 1,	// 16 x 16 x 1 texels, replace one texture
-					GL_RGBA,	// Four channel data
-					GL_FLOAT,	// Floating point data
-					data);		// Pointer to data
+				auto current_mipmap_start = data;
+				load_block_texture_data(top.c_str(), data, BLOCKS_NUM_MIPMAPS);
+				for (int mipmap_level = 0; mipmap_level <= BLOCKS_NUM_MIPMAPS; mipmap_level++) {
+					int width = pown(2, 4 - mipmap_level);
+					int height = pown(2, 4 - mipmap_level);
+					glTextureSubImage3D(glInfo->top_textures,
+						mipmap_level,								// mipmap level
+						0, 0, i,									// Offset 0, 0, block_id
+						width, height, 1,							// width x height x 1 texels, replace entire mipmap
+						GL_RGBA,									// Four channel data
+						GL_FLOAT,									// Floating point data
+						current_mipmap_start);						// Pointer to mipmap
+					current_mipmap_start += width * height * 4;
+				}
 			}
 
 			if (side.size() > 0) {
-				load_block_texture_data(side.c_str(), data, mipmap_levels);
-				glTextureSubImage3D(glInfo->side_textures,
-					0,			// Level 0
-					0, 0, i,	// Offset 0, 0, block_id
-					16, 16, 1,	// 16 x 16 x 1 texels, replace one texture
-					GL_RGBA,	// Four channel data
-					GL_FLOAT,	// Floating point data
-					data);		// Pointer to data
+				auto current_mipmap_start = data;
+				load_block_texture_data(side.c_str(), data, BLOCKS_NUM_MIPMAPS);
+				for (int mipmap_level = 0; mipmap_level <= BLOCKS_NUM_MIPMAPS; mipmap_level++) {
+					int width = pown(2, 4 - mipmap_level);
+					int height = pown(2, 4 - mipmap_level);
+					glTextureSubImage3D(glInfo->side_textures,
+						mipmap_level,								// mipmap level
+						0, 0, i,									// Offset 0, 0, block_id
+						width, height, 1,							// width x height x 1 texels, replace entire mipmap
+						GL_RGBA,									// Four channel data
+						GL_FLOAT,									// Floating point data
+						current_mipmap_start);						// Pointer to mipmap
+					current_mipmap_start += width * height * 4;
+				}
 			}
 
 			if (bottom.size() > 0) {
-				load_block_texture_data(bottom.c_str(), data, mipmap_levels);
-				glTextureSubImage3D(glInfo->bottom_textures,
-					0,			// Level 0
-					0, 0, i,	// Offset 0, 0, block_id
-					16, 16, 1,	// 16 x 16 x 1 texels, replace one texture
-					GL_RGBA,	// Four channel data
-					GL_FLOAT,	// Floating point data
-					data);		// Pointer to data
+				auto current_mipmap_start = data;
+				load_block_texture_data(bottom.c_str(), data, BLOCKS_NUM_MIPMAPS);
+				for (int mipmap_level = 0; mipmap_level <= BLOCKS_NUM_MIPMAPS; mipmap_level++) {
+					int width = pown(2, 4 - mipmap_level);
+					int height = pown(2, 4 - mipmap_level);
+					glTextureSubImage3D(glInfo->bottom_textures,
+						mipmap_level,								// mipmap level
+						0, 0, i,									// Offset 0, 0, block_id
+						width, height, 1,							// width x height x 1 texels, replace entire mipmap
+						GL_RGBA,									// Four channel data
+						GL_FLOAT,									// Floating point data
+						current_mipmap_start);						// Pointer to mipmap
+					current_mipmap_start += width * height * 4;
+				}
 			}
 		}
 
 		// for each texture array
 		for (auto tex_arr : tex_arrays) {
-			// generate mipmaps
-			//glGenerateTextureMipmap(tex_arr);
-
 			// wrap!
 			glTextureParameteri(tex_arr, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTextureParameteri(tex_arr, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 			// filter
-			glTextureParameteri(tex_arr, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // TODO: try the 3 other options.
+			glTextureParameteri(tex_arr, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 			glTextureParameteri(tex_arr, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		}
 
@@ -500,7 +607,7 @@ namespace {
 		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 		// filter
-		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // TODO: try the 3 other options.
+		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		// bind them!
