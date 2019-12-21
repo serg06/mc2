@@ -65,6 +65,7 @@ struct OpenGLInfo {
 	const GLuint q_corner1_bidx = 3;
 	const GLuint q_corner2_bidx = 4;
 	const GLuint q_face_bidx = 5;
+	const GLuint q_base_coords_bidx = 6;
 
 	// TEXT VAO binding points
 	const GLuint text_char_code_bidx = 0;
@@ -81,6 +82,7 @@ struct OpenGLInfo {
 	const GLuint q_corner1_attr_idx = 3;
 	const GLuint q_corner2_attr_idx = 4;
 	const GLuint q_face_attr_idx = 5;
+	const GLuint q_base_coords_attr_idx = 6;
 
 	// attribute indices for TEXT VAO
 	const GLuint text_char_code_attr_idx = 0;

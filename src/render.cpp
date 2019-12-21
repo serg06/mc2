@@ -78,7 +78,7 @@ namespace {
 		// list of shaders to create program with
 		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
 			{ "shaders/render_quads.vs.glsl", GL_VERTEX_SHADER },
-			//{ "shaders/render_quads.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "shaders/render_quads.gs.glsl", GL_GEOMETRY_SHADER },
 			{ "shaders/render_quads.fs.glsl", GL_FRAGMENT_SHADER },
 		};
 
@@ -152,26 +152,27 @@ namespace {
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner1_attr_idx);
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_corner2_attr_idx);
 		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_face_attr_idx);
+		glEnableVertexArrayAttrib(glInfo->vao_quad, glInfo->q_base_coords_attr_idx);
 
 		// vao: set up formats for Quad's attributes, 1 at a time
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_block_type_attr_idx, 1, GL_UNSIGNED_BYTE, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner1_attr_idx, 3, GL_INT, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_corner2_attr_idx, 3, GL_INT, 0);
 		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_face_attr_idx, 3, GL_INT, 0);
+		glVertexArrayAttribIFormat(glInfo->vao_quad, glInfo->q_base_coords_attr_idx, 3, GL_INT, 0);
 
 		// vao: match attributes to binding indices
 		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_block_type_attr_idx, glInfo->quad_block_type_bidx);
 		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner1_attr_idx, glInfo->q_corner1_bidx);
 		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_corner2_attr_idx, glInfo->q_corner2_bidx);
 		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_face_attr_idx, glInfo->q_face_bidx);
+		glVertexArrayAttribBinding(glInfo->vao_quad, glInfo->q_base_coords_attr_idx, glInfo->q_base_coords_bidx);
 
 		// vao: extra properties
 		glBindVertexArray(glInfo->vao_quad);
 
-		glVertexAttribDivisor(glInfo->q_block_type_attr_idx, 1); // instance attribute
-		glVertexAttribDivisor(glInfo->q_corner1_attr_idx, 1); // instance attribute
-		glVertexAttribDivisor(glInfo->q_corner2_attr_idx, 1); // instance attribute
-		glVertexAttribDivisor(glInfo->q_face_attr_idx, 1); // instance attribute
+		// instance attribute
+		glVertexAttribDivisor(glInfo->q_base_coords_attr_idx, 1); 
 
 		glBindVertexArray(0);
 	}
@@ -213,7 +214,7 @@ namespace {
 
 		// allocate enough space for 2 transform matrices + current chunk coords + bool in_water
 		// todo: use map, then invalidate range when writing
-		glNamedBufferStorage(glInfo->trans_buf, 2 * sizeof(mat4) + sizeof(ivec4) + sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT);
+		glNamedBufferStorage(glInfo->trans_buf, 2 * sizeof(mat4) + sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT);
 		glNamedBufferStorage(glInfo->text_uni_buf, 2 * sizeof(ivec2) + 2 * sizeof(GLuint), NULL, GL_MAP_WRITE_BIT);
 	}
 

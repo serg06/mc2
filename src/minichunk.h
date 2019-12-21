@@ -17,8 +17,10 @@
 #define MINICHUNK_SIZE (MINICHUNK_WIDTH * MINICHUNK_DEPTH * MINICHUNK_HEIGHT)
 
 class MiniChunk : public ChunkData {
-public:
+private:
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
+
+public:
 	GLuint block_types_buf; // each mini gets its own buf -- easy this way for now
 	bool invisible = false;
 	MiniChunkMesh* mesh = nullptr;
@@ -26,6 +28,7 @@ public:
 	bool meshes_updated = false;
 	// TODO: When someone else sets invisibility, we want to delete bufs as well.
 	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
+	GLuint coords_buf = 0;
 
 	// number of quads inside the buffer, as reading from mesh is not always reliable
 	GLuint num_nonwater_quads = 0;
@@ -37,27 +40,18 @@ public:
 
 	}
 
-	// render this minichunk's cubes (that's 4096 cubes, with 12 triangles per cube.)
-	void render_cubes(OpenGLInfo* glInfo) {
-		// don't draw if covered in all sides
-		if (invisible) {
-			return;
-		}
+	inline void set_coords(vmath::ivec3 &&coords) { set_coords(coords); }
+	inline void set_coords(vmath::ivec3 &coords) {
+		this->coords = coords;
 
-		// cube VAO
-		glBindVertexArray(glInfo->vao_cube);
+		// update coords buf
+		glDeleteBuffers(1, &coords_buf);
+		glCreateBuffers(1, &coords_buf);
+		glNamedBufferStorage(coords_buf, sizeof(coords), coords, NULL);
+	}
 
-		// bind to chunk-types attribute binding point
-		glVertexArrayVertexBuffer(glInfo->vao_cube, glInfo->chunk_types_bidx, block_types_buf, 0, sizeof(Block));
-
-		// write this chunk's coordinate to coordinates buffer
-		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec4), vec4(coords[0], coords[1], coords[2], 1.0)); // Add base chunk coordinates to transformation data
-
-		// draw!
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 36, MINICHUNK_SIZE);
-
-		// unbind VAO jic
-		glBindVertexArray(0);
+	const inline vmath::ivec3& get_coords() const {
+		return coords;
 	}
 
 	// render this minichunk's texture meshes
@@ -88,17 +82,15 @@ public:
 		// quad VAO
 		glBindVertexArray(glInfo->vao_quad);
 
-		// write this chunk's coordinate to coordinates buffer
-		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords);
-
 		// bind to quads attribute binding point
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_base_coords_bidx, coords_buf, 0, sizeof(ivec3));
 
 		// DRAW!
-		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, quads.size());
+		glDrawArrays(GL_POINTS, 0, quads.size());
 
 		// unbind VAO jic
 		glBindVertexArray(0);
@@ -133,17 +125,15 @@ public:
 		// quad VAO
 		glBindVertexArray(glInfo->vao_quad);
 
-		// write this chunk's coordinate to coordinates buffer
-		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), coords);
-
 		// bind to quads attribute binding point
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_base_coords_bidx, coords_buf, 0, sizeof(ivec3));
 
 		// DRAW!
-		glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, water_quads.size(), quads.size());
+		glDrawArrays(GL_POINTS, quads.size(), water_quads.size());
 
 		// unbind VAO jic
 		glBindVertexArray(0);

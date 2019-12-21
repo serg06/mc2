@@ -385,7 +385,8 @@ public:
 		for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
 			for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
 				for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
-					vmath::ivec3 coords = { mini.coords[0] * CHUNK_WIDTH + miniX, mini.coords[1] + miniY,  mini.coords[2] * CHUNK_DEPTH + miniZ };
+					auto &mini_coords = mini.get_coords();
+					vmath::ivec3 coords = { mini_coords[0] * CHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * CHUNK_DEPTH + miniZ };
 
 					// if along east wall, check east
 					if (miniX == CHUNK_WIDTH - 1) {
@@ -593,7 +594,7 @@ public:
 		MiniChunk* face_mini = mini;
 		if (!in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
 			//gen_layer_slow(mini, layers_idx, layer_no, face, result);
-			auto face_mini_coords = mini->coords + (layers_idx == 1 ? face * 16 : face);
+			auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
 			face_mini = (face_mini_coords[1] < 0 || face_mini_coords[1] > BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) ? nullptr : get_mini(face_mini_coords);
 		}
 
@@ -773,18 +774,21 @@ public:
 		faces[5] = ivec3(0, -1, 0);
 
 		GLuint quad_block_type_buf, quad_corner1_buf, quad_corner2_buf, quad_face_buf;
+		GLuint mini_coords_buf;
 
 		// create buffers with just the right sizes
 		glCreateBuffers(1, &quad_block_type_buf);
 		glCreateBuffers(1, &quad_corner1_buf);
 		glCreateBuffers(1, &quad_corner2_buf);
 		glCreateBuffers(1, &quad_face_buf);
+		glCreateBuffers(1, &mini_coords_buf);
 
 		// allocate them just enough space
-		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * 6, blocks, NULL); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, corner1s, NULL); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, corner2s, NULL); // allocate 2 matrices of space for transforms, and allow editing
-		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * 6, faces, NULL); // allocate 2 matrices of space for transforms, and allow editing
+		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * 6, blocks, NULL);
+		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, corner1s, NULL);
+		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, corner2s, NULL);
+		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * 6, faces, NULL);
+		glNamedBufferStorage(mini_coords_buf, sizeof(ivec3), mini_coords, NULL);
 
 		// DRAW!
 
@@ -796,9 +800,7 @@ public:
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
-
-		// write this chunk's coordinate to coordinates buffer
-		glNamedBufferSubData(glInfo->trans_buf, TRANSFORM_BUFFER_COORDS_OFFSET, sizeof(ivec3), mini_coords);
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_base_coords_bidx, mini_coords_buf, 0, sizeof(ivec3));
 
 		// save properties before we overwrite them
 		GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
@@ -819,7 +821,7 @@ public:
 		glEnable(GL_DEPTH_TEST);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 6);
+		glDrawArrays(GL_POINTS, 0, 6);
 
 		// restore original properties
 		if (cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
@@ -834,7 +836,6 @@ public:
 		);
 		glNamedBufferSubData(glInfo->trans_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
 
-
 		// unbind VAO jic
 		glBindVertexArray(0);
 
@@ -842,6 +843,8 @@ public:
 		glDeleteBuffers(1, &quad_block_type_buf);
 		glDeleteBuffers(1, &quad_corner1_buf);
 		glDeleteBuffers(1, &quad_corner2_buf);
+		glDeleteBuffers(1, &quad_face_buf);
+		glDeleteBuffers(1, &mini_coords_buf);
 	}
 
 	inline void highlight_block(OpenGLInfo* glInfo, GlfwInfo* windowInfo, ivec3 xyz) { return highlight_block(glInfo, windowInfo, xyz[0], xyz[1], xyz[2]); }
@@ -989,8 +992,6 @@ public:
 	// block: the mini-coordinates of the block that was added/deleted
 	// TODO: Use block.
 	void on_mini_update(MiniChunk* mini, vmath::ivec3 block) {
-		auto &coords = mini->coords;
-
 		// need to regenerate self and neighbors
 		vector<MiniChunk*> minis_to_regenerate = { mini };
 

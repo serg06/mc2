@@ -13,13 +13,14 @@ layout (location = 2) in uint q_block_type;
 layout (location = 3) in ivec3 q_corner1;
 layout (location = 4) in ivec3 q_corner2;
 layout (location = 5) in ivec3 q_face;
+layout (location = 6) in ivec3 q_base_coords;
 
-out vec4 vs_color;
-out flat uint vs_block_type;
-out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
-out flat uint horizontal;
-out flat ivec3 vs_face;
-
+//out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
+out uint vs_block_type;
+out ivec3 vs_face;
+out ivec3 vs_corner1;
+out ivec3 vs_corner2;
+out ivec3 vs_base_coords;
 
 layout (std140, binding = 0) uniform UNI_IN
 {
@@ -32,8 +33,7 @@ layout (std140, binding = 0) uniform UNI_IN
 						//						80						96				(proj_matrix[1])
 						//						96						112				(proj_matrix[2])
 						//						112						128				(proj_matrix[3])
-	ivec4 base_coords;	// 16 (same as vec4)	128				12		144
-	uint in_water;      // 4                    144             1       148
+	uint in_water;      // 4                    128             4       132
 } uni;
 
 float rand(float seed) {
@@ -42,122 +42,10 @@ float rand(float seed) {
 
 void main(void)
 {
-	/* GENERATE CORNER BASED ON VERTEX ID & OUR 2 OPPOSITE CORNERS */
-
-	vec4 offset_in_chunk = vec4(q_corner1, 0);
-	ivec3 diffs = q_corner2 - q_corner1;
-
-	// figure out which index stays the same and which indices change
-	int zero_idx = diffs[0] == 0 ? 0 : diffs[1] == 0 ? 1 : 2;
-	int working_idx_1 = zero_idx == 0 ? 1 : 0;
-	int working_idx_2 = zero_idx == 2 ? 1 : 2;
-
-	// if working along x axis, rotate texture 90 degrees to correct rotation
-	if (diffs[0] == 0) {
-		working_idx_1 ^= working_idx_2;
-		working_idx_2 ^= working_idx_1;
-		working_idx_1 ^= working_idx_2;
-	}
-
-	horizontal = zero_idx == 1 ? 1 : 0;
-
-	vec4 diffs1 = vec4(0);
-	vec4 diffs2 = vec4(0);
-	diffs1[working_idx_1] = diffs[working_idx_1];
-	diffs2[working_idx_2] = diffs[working_idx_2];
-
-	// upside down coordinates to correct texture rotation
-	vec2 possible_tex_coords[4];
-	possible_tex_coords[0] = vec2(diffs[working_idx_1], diffs[working_idx_2]);
-	possible_tex_coords[1] = vec2(0, diffs[working_idx_2]);
-	possible_tex_coords[2] = vec2(diffs[working_idx_1], 0);
-	possible_tex_coords[3] = vec2(0,0);
-
-	vec4 possible_offsets[4];
-	possible_offsets[0] = vec4(q_corner1, 0);
-	possible_offsets[1] = vec4(q_corner1, 0) + diffs1;
-	possible_offsets[2] = vec4(q_corner1, 0) + diffs2;
-	possible_offsets[3] = vec4(q_corner2, 0);
-
-	offset_in_chunk = possible_offsets[gl_VertexID];
-	vs_tex_coords = possible_tex_coords[gl_VertexID];
-
-	/* CREATE OUR OFFSET VARIABLE */
-
-	vec4 chunk_base = vec4(uni.base_coords.x * 16, uni.base_coords.y, uni.base_coords.z * 16, 0);
-	vec4 instance_offset = chunk_base + offset_in_chunk;
-	instance_offset[3] = 1;
-
-//	// if it's outline, move it out a little to prevent z-fighting
-//	if (q_block_type == 100) {
-//		instance_offset += vec4(q_face * 0.01f, 0);
-//	}
-
-	/* ADD IT TO VERTEX */
-	gl_Position = uni.proj_matrix * uni.mv_matrix * instance_offset;
-
-	// set color
-	int seed = int(instance_offset[0]) ^ int(instance_offset[1]) ^ int(instance_offset[2]);
-
-	vec4 block_type_to_color[255];
-	block_type_to_color[0] = vec4(0.8 + rand(seed)*0.2, 0.0, 0.0, 1.0); // Air
-	block_type_to_color[1] = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Stone
-	block_type_to_color[2] = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // Grass
-	block_type_to_color[9] = vec4(32/255.0, 58/255.0, 230/255.0, 0.7) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Water
-	block_type_to_color[17] = vec4(87/255.0, 60/255.0, 10/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Oak Log
-	block_type_to_color[18] = vec4(96/255.0, 148/255.0, 98/255.0, 1.0) + vec4(rand(seed), rand(seed), rand(seed), 0)*0.2; // Oak Leaves
-	block_type_to_color[100] = vec4(0.0, 0.0, 0.0, 1.0);
-
-	vs_color = block_type_to_color[q_block_type];
-
-    vs_block_type = q_block_type;
+	// data passthrough
+	vs_block_type = q_block_type;
 	vs_face = q_face;
-}
-
-// shader starts executing here
-void main_cubes(void)
-{
-	vs_block_type = block_type;
-
-	// TODO: Add chunk offset
-
-	// Given gl_InstanceID, calculate 3D coordinate relative to chunk origin
-	int remainder = gl_InstanceID;
-	int y = remainder / CHUNK_HEIGHT;
-	remainder -= y * CHUNK_WIDTH * CHUNK_DEPTH; // TODO: I think this should be y * CHUNK_HEIGHT
-	int z = remainder / CHUNK_DEPTH;
-	remainder -= z * CHUNK_WIDTH; // TODO: I think this should be z * CHUNK_DEPTH
-	int x = remainder;
-
-	/* CREATE OUR OFFSET VARIABLE */
-
-	vec4 chunk_base = vec4(uni.base_coords.x * 16, uni.base_coords.y, uni.base_coords.z * 16, 0);
-	vec4 offset_in_chunk = vec4(x, y, z, 0);
-	vec4 instance_offset = chunk_base + offset_in_chunk;
-
-	/* ADD IT TO VERTEX */
-
-	gl_Position = uni.proj_matrix * uni.mv_matrix * (position + instance_offset);
-	vs_color = position * 2.0 + vec4(0.5, 0.5, 0.5, 1.0);
-
-	int seed = gl_VertexID * gl_InstanceID;
-	switch(block_type) {
-		case 0: // air (just has a color for debugging purposes)
-			vs_color = vec4(0.7, 0.7, 0.7, 1.0);
-			break;
-		case 1: // grass
-			vs_color = vec4(0.2, 0.8 + rand(seed) * 0.2, 0.0, 1.0); // green
-			break;
-		case 2: // stone
-			vs_color = vec4(0.4, 0.4, 0.4, 1.0) + vec4(rand(seed), rand(seed), rand(seed), rand(seed))*0.2; // grey
-			break;
-		default:
-			vs_color = vec4(1.0, 0.0, 1.0, 1.0); // SUPER NOTICEABLE (for debugging)
-			break;
-	}
-
-	// if top corner, make it darker!
-	if (position.y > 0) {
-		vs_color /= 2;
-	}
+	vs_corner1 = q_corner1;
+	vs_corner2 = q_corner2;
+	vs_base_coords = q_base_coords;
 }

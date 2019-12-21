@@ -75,7 +75,7 @@ public:
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
 			// create mini and populate it
 			minis[i].data = data + i * MINICHUNK_SIZE;
-			minis[i].coords = ivec3(coords[0], i*MINICHUNK_HEIGHT, coords[1]);
+			minis[i].set_coords({ coords[0], i*MINICHUNK_HEIGHT, coords[1] });
 
 			//// TODO: Use this as a primary method of drawing, before meshes are generated?
 			//// create CUBE buffer
@@ -94,7 +94,7 @@ public:
 
 		// TODO: Remove loop.
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
-			if (minis[i].coords[1] == y) {
+			if (minis[i].get_coords()[1] == y) {
 				return &(minis[i]);
 			}
 		}

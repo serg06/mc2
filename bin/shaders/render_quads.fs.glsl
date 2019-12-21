@@ -1,10 +1,9 @@
 #version 450 core
 
-in vec4 vs_color;
-in flat uint vs_block_type;
-in vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
-in flat uint horizontal; // 0 = quad is vertical, 1 = quad is horizontal (TODO: Remove this once we start inputting quad face to vertex shader.)
-in flat ivec3 vs_face;
+in flat uint gs_block_type;
+in vec2 gs_tex_coords; // texture coords in [0.0, 1.0]
+in flat ivec3 gs_face;
+
 
 layout (std140, binding = 0) uniform UNI_IN
 {
@@ -17,8 +16,7 @@ layout (std140, binding = 0) uniform UNI_IN
 						//						80						96				(proj_matrix[1])
 						//						96						112				(proj_matrix[2])
 						//						112						128				(proj_matrix[3])
-	ivec4 base_coords;	// 16 (same as vec4)	128				12		144
-	uint in_water;      // 4                    144             1       148
+	uint in_water;      // 4                    128             4       132
 } uni;
 
 out vec4 color;
@@ -39,12 +37,12 @@ float soft_increase2(float x, float cap) {
 void main(void)
 {
 	// TODO: Remove branching.
-	if (vs_face[1] > 0) {
-		color = texture(top_textures,  vec3(vs_tex_coords, vs_block_type));
-	} else if (vs_face[1] < 0) {
-		color = texture(bottom_textures,  vec3(vs_tex_coords, vs_block_type));
+	if (gs_face[1] > 0) {
+		color = texture(top_textures,  vec3(gs_tex_coords, gs_block_type));
+	} else if (gs_face[1] < 0) {
+		color = texture(bottom_textures,  vec3(gs_tex_coords, gs_block_type));
 	} else {
-		color = texture(side_textures,  vec3(vs_tex_coords, vs_block_type));
+		color = texture(side_textures,  vec3(gs_tex_coords, gs_block_type));
 	}
 	
 	// discard stuff that we can barely see, else all it's gonna do is mess with our depth buffer
