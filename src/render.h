@@ -39,6 +39,13 @@ struct OpenGLInfo {
 	// VAOs
 	GLuint vao_cube, vao_quad, vao_text;
 
+	// FBOs
+	GLuint fbo_out;
+
+	// FBO buffers
+	GLuint fbo_out_color_buf = 0;
+	GLuint fbo_out_depth_buf = 0;
+
 	// render buffers
 	GLuint trans_buf = 0; // transformations buffer - currently stores view and projection transformations.
 	GLuint vert_buf = 0; // vertices buffer - currently stores vertices for a single 3D cube

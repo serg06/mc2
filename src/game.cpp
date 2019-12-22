@@ -131,6 +131,9 @@ void App::startup() {
 }
 
 void App::render(float time) {
+	// FBO: BIND
+	glBindFramebuffer(GL_FRAMEBUFFER, glInfo.fbo_out);
+
 	char buf[256];
 
 	auto start_of_fn = std::chrono::high_resolution_clock::now();
@@ -183,8 +186,9 @@ void App::render(float time) {
 	// Clear color/depth buffers
 	const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	const GLfloat sky_blue[] = { 135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f };
+	const GLfloat one[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glClearBufferfv(GL_COLOR, 0, sky_blue);
-	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
+	glClearBufferfv(GL_DEPTH, 0, one);
 
 	// check if in water
 	Block face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
@@ -231,6 +235,9 @@ void App::render(float time) {
 		sprintf(buf, "Face in water: %d", (int)in_water);
 		render_text(&glInfo, { 0, 3 }, screen_dimensions, buf, strlen(buf));
 	}
+
+	// FBO: COPY TO DEFAULT FRAMEBUFFER
+	glBlitNamedFramebuffer(glInfo.fbo_out, 0, 0, 0, windowInfo.width, windowInfo.height, 0, 0, windowInfo.width, windowInfo.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 }
 
 // update player's movement based on how much time has passed since we last did it
@@ -507,9 +514,28 @@ void App::onResize(GLFWwindow* window, int width, int height) {
 	windowInfo.width = width;
 	windowInfo.height = height;
 
-	int px_width, px_height;
-	glfwGetFramebufferSize(window, &px_width, &px_height);
-	glViewport(0, 0, px_width, px_height);
+	// update viewport
+	glViewport(0, 0, width, height);
+
+	// FBO: Update texture files.
+
+	// delete texture
+	glDeleteTextures(1, &glInfo.fbo_out_color_buf);
+	glDeleteTextures(1, &glInfo.fbo_out_depth_buf);
+
+	// Create color texture, allocate, disable mipmaps
+	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_out_color_buf);
+	glTextureStorage2D(glInfo.fbo_out_color_buf, 1, GL_RGBA32F, width, height);
+	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// Create depth texture, allocate
+	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_out_depth_buf);
+	glTextureStorage2D(glInfo.fbo_out_depth_buf, 1, GL_DEPTH_COMPONENT24, width, height);
+
+	// Bind color / depth textures to FBO
+	glNamedFramebufferTexture(glInfo.fbo_out, GL_COLOR_ATTACHMENT0, glInfo.fbo_out_color_buf, 0);
+	glNamedFramebufferTexture(glInfo.fbo_out, GL_DEPTH_ATTACHMENT, glInfo.fbo_out_depth_buf, 0);
 }
 
 void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message) {

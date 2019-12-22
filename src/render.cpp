@@ -106,45 +106,6 @@ namespace {
 		glUseProgram(glInfo->text_rendering_program);
 	}
 
-	void setup_opengl_vao_cube(OpenGLInfo* glInfo) {
-		const GLfloat(&cube)[108] = shapes::cube_full;
-
-		// vao: create VAO for cube[s], so we can tell OpenGL how to use it when it's bound
-		glCreateVertexArrays(1, &glInfo->vao_cube);
-
-		// buffers: create
-		glCreateBuffers(1, &glInfo->vert_buf);
-
-		// buffers: allocate space
-		// allocate enough for all vertices, and allow editing
-		glNamedBufferStorage(glInfo->vert_buf, sizeof(cube), NULL, GL_DYNAMIC_STORAGE_BIT);
-
-		// buffers: insert static data
-		// vertex positions
-		glNamedBufferSubData(glInfo->vert_buf, 0, sizeof(cube), cube);
-
-		 // vao: enable all cube's attributes, 1 at a time
-		glEnableVertexArrayAttrib(glInfo->vao_cube, glInfo->position_attr_idx);
-		glEnableVertexArrayAttrib(glInfo->vao_cube, glInfo->chunk_types_attr_idx);
-
-		// vao: set up formats for cube's attributes, 1 at a time
-		glVertexArrayAttribFormat(glInfo->vao_cube, glInfo->position_attr_idx, 3, GL_FLOAT, GL_FALSE, 0);
-		glVertexArrayAttribIFormat(glInfo->vao_cube, glInfo->chunk_types_attr_idx, 1, GL_BYTE, 0);
-
-		// vao: set binding points for all attributes, 1 at a time
-		//      - 1 buffer per binding point; for clarity, to keep it clear, I should only bind 1 attr per binding point
-		glVertexArrayAttribBinding(glInfo->vao_cube, glInfo->position_attr_idx, glInfo->vert_buf_bidx);
-		glVertexArrayAttribBinding(glInfo->vao_cube, glInfo->chunk_types_attr_idx, glInfo->chunk_types_bidx);
-
-		// vao: bind buffers to their binding points, 1 at a time
-		glVertexArrayVertexBuffer(glInfo->vao_cube, glInfo->vert_buf_bidx, glInfo->vert_buf, 0, sizeof(vec3));
-
-		// vao: extra properties
-		glBindVertexArray(glInfo->vao_cube);
-		glVertexAttribDivisor(glInfo->chunk_types_attr_idx, 1);
-		glBindVertexArray(0);
-	}
-
 	void setup_opengl_vao_quad(OpenGLInfo* glInfo) {
 		// vao: create VAO for Quads, so we can tell OpenGL how to use it when it's bound
 		glCreateVertexArrays(1, &glInfo->vao_quad);
@@ -613,6 +574,80 @@ namespace {
 		// bind them!
 		glBindTextureUnit(glInfo->font_textures_tunit, glInfo->font_textures);
 	}
+
+	void assert_fbo_not_incomplete(GLuint fbo) {
+		GLenum status = glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER);
+		if (status != GL_FRAMEBUFFER_COMPLETE) {
+			OutputDebugString("\nFBO completeness error: ");
+
+			switch (status) {
+			case GL_FRAMEBUFFER_UNDEFINED:
+				OutputDebugString("GL_FRAMEBUFFER_UNDEFINED\n");
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n");
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n");
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n");
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n");
+				break;
+			case GL_FRAMEBUFFER_UNSUPPORTED:
+				OutputDebugString("GL_FRAMEBUFFER_UNSUPPORTED\n");
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE\n");
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS\n");
+				break;
+			default:
+				OutputDebugString("UNKNOWN ERROR\n");
+				break;
+			}
+
+			OutputDebugString("\n");
+			exit(-1);
+		}
+	}
+
+	void setup_fbos(OpenGLInfo* glInfo) {
+		/*
+		Setup FBO:
+			- Create FBO
+			- Create color texture, allocate, disable mipmaps
+			- Create depth texture, allocate
+			- Bind color/depth textures to FBO
+			- Tell FBO to draw into its one color buffer
+		*/
+
+		// Create FBO
+		glCreateFramebuffers(1, &glInfo->fbo_out);
+
+		// Create color texture, allocate, disable mipmaps
+		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_out_color_buf);
+		glTextureStorage2D(glInfo->fbo_out_color_buf, 1, GL_RGBA32F, 800, 600);
+		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		// Create depth texture, allocate
+		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_out_depth_buf);
+		glTextureStorage2D(glInfo->fbo_out_depth_buf, 1, GL_DEPTH_COMPONENT24, 800, 600);
+
+		// Bind color / depth textures to FBO
+		glNamedFramebufferTexture(glInfo->fbo_out, GL_COLOR_ATTACHMENT0, glInfo->fbo_out_color_buf, 0);
+		glNamedFramebufferTexture(glInfo->fbo_out, GL_DEPTH_ATTACHMENT, glInfo->fbo_out_depth_buf, 0);
+
+		// Tell FBO to draw into its one color buffer
+		glNamedFramebufferDrawBuffer(glInfo->fbo_out, GL_COLOR_ATTACHMENT0);
+
+		// Make sure FBO is complete
+		assert_fbo_not_incomplete(glInfo->fbo_out);
+	}
 }
 
 void setup_opengl(OpenGLInfo* glInfo) {
@@ -621,12 +656,14 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	setup_text_rendering_program(glInfo);
 
 	// setup VAOs
-	//setup_opengl_vao_cube(glInfo);
 	setup_opengl_vao_quad(glInfo);
 	setup_opengl_vao_text(glInfo);
 
 	// setup uniforms
 	setup_opengl_uniforms(glInfo);
+
+	// setup FBOs
+	setup_fbos(glInfo);
 
 	// setup extra [default] properties
 	setup_opengl_extra_props(glInfo);
