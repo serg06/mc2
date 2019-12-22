@@ -630,13 +630,13 @@ namespace {
 
 		// Create color texture, allocate, disable mipmaps
 		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_out_color_buf);
-		glTextureStorage2D(glInfo->fbo_out_color_buf, 1, GL_RGBA32F, 800, 600);
+		glTextureStorage2D(glInfo->fbo_out_color_buf, 1, GL_RGBA32F, 800, 600); // TODO: remove hardcoded 800, 600
 		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 		// Create depth texture, allocate
 		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_out_depth_buf);
-		glTextureStorage2D(glInfo->fbo_out_depth_buf, 1, GL_DEPTH_COMPONENT24, 800, 600);
+		glTextureStorage2D(glInfo->fbo_out_depth_buf, 1, GL_DEPTH_COMPONENT24, 800, 600); // TODO: remove hardcoded 800, 600
 
 		// Bind color / depth textures to FBO
 		glNamedFramebufferTexture(glInfo->fbo_out, GL_COLOR_ATTACHMENT0, glInfo->fbo_out_color_buf, 0);
