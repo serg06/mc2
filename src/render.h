@@ -35,22 +35,25 @@ struct OpenGLInfo {
 	// program
 	GLuint game_rendering_program;
 	GLuint text_rendering_program;
+	GLuint tjunction_fix_program;
 
 	// VAOs
 	GLuint vao_cube, vao_quad, vao_text;
 
 	// FBOs
 	GLuint fbo_out;
+	GLuint fbo_tj;
 
 	// FBO buffers
 	GLuint fbo_out_color_buf = 0;
 	GLuint fbo_out_depth_buf = 0;
+	GLuint fbo_tj_color_buf = 0;
+	GLuint fbo_tj_depth_buf = 0;
 
 	// render buffers
-	GLuint trans_buf = 0; // transformations buffer - currently stores view and projection transformations.
-	GLuint vert_buf = 0; // vertices buffer - currently stores vertices for a single 3D cube
-	GLuint text_buf = 0; // text input buffer
-	GLuint text_uni_buf = 0; // text uniform buffer
+	GLuint trans_uni_buf = 0; // transformations uniform buffer - for game rendering 
+	GLuint text_buf = 0; // text input buffer - for text rendering
+	GLuint text_uni_buf = 0; // text uniform buffer - for text rendering
 
 	// textures
 	GLuint top_textures;
@@ -58,11 +61,13 @@ struct OpenGLInfo {
 	GLuint bottom_textures;
 	GLuint font_textures;
 	
-	// texture units to bind to
+	// texture units to bind to (like binding points but for textures)
 	GLuint top_textures_tunit = 0;
 	GLuint side_textures_tunit = 1;
 	GLuint bottom_textures_tunit = 2;
 	GLuint font_textures_tunit = 3;
+	GLuint tjunc_in_tunit = 4;
+	GLuint tjunc_out_tunit = 5;
 
 	// QUAD VAO binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index

@@ -165,19 +165,19 @@ namespace {
 
 	void setup_opengl_uniforms(OpenGLInfo* glInfo) {
 		// create buffers
-		glCreateBuffers(1, &glInfo->trans_buf);
+		glCreateBuffers(1, &glInfo->trans_uni_buf);
 		glCreateBuffers(1, &glInfo->text_uni_buf);
 
 		// bind them
 		// bind transform buffer to transform uniform
-		glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_buf);
+		glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->trans_buf_uni_bidx, glInfo->trans_uni_buf);
 		// want to bind my uni buf, but I get performance warnings when I do it here... gonna do it in draw call instead
 
 		// allocate 
 
 		// allocate enough space for 2 transform matrices + current chunk coords + bool in_water
 		// todo: use map, then invalidate range when writing
-		glNamedBufferStorage(glInfo->trans_buf, 2 * sizeof(mat4) + sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT);
+		glNamedBufferStorage(glInfo->trans_uni_buf, 2 * sizeof(mat4) + sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT);
 		glNamedBufferStorage(glInfo->text_uni_buf, 2 * sizeof(ivec2) + 2 * sizeof(GLuint), NULL, GL_MAP_WRITE_BIT);
 	}
 
@@ -193,7 +193,6 @@ namespace {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
-
 
 	// load texture from file
 	// writes width*height*4 floats to result
@@ -633,10 +632,17 @@ namespace {
 		glTextureStorage2D(glInfo->fbo_out_color_buf, 1, GL_RGBA32F, 800, 600); // TODO: remove hardcoded 800, 600
 		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 		// Create depth texture, allocate
 		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_out_depth_buf);
 		glTextureStorage2D(glInfo->fbo_out_depth_buf, 1, GL_DEPTH_COMPONENT24, 800, 600); // TODO: remove hardcoded 800, 600
+		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 
 		// Bind color / depth textures to FBO
 		glNamedFramebufferTexture(glInfo->fbo_out, GL_COLOR_ATTACHMENT0, glInfo->fbo_out_color_buf, 0);
@@ -706,3 +712,9 @@ void render_text(OpenGLInfo* glInfo, const ivec2 start_pos, const ivec2 screen_d
 	// unbind VAO jic
 	glBindVertexArray(0);
 }
+
+// fix the tjunctions in DEPTH/COLOR0 of fbo
+void fix_tjunctions(OpenGLInfo* glInfo, GLuint fbo) {
+	// create FBO
+}
+

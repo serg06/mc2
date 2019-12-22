@@ -195,9 +195,9 @@ void App::render(float time) {
 	GLuint in_water = face_block == Block::StillWater;
 
 	// Update transformation buffer with matrices
-	glNamedBufferSubData(glInfo.trans_buf, 0, sizeof(model_view_matrix), model_view_matrix);
-	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
-	glNamedBufferSubData(glInfo.trans_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(GLuint), &in_water); // proj matrix
+	glNamedBufferSubData(glInfo.trans_uni_buf, 0, sizeof(model_view_matrix), model_view_matrix);
+	glNamedBufferSubData(glInfo.trans_uni_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
+	glNamedBufferSubData(glInfo.trans_uni_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(GLuint), &in_water); // proj matrix
 
 	// extract projection matrix planes
 	vec4 planes[6];
@@ -528,10 +528,16 @@ void App::onResize(GLFWwindow* window, int width, int height) {
 	glTextureStorage2D(glInfo.fbo_out_color_buf, 1, GL_RGBA32F, width, height);
 	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	// Create depth texture, allocate
 	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_out_depth_buf);
 	glTextureStorage2D(glInfo.fbo_out_depth_buf, 1, GL_DEPTH_COMPONENT24, width, height);
+	glTextureParameteri(glInfo.fbo_out_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTextureParameteri(glInfo.fbo_out_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTextureParameteri(glInfo.fbo_out_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTextureParameteri(glInfo.fbo_out_depth_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	// Bind color / depth textures to FBO
 	glNamedFramebufferTexture(glInfo.fbo_out, GL_COLOR_ATTACHMENT0, glInfo.fbo_out_color_buf, 0);

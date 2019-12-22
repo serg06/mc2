@@ -815,7 +815,7 @@ public:
 			(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1.001f / sqrtf(2.0f), // see blocks no matter how close they are
 			64 * CHUNK_WIDTH // only support 64 chunks for now
 		);
-		glNamedBufferSubData(glInfo->trans_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
+		glNamedBufferSubData(glInfo->trans_uni_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
 
 		// DRAW!
 		glEnable(GL_CULL_FACE);
@@ -835,7 +835,7 @@ public:
 			(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // see blocks no matter how close they are
 			64 * CHUNK_WIDTH // only support 64 chunks for now
 		);
-		glNamedBufferSubData(glInfo->trans_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
+		glNamedBufferSubData(glInfo->trans_uni_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
 
 		// unbind VAO jic
 		glBindVertexArray(0);
