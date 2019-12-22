@@ -46,7 +46,7 @@ void main(void)
 	}
 	
 	// discard stuff that we can barely see, else all it's gonna do is mess with our depth buffer
-	if (color.a < 0.5) {
+	if (color.a == 0) {
 		discard;
 	}
 
