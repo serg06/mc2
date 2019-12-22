@@ -51,15 +51,14 @@ void main(void)
 	}
 
 	// if in water, make everything blue depending on depth
-	if (bool(uni.in_water)) {
+	if (bool(uni.in_water) && gs_block_type != 9) {
 		// get depth of current fragment
-		float depth = gl_FragCoord.z;
+		float depth = gl_FragCoord.z / gl_FragCoord.w;
 		
-		float strength = soft_increase(depth);
+		float strength = soft_increase(depth/5.0f);
 
 		// tint fragment blue
-		// TODO: Figure out why this doesn't make farther stuff show up less visibly...
-		vec4 ocean_blue = vec4(0.0, 0.0, 1.0, 1.0);
-		color = mix(color, ocean_blue, strength / 1.5f);
+		vec4 ocean_blue = vec4(0.0, 0.0, 0.5, 1.0);
+		color = mix(color, ocean_blue, strength);
 	}
 }
