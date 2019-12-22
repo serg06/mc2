@@ -180,11 +180,11 @@ void App::render(float time) {
 
 	/* BACKGROUND / SKYBOX */
 
-	// Draw background color
+	// Clear color/depth buffers
 	const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	const GLfloat sky_blue[] = { 135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f };
 	glClearBufferfv(GL_COLOR, 0, sky_blue);
-	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // used for depth test somehow
+	glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
 
 	// check if in water
 	Block face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
