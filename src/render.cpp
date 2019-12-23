@@ -651,7 +651,7 @@ namespace {
 
 		// Create depth texture, allocate
 		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_out_depth_buf);
-		glTextureStorage2D(glInfo->fbo_out_depth_buf, 1, GL_DEPTH_COMPONENT24, 800, 600); // TODO: remove hardcoded 800, 600
+		glTextureStorage2D(glInfo->fbo_out_depth_buf, 1, get_default_framebuffer_depth_attachment_type(), 800, 600); // TODO: remove hardcoded 800, 600
 		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
