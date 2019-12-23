@@ -9,7 +9,6 @@ layout (location = 1) uniform float height;
 float dx = 1/width;
 float dy = 1/height;
 
-
 // texture arrays
 layout (binding = 4) uniform sampler2D tjunc_color_in;
 layout (binding = 5) uniform sampler2D tjunc_depth_in;
@@ -83,9 +82,4 @@ void main() {
 	// output
 	color_out = cd.color;
 	gl_FragDepth = cd.depth;
-
-//	// DEBUG: passthrough
-//	color_out = texture(tjunc_color_in, vec2(x, y));
-//	gl_FragDepth = texture(tjunc_depth_in, vec2(x, y))[0];
-
 }
