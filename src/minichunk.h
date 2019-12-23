@@ -27,11 +27,14 @@ public:
 	bool meshes_updated = false;
 	// TODO: When someone else sets invisibility, we want to delete bufs as well.
 	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
-	GLuint coords_buf = 0;
+	GLuint base_coords_buf = 0;
 
 	// number of quads inside the buffer, as reading from mesh is not always reliable
 	GLuint num_nonwater_quads = 0;
 	GLuint num_water_quads = 0;
+
+	// vao
+	GLuint vao = 0;
 
 	std::mutex mesh_lock;
 
@@ -44,9 +47,9 @@ public:
 		this->coords = coords;
 
 		// update coords buf
-		glDeleteBuffers(1, &coords_buf);
-		glCreateBuffers(1, &coords_buf);
-		glNamedBufferStorage(coords_buf, sizeof(coords), coords, NULL);
+		glDeleteBuffers(1, &base_coords_buf);
+		glCreateBuffers(1, &base_coords_buf);
+		glNamedBufferStorage(base_coords_buf, sizeof(coords), coords, NULL);
 	}
 
 	const inline vmath::ivec3& get_coords() const {
@@ -64,7 +67,7 @@ public:
 		mesh_lock.lock();
 		if (meshes_updated) {
 			meshes_updated = false;
-			update_quads_buf();
+			update_quads_buf(glInfo);
 		}
 		mesh_lock.unlock();
 
@@ -74,19 +77,8 @@ public:
 			return;
 		}
 
-		//char buf[256];
-		//sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads3d.\n", coords[0] * 16, coords[1], coords[2] * 16, quads.size());
-		//OutputDebugString(buf);
-
 		// quad VAO
-		glBindVertexArray(glInfo->vao_quad);
-
-		// bind to quads attribute binding point
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_base_coords_bidx, coords_buf, 0, sizeof(ivec3));
+		glBindVertexArray(vao);
 
 		// DRAW!
 		glDrawArrays(GL_POINTS, 0, quads.size());
@@ -106,7 +98,7 @@ public:
 		mesh_lock.lock();
 		if (meshes_updated) {
 			meshes_updated = false;
-			update_quads_buf();
+			update_quads_buf(glInfo);
 		}
 		mesh_lock.unlock();
 		
@@ -117,19 +109,8 @@ public:
 			return;
 		}
 
-		//char buf[256];
-		//sprintf(buf, "Minichunk at (%d, %d, %d) is drawing %d quads3d.\n", coords[0] * 16, coords[1], coords[2] * 16, quads.size());
-		//OutputDebugString(buf);
-
 		// quad VAO
-		glBindVertexArray(glInfo->vao_quad);
-
-		// bind to quads attribute binding point
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_base_coords_bidx, coords_buf, 0, sizeof(ivec3));
+		glBindVertexArray(vao);
 
 		// DRAW!
 		glDrawArrays(GL_POINTS, quads.size(), water_quads.size());
@@ -181,7 +162,7 @@ public:
 	}
 
 	// assumes mesh lock
-	void update_quads_buf() {
+	void update_quads_buf(const OpenGLInfo* glInfo) {
 		if (mesh == nullptr || water_mesh == nullptr) {
 			throw "bad";
 		}
@@ -189,37 +170,18 @@ public:
 		auto &quads = mesh->quads3d;
 		auto &water_quads = water_mesh->quads3d;
 
-		// delete buffers if exist
-		glDeleteBuffers(1, &quad_block_type_buf);
-		glDeleteBuffers(1, &quad_corner1_buf);
-		glDeleteBuffers(1, &quad_corner2_buf);
-		glDeleteBuffers(1, &quad_face_buf);
-
-		num_nonwater_quads = quads.size();
-		num_water_quads = water_quads.size();
-
 		// if no quads, we done
 		if (quads.size() + water_quads.size() == 0) {
 			invisible = true;
 			return;
 		}
 
-		// quads exist, let's set up buffers
+		recreate_vao(glInfo, quads.size() + water_quads.size());
 
-		// create
-		glCreateBuffers(1, &quad_block_type_buf);
-		glCreateBuffers(1, &quad_corner1_buf);
-		glCreateBuffers(1, &quad_corner2_buf);
-		glCreateBuffers(1, &quad_face_buf);
-
-		// allocate
-		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * (quads.size() + water_quads.size()), NULL, GL_MAP_WRITE_BIT);
-		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * (quads.size() + water_quads.size()), NULL, GL_MAP_WRITE_BIT);
-		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * (quads.size() + water_quads.size()), NULL, GL_MAP_WRITE_BIT);
-		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * (quads.size() + water_quads.size()), NULL, GL_MAP_WRITE_BIT);
+		num_nonwater_quads = quads.size();
+		num_water_quads = water_quads.size();
 
 		// map
-		// TODO: Try without invalidate range? Maybe glfwSwapBuffers will be faster?
 		Block* blocks = (Block*)glMapNamedBufferRange(quad_block_type_buf, 0, sizeof(Block) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 		ivec3* corner1s = (ivec3*)glMapNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 		ivec3* corner2s = (ivec3*)glMapNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
@@ -325,6 +287,65 @@ public:
 		return result;
 	}
 
+	inline void recreate_vao(const OpenGLInfo* glInfo, const GLuint size) {
+		// delete
+		glDeleteBuffers(1, &quad_block_type_buf);
+		glDeleteBuffers(1, &quad_corner1_buf);
+		glDeleteBuffers(1, &quad_corner2_buf);
+		glDeleteBuffers(1, &quad_face_buf);
+		glDeleteVertexArrays(1, &vao);
+
+		// create
+		glCreateBuffers(1, &quad_block_type_buf);
+		glCreateBuffers(1, &quad_corner1_buf);
+		glCreateBuffers(1, &quad_corner2_buf);
+		glCreateBuffers(1, &quad_face_buf);
+		glCreateVertexArrays(1, &vao);
+
+		// allocate
+		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * size, NULL, GL_MAP_WRITE_BIT);
+		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
+		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
+		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
+
+		// vao: create VAO for Quads, so we can tell OpenGL how to use it when it's bound
+
+		// vao: enable all Quad's attributes, 1 at a time
+		glEnableVertexArrayAttrib(vao, glInfo->q_block_type_attr_idx);
+		glEnableVertexArrayAttrib(vao, glInfo->q_corner1_attr_idx);
+		glEnableVertexArrayAttrib(vao, glInfo->q_corner2_attr_idx);
+		glEnableVertexArrayAttrib(vao, glInfo->q_face_attr_idx);
+		glEnableVertexArrayAttrib(vao, glInfo->q_base_coords_attr_idx);
+
+		// vao: set up formats for Quad's attributes, 1 at a time
+		glVertexArrayAttribIFormat(vao, glInfo->q_block_type_attr_idx, 1, GL_UNSIGNED_BYTE, 0);
+		glVertexArrayAttribIFormat(vao, glInfo->q_corner1_attr_idx, 3, GL_INT, 0);
+		glVertexArrayAttribIFormat(vao, glInfo->q_corner2_attr_idx, 3, GL_INT, 0);
+		glVertexArrayAttribIFormat(vao, glInfo->q_face_attr_idx, 3, GL_INT, 0);
+		glVertexArrayAttribIFormat(vao, glInfo->q_base_coords_attr_idx, 3, GL_INT, 0);
+
+		// vao: match attributes to binding indices
+		glVertexArrayAttribBinding(vao, glInfo->q_block_type_attr_idx, glInfo->quad_block_type_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_corner1_attr_idx, glInfo->q_corner1_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_corner2_attr_idx, glInfo->q_corner2_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_face_attr_idx, glInfo->q_face_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_base_coords_attr_idx, glInfo->q_base_coords_bidx);
+
+		// vao: match attributes to buffers
+		glVertexArrayVertexBuffer(vao, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(vao, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(vao, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(vao, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(vao, glInfo->q_base_coords_bidx, base_coords_buf, 0, sizeof(ivec3));
+
+		// vao: extra properties
+		glBindVertexArray(vao);
+
+		// instance attribute
+		glVertexAttribDivisor(glInfo->q_base_coords_attr_idx, 1);
+
+		glBindVertexArray(0);
+	}
 };
 
 #endif // __MINICHUNK_H__

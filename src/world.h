@@ -992,7 +992,7 @@ public:
 	// mini: the mini that changed
 	// block: the mini-coordinates of the block that was added/deleted
 	// TODO: Use block.
-	void on_mini_update(MiniChunk* mini, vmath::ivec3 block) {
+	void on_mini_update(OpenGLInfo* glInfo, MiniChunk* mini, vmath::ivec3 block) {
 		// need to regenerate self and neighbors
 		vector<MiniChunk*> minis_to_regenerate = { mini };
 
@@ -1029,34 +1029,34 @@ public:
 				mini->mesh = non_water;
 				mini->water_mesh = water;
 
-				mini->update_quads_buf();
+				mini->update_quads_buf(glInfo);
 			}
 		}
 	}
 
-	void destroy_block(int x, int y, int z) {
+	void destroy_block(OpenGLInfo* glInfo, int x, int y, int z) {
 		// update data
 		MiniChunk* mini = get_mini_containing_block(x, y, z);
 		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, Block::Air);
 
 		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since >=3 sides of the destroyed block are facing its own mini.)
-		on_mini_update(mini, { x, y, z });
+		on_mini_update(glInfo, mini, { x, y, z });
 	}
 
-	void destroy_block(ivec3 xyz) { return destroy_block(xyz[0], xyz[1], xyz[2]); };
+	void destroy_block(OpenGLInfo* glInfo, ivec3 xyz) { return destroy_block(glInfo, xyz[0], xyz[1], xyz[2]); };
 
-	void add_block(int x, int y, int z, Block block) {
+	void add_block(OpenGLInfo* glInfo, int x, int y, int z, Block block) {
 		// update data
 		MiniChunk* mini = get_mini_containing_block(x, y, z);
 		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, block);
 
 		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since the block always has at least 3 sides inside its mini.)
-		on_mini_update(mini, { x, y, z });
+		on_mini_update(glInfo, mini, { x, y, z });
 	}
 
-	void add_block(ivec3 xyz, Block block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
+	void add_block(OpenGLInfo* glInfo, ivec3 xyz, Block block) { return add_block(glInfo, xyz[0], xyz[1], xyz[2], block); };
 
 	// generate a minichunk mutex from queue
 	bool gen_minichunk_mesh_from_queue(vec3 player_pos) {

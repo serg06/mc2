@@ -632,7 +632,7 @@ void App::onMouseButton(int button, int action) {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 		// if staring at valid block
 		if (staring_at[1] >= 0) {
-			world->destroy_block(staring_at);
+			world->destroy_block(&glInfo, staring_at);
 		}
 	}
 
@@ -651,7 +651,7 @@ void App::onMouseButton(int button, int action) {
 
 			// if we're not in the way, place it
 			if (result == end(intersecting_blocks)) {
-				world->add_block(desired_position, Block::DiamondBlock);
+				world->add_block(&glInfo, desired_position, Block::DiamondBlock);
 			}
 		}
 	}
