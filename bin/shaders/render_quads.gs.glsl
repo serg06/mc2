@@ -58,6 +58,10 @@ void main(void)
 
 	vec4 chunk_base = vec4(vs_base_coords[0].x * 16, vs_base_coords[0].y, vs_base_coords[0].z * 16, 0);
 
+	// TODO: Idea to fix texture orientation:
+	// Instead of having texture coord be (0, 0) for first point, have it be (0,0) for the point with:
+	// -> If along y, then prioritize minimum y, then backface ? minimum x/z : maximum x/z.
+	// Similar thing can be done for other points.
 	gl_Position = uni.proj_matrix * uni.mv_matrix * (vec4(chunk_base.xyz + corner1, 1)); gs_tex_coords = vec2(diffs[working_idx_1], diffs[working_idx_2]); EmitVertex();
 	gl_Position = uni.proj_matrix * uni.mv_matrix * (vec4(chunk_base.xyz + corner1, 1) + diffs1); gs_tex_coords = vec2(0, diffs[working_idx_2]); EmitVertex();
 	gl_Position = uni.proj_matrix * uni.mv_matrix * (vec4(chunk_base.xyz + corner1, 1) + diffs2); gs_tex_coords = vec2(diffs[working_idx_1], 0); EmitVertex();
