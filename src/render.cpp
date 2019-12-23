@@ -7,9 +7,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
 #include "stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#include "stb_image_write.h"
 
 #include <experimental/filesystem>
+#include <numeric>
 #include <string>
 #include <sys/stat.h>
 #include <tuple>
@@ -196,7 +198,8 @@ namespace {
 
 	// load texture from file
 	// writes width*height*4 floats to result
-	void load_texture_data(const char* fname, unsigned width, unsigned height, float* result) {
+	template<typename T>
+	void load_texture_data(const char* fname, unsigned width, unsigned height, T* result) {
 		// check that file exists
 		if (!fs::exists(fname)) {
 			char buf[256];
@@ -218,9 +221,7 @@ namespace {
 		}
 
 		// write result as floats
-		for (int i = 0; i < height*width*tex_components; i++) {
-			result[i] = imgdata[i] / 255.0f;
-		}
+		std::copy(imgdata, imgdata + height * width*tex_components, result);
 
 		// free
 		stbi_image_free(imgdata);
@@ -228,16 +229,19 @@ namespace {
 
 
 	// by using vec4s this is kinda hard-coded to have components=4. Probably should do something else.
-	static const inline vec4& get_pixel(const float* data, const unsigned width, const unsigned height, const unsigned components, const unsigned x, const unsigned y) {
-		return *(vec4*)(data + (x + y * width) * components);
+	template<typename T>
+	static const inline Tvec4<T>& get_pixel(const T* data, const unsigned width, const unsigned height, const unsigned components, const unsigned x, const unsigned y) {
+		return *(Tvec4<T>*)(data + (x + y * width) * components);
 	}
 
-	static inline void set_pixel(const float* data, const unsigned width, const unsigned height, const unsigned components, const unsigned x, const unsigned y, const vec4 &pixel) {
-		*(vec4*)(data + (x + y * width) * components) = pixel;
+	template<typename T>
+	static inline void set_pixel(const T* data, const unsigned width, const unsigned height, const unsigned components, const unsigned x, const unsigned y, const Tvec4<T> &pixel) {
+		*(Tvec4<T>*)(data + (x + y * width) * components) = pixel;
 	}
 
-	static void gen_mipmap(float* source, float* dest, int src_width, int src_height, int components) {
-	// make sure width & height are even
+	template<typename T>
+	static void gen_mipmap(T* source, T* dest, int src_width, int src_height, int components, bool normalized) {
+		// make sure width & height are even
 		assert(!(src_width & 0x1) && "width not even");
 		assert(!(src_height & 0x1) && "height not even");
 
@@ -246,15 +250,18 @@ namespace {
 		assert(src_height > 0 && "height <= 0");
 		assert(components > 0 && "invalid # of components");
 
+		T max_val = normalized ? 1.0 : (std::numeric_limits<T>::max)();
+
 		// calculate destination width/height
 		int dst_width = src_width >> 1;
 		int dst_height = src_height >> 1;
 
+
 		// set all pixel data
 		for (int y = 0; y < dst_height; y++) {
 			for (int x = 0; x < dst_width; x++) {
-				vec4 pixels[4];
-				
+				Tvec4<T> pixels[4];
+
 				// extract all the pixels that we're gonna merge int one
 				for (int dy = 0; dy < 2; dy++) {
 					for (int dx = 0; dx < 2; dx++) {
@@ -263,18 +270,21 @@ namespace {
 				}
 
 				// examine pixels
-				vec4 pixel_sum = vec4(0);
+				// NOTE: Cannot use <T> for pixel sum because it'll overflow.
+				dvec4 pixel_sum = dvec4(0);
 				bool any_partially_translucent = false;
-				int num_transparent = 0; 
+				int num_transparent = 0;
 				for (int i = 0; i < 4; i++) {
 					// record if any pixels are partially translucent (i.e. neither opaque nor transparent)
 					// so far, this should only happen for water
-					if (0.01 < pixels[i][3] && pixels[i][3] < 0.99) {
+					if (0 < pixels[i][3] && pixels[i][3] < max_val) {
 						any_partially_translucent = true;
 					}
 					// if pixel is visible, add it to sum, allowing it to have an effect on final output pixel
-					if (0.01 < pixels[i][3]) {
-						pixel_sum += pixels[i];
+					if (0 < pixels[i][3]) {
+						for (int j = 0; j < 4; j++) {
+							pixel_sum[j] += pixels[i][j];
+						}
 					}
 					// count fully-transparent pixels
 					else {
@@ -283,21 +293,23 @@ namespace {
 				}
 
 				// output pixel
-				vec4 pixel_result;
+				Tvec4<T> pixel_result;
 
 				// if all were transparent, just output an empty pixel
 				if (num_transparent == 4) {
-					pixel_result = vec4(0);
+					pixel_result = Tvec4<T>(0);
 				}
 				// if some non-transparent ones, output linear combination of non-transparent ones
 				else {
-					pixel_result = pixel_sum / ((float)(4 - num_transparent));
+					for (int j = 0; j < 4; j++) {
+						pixel_result[j] = pixel_sum[j] / (4 - num_transparent);
+					}
 				}
 
 				// double check that opaque result is opaque
 				if (!any_partially_translucent) {
 					if (pixel_result[3] > 0) {
-						pixel_result[3] = 1.0f;
+						pixel_result[3] = max_val;
 					}
 				}
 
@@ -306,18 +318,17 @@ namespace {
 		}
 	}
 
-	//static void write_png(char* fname, float* data, int width, int height, int components) {
+	//template<typename T>
+	//static void write_png(char* fname, T* data, int width, int height, int components, bool normalized) {
 	//	int whc = width * height * components;
-	//	char *fixed = new char[whc];
-	//	for (int i = 0; i < whc; i++) {
-	//		fixed[i] = data[i] * 255.0f;
-	//	}
+	//	unsigned char *fixed = new unsigned char[whc];
+	//	std::transform(data, data + whc, fixed, [&normalized](auto val) { return normalized ? val * 255 : val; });
 	//	stbi_write_png(fname, width, height, components, fixed, width * components);
 	//	delete[] fixed;
 	//}
 
 	// load texture data for a block, plus generate mipmaps up to mipmap_level
-	void load_block_texture_data(const char* tex_name, float(&data)[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4], unsigned num_mipmaps) {
+	void load_block_texture_data(const char* tex_name, unsigned char(&data)[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4], unsigned num_mipmaps) {
 		char fname[256];
 		sprintf(fname, "./textures/blocks/%s.png", tex_name);
 		load_texture_data(fname, 16, 16, data);
@@ -335,7 +346,7 @@ namespace {
 			for (int i = 0; i < BLOCK_TEXTURE_HEIGHT * BLOCK_TEXTURE_WIDTH * TEXTURE_COMPONENTS; i++) {
 				// RED
 				if ((i % 4) == 0) {
-					data[i] *= 115 / 255.0f;
+					data[i] *= 0.45f;
 				}
 
 				// GREEN
@@ -345,7 +356,7 @@ namespace {
 
 				// BLUE
 				if ((i % 4) == 2) {
-					data[i] *= 73 / 255.0f;
+					data[i] *= 0.3f;
 				}
 			}
 		}
@@ -357,7 +368,7 @@ namespace {
 			for (int i = 0; i < BLOCK_TEXTURE_HEIGHT * BLOCK_TEXTURE_WIDTH * TEXTURE_COMPONENTS; i++) {
 				// RED
 				if ((i % 4) == 0) {
-					data[i] *= 115 / 255.0f;
+					data[i] *= 0.45f;
 				}
 
 				// GREEN
@@ -367,13 +378,13 @@ namespace {
 
 				// BLUE
 				if ((i % 4) == 2) {
-					data[i] *= 73 / 255.0f;
+					data[i] *= 0.3f;
 				}
 
 				// ALPHA
 				if ((i % 4) == 3) {
-					if (data[i] > 0.0f) {
-						data[i] = 1.0f;
+					if (data[i] > 0) {
+						data[i] = 255;
 					}
 				}
 			}
@@ -382,13 +393,13 @@ namespace {
 		/* SPECIAL CASES END */
 
 		// generate mipmaps
-		float* prev_mipmap_location = data;
-		float* this_mipmap_location = data + pown(2, 4) * pown(2, 4) * 4;
+		unsigned char* prev_mipmap_location = data;
+		unsigned char* this_mipmap_location = data + pown(2, 4) * pown(2, 4) * 4;
 		int current_width = 8;
 		int current_height = 8;
 
 		for (int mipmap_level = 1; mipmap_level <= num_mipmaps; mipmap_level++) {
-			gen_mipmap(prev_mipmap_location, this_mipmap_location, current_width * 2, current_height * 2, 4);
+			gen_mipmap(prev_mipmap_location, this_mipmap_location, current_width * 2, current_height * 2, 4, false);
 
 			prev_mipmap_location = this_mipmap_location;
 			this_mipmap_location += current_width * current_height * 4;
@@ -400,7 +411,7 @@ namespace {
 
 	void setup_block_textures(OpenGLInfo* glInfo) {
 		// data for one texture, plus all mipmaps
-		float data[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4];
+		unsigned char data[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4];
 
 		// create textures
 		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->top_textures);
@@ -412,23 +423,26 @@ namespace {
 
 		// allocate space (32-bit float RGBA 16x16) (TODO: GL_RGBA8 instead.)
 		for (auto tex_arr : tex_arrays) {
-			glTextureStorage3D(tex_arr, BLOCKS_NUM_MIPMAPS + 1, GL_RGBA32F, 16, 16, MAX_BLOCK_TYPES);
+			glTextureStorage3D(tex_arr, BLOCKS_NUM_MIPMAPS + 1, GL_RGBA8, 16, 16, MAX_BLOCK_TYPES);
 		}
 
-		float* red = new float[16 * 16 * MAX_BLOCK_TYPES * 4];
+		unsigned char* red = new unsigned char[16 * 16 * MAX_BLOCK_TYPES * 4];
 		for (int i = 0; i < 16 * 16 * MAX_BLOCK_TYPES; i++) {
-			((vec4*)red)[i] = { 1.0f, 0.0f, 0.0f, 1.0f };
+			((Tvec4<unsigned char>*)red)[i] = { 255, 0, 0, 255 };
 		}
 
 		// set all textures as BRIGHT RED, so we know when something's wrong
+		// TODO: for all mipmap levels!
 		for (auto tex_arr : tex_arrays) {
-			glTextureSubImage3D(tex_arr,
-				0,							// Level 0
-				0, 0, 0,					// Offset 0, 0, 0
-				16, 16, MAX_BLOCK_TYPES,	// 16 x 16 x MAX_BLOCK_TYPES texels, replace entire image
-				GL_RGBA,					// Four channel data
-				GL_FLOAT,					// Floating point data
-				red);						// Pointer to data
+			for (int i = 0; i < BLOCKS_NUM_MIPMAPS + 1; i++) {
+				glTextureSubImage3D(tex_arr,
+					i,							// mipmap level
+					0, 0, 0,					// Offset 0, 0, 0
+					pown(2, 4 - i), pown(2, 4 - i), MAX_BLOCK_TYPES, // replace entire image for every layer
+					GL_RGBA,					// Four channel data
+					GL_UNSIGNED_BYTE,
+					red);						// Pointer to data
+			}
 		}
 
 		delete[] red;
@@ -455,7 +469,7 @@ namespace {
 						0, 0, i,									// Offset 0, 0, block_id
 						width, height, 1,							// width x height x 1 texels, replace entire mipmap
 						GL_RGBA,									// Four channel data
-						GL_FLOAT,									// Floating point data
+						GL_UNSIGNED_BYTE,
 						current_mipmap_start);						// Pointer to mipmap
 					current_mipmap_start += width * height * 4;
 				}
@@ -472,7 +486,7 @@ namespace {
 						0, 0, i,									// Offset 0, 0, block_id
 						width, height, 1,							// width x height x 1 texels, replace entire mipmap
 						GL_RGBA,									// Four channel data
-						GL_FLOAT,									// Floating point data
+						GL_UNSIGNED_BYTE,
 						current_mipmap_start);						// Pointer to mipmap
 					current_mipmap_start += width * height * 4;
 				}
@@ -489,7 +503,7 @@ namespace {
 						0, 0, i,									// Offset 0, 0, block_id
 						width, height, 1,							// width x height x 1 texels, replace entire mipmap
 						GL_RGBA,									// Four channel data
-						GL_FLOAT,									// Floating point data
+						GL_UNSIGNED_BYTE,
 						current_mipmap_start);						// Pointer to mipmap
 					current_mipmap_start += width * height * 4;
 				}
