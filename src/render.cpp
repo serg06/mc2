@@ -171,6 +171,11 @@ namespace {
 		glVertexArrayVertexBuffer(glInfo->vao_text, glInfo->text_char_code_bidx, glInfo->text_buf, 0, sizeof(char));
 	}
 
+	// set up empty (dummy) vao
+	void setup_opengl_vao_empty(OpenGLInfo* glInfo) {
+		glCreateVertexArrays(1, &glInfo->vao_empty);
+	}
+
 	void setup_opengl_uniforms(OpenGLInfo* glInfo) {
 		// create buffers
 		glCreateBuffers(1, &glInfo->trans_uni_buf);
@@ -634,7 +639,7 @@ namespace {
 		}
 	}
 
-	void setup_fbos(OpenGLInfo* glInfo) {
+	void setup_output_fbo(OpenGLInfo* glInfo) {
 		/*
 		Setup FBO:
 			- Create FBO
@@ -674,6 +679,37 @@ namespace {
 		// Make sure FBO is complete
 		assert_fbo_not_incomplete(glInfo->fbo_out);
 	}
+
+	void setup_tjunction_fbo(OpenGLInfo* glInfo) {
+		// Create FBO
+		glCreateFramebuffers(1, &glInfo->fbo_tjunc_fix);
+
+		// Create color texture, allocate, disable mipmaps
+		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_tj_color_buf);
+		glTextureStorage2D(glInfo->fbo_tj_color_buf, 1, GL_RGBA32F, 800, 600); // TODO: remove hardcoded 800, 600
+		glTextureParameteri(glInfo->fbo_tj_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(glInfo->fbo_tj_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(glInfo->fbo_tj_color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTextureParameteri(glInfo->fbo_tj_color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		// Create depth texture, allocate
+		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_tj_depth_buf);
+		glTextureStorage2D(glInfo->fbo_tj_depth_buf, 1, get_default_framebuffer_depth_attachment_type(), 800, 600); // TODO: remove hardcoded 800, 600
+		glTextureParameteri(glInfo->fbo_tj_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTextureParameteri(glInfo->fbo_tj_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTextureParameteri(glInfo->fbo_tj_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTextureParameteri(glInfo->fbo_tj_depth_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		// Bind color / depth textures to FBO
+		glNamedFramebufferTexture(glInfo->fbo_tjunc_fix, GL_COLOR_ATTACHMENT0, glInfo->fbo_tj_color_buf, 0);
+		glNamedFramebufferTexture(glInfo->fbo_tjunc_fix, GL_DEPTH_ATTACHMENT, glInfo->fbo_tj_depth_buf, 0);
+
+		// Tell FBO to draw into its one color buffer
+		glNamedFramebufferDrawBuffer(glInfo->fbo_tjunc_fix, GL_COLOR_ATTACHMENT0);
+
+		// Make sure FBO is complete
+		assert_fbo_not_incomplete(glInfo->fbo_tjunc_fix);
+	}
 }
 
 void setup_opengl(OpenGLInfo* glInfo) {
@@ -683,6 +719,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	setup_tjunction_fixing_program(glInfo);
 
 	// setup VAOs
+	setup_opengl_vao_empty(glInfo);
 	setup_opengl_vao_quad(glInfo);
 	setup_opengl_vao_text(glInfo);
 
@@ -690,7 +727,8 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	setup_opengl_uniforms(glInfo);
 
 	// setup FBOs
-	setup_fbos(glInfo);
+	setup_output_fbo(glInfo);
+	setup_tjunction_fbo(glInfo);
 
 	// setup extra [default] properties
 	setup_opengl_extra_props(glInfo);
@@ -735,7 +773,51 @@ void render_text(OpenGLInfo* glInfo, const ivec2 start_pos, const ivec2 screen_d
 }
 
 // fix the tjunctions in DEPTH/COLOR0 of fbo
-void fix_tjunctions(OpenGLInfo* glInfo, GLuint fbo) {
-	// create FBO
+// TODO: fbo_in instead of color/depth-in
+void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, GLuint color_tex, GLuint depth_tex) {
+	// set color/depth as inputs to tjunction fixing program
+	glBindTextureUnit(glInfo->tjunc_color_in_tunit, color_tex);
+	glBindTextureUnit(glInfo->tjunc_depth_in_tunit, depth_tex);
+
+	// switch to tjunc fbo so output goes into it
+	glBindFramebuffer(GL_FRAMEBUFFER, glInfo->fbo_tjunc_fix);
+
+	// clear output buffers
+	//const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	const GLfloat sky_blue[] = { 135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f };
+	const GLfloat one[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	//glClearBufferfv(GL_COLOR, 0, sky_blue);
+	glClearBufferfv(GL_DEPTH, 0, one);
+
+	// bind program
+	glBindVertexArray(glInfo->vao_empty);
+	glUseProgram(glInfo->tjunction_fixing_program);
+
+	// set uniform variables
+	// TODO: probably set this in main onResize instead?
+	glUniform1f(glInfo->fix_tjunc_uni_width_loc, windowInfo->width);
+	glUniform1f(glInfo->fix_tjunc_uni_height_loc, windowInfo->height);
+
+	// save properties before we overwrite them
+	GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
+	//GLint cull_face = glIsEnabled(GL_CULL_FACE);
+	GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
+
+	// set properties
+	glDisable(GL_DEPTH_TEST); // DEBUG
+	glDisable(GL_BLEND); // DEBUG
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	// run program!
+	glDrawArrays(GL_POINTS, 0, 1);
+
+	// restore original properties
+	//if (cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+	if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
+	glEnable(GL_BLEND); // DEBUG
+
+	// copy output from tjunction-fix fbo to output fbo
+	glBlitNamedFramebuffer(glInfo->fbo_tjunc_fix, fbo_out, 0, 0, windowInfo->width, windowInfo->height, 0, 0, windowInfo->width, windowInfo->height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 }
 

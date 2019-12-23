@@ -21,10 +21,11 @@ layout (std140, binding = 0) uniform UNI_IN
 
 out vec4 color;
 
-// texture arrays
-layout (binding = 0) uniform sampler2DArray top_textures;
-layout (binding = 1) uniform sampler2DArray side_textures;
-layout (binding = 2) uniform sampler2DArray bottom_textures;
+// block textures
+layout (binding = 0) uniform sampler2DArray block_textures[3];
+// 0: top_textures
+// 1: side_textures
+// 2: bottom_textures
 
 float soft_increase(float x) {
 	return -1/((x+1)) + 1;
@@ -36,14 +37,7 @@ float soft_increase2(float x, float cap) {
 
 void main(void)
 {
-	// TODO: Remove branching.
-	if (gs_face[1] > 0) {
-		color = texture(top_textures,  vec3(gs_tex_coords, gs_block_type));
-	} else if (gs_face[1] < 0) {
-		color = texture(bottom_textures,  vec3(gs_tex_coords, gs_block_type));
-	} else {
-		color = texture(side_textures,  vec3(gs_tex_coords, gs_block_type));
-	}
+	color = texture(block_textures[1 - sign(gs_face[1])],  vec3(gs_tex_coords, gs_block_type));
 	
 	// discard stuff that we can barely see, else all it's gonna do is mess with our depth buffer
 	if (color.a == 0) {

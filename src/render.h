@@ -40,7 +40,7 @@ struct OpenGLInfo {
 	GLuint tjunction_fixing_program;
 
 	// VAOs
-	GLuint vao_cube, vao_quad, vao_text;
+	GLuint vao_empty, vao_cube, vao_quad, vao_text;
 
 	// FBOs
 	GLuint fbo_out;
@@ -68,8 +68,8 @@ struct OpenGLInfo {
 	GLuint side_textures_tunit = 1;
 	GLuint bottom_textures_tunit = 2;
 	GLuint font_textures_tunit = 3;
-	GLuint tjunc_in_tunit = 4;
-	GLuint tjunc_out_tunit = 5;
+	GLuint tjunc_color_in_tunit = 4;
+	GLuint tjunc_depth_in_tunit = 5;
 
 	// QUAD VAO binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
@@ -87,6 +87,10 @@ struct OpenGLInfo {
 	// uniform binding points
 	const GLuint trans_buf_uni_bidx = 0; // transformation uniform for QUAD VAO
 	const GLuint text_uni_bidx = 1; // text uniform info
+
+	// uniform locations relative to current program
+	const GLuint fix_tjunc_uni_width_loc = 0; // text uniform info
+	const GLuint fix_tjunc_uni_height_loc = 1; // text uniform info
 
 	// attribute indices for QUAD VAO
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
@@ -133,6 +137,6 @@ struct Quad3D {
 void setup_glfw(GlfwInfo*, GLFWwindow**);
 void setup_opengl(OpenGLInfo*);
 void render_text(OpenGLInfo* glInfo, const vmath::ivec2 start_pos, const vmath::ivec2 screen_dimensions, const char* text, const unsigned size);
-
+void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, GLuint color_tex, GLuint depth_tex);
 
 #endif /* __RENDER_H__ */

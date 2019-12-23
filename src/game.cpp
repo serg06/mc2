@@ -214,7 +214,7 @@ void App::render(float time) {
 	auto end_of_fn = std::chrono::high_resolution_clock::now();
 	long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
 	if (result_total / 1000.0f > 50) {
-		sprintf(buf, "TOTAL GAME::RENDER TIME: %.2f\n", result_total / 1000.0f);
+		sprintf(buf, "TOTAL GAME::RENDER TIME: %.2fms\n", result_total / 1000.0f);
 		OutputDebugString(buf);
 	}
 
@@ -236,8 +236,18 @@ void App::render(float time) {
 		render_text(&glInfo, { 0, 3 }, screen_dimensions, buf, strlen(buf));
 	}
 
-	// FBO: COPY TO DEFAULT FRAMEBUFFER
-	glBlitNamedFramebuffer(glInfo.fbo_out, 0, 0, 0, windowInfo.width, windowInfo.height, 0, 0, windowInfo.width, windowInfo.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	// get polygon mode
+	GLint polygon_mode;
+	glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
+
+	if (polygon_mode == GL_FILL) {
+		// FBO: FIX TJUNCTIONS AND OUTPUT TO DEFAULT FRAMEBUFFER
+		fix_tjunctions(&glInfo, &windowInfo, 0, glInfo.fbo_out_color_buf, glInfo.fbo_out_depth_buf);
+	}
+	else {
+		// FBO: COPY TO DEFAULT FRAMEBUFFER
+		glBlitNamedFramebuffer(glInfo.fbo_out, 0, 0, 0, windowInfo.width, windowInfo.height, 0, 0, windowInfo.width, windowInfo.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	}
 }
 
 // update player's movement based on how much time has passed since we last did it
@@ -517,7 +527,7 @@ void App::onResize(GLFWwindow* window, int width, int height) {
 	// update viewport
 	glViewport(0, 0, width, height);
 
-	// FBO: Update texture files.
+	// FBO OUTPUT: Update textures.
 
 	// delete texture
 	glDeleteTextures(1, &glInfo.fbo_out_color_buf);
@@ -542,6 +552,33 @@ void App::onResize(GLFWwindow* window, int width, int height) {
 	// Bind color / depth textures to FBO
 	glNamedFramebufferTexture(glInfo.fbo_out, GL_COLOR_ATTACHMENT0, glInfo.fbo_out_color_buf, 0);
 	glNamedFramebufferTexture(glInfo.fbo_out, GL_DEPTH_ATTACHMENT, glInfo.fbo_out_depth_buf, 0);
+
+	// FBO TJUNCTION FIX: Update textures.
+	
+	// delete texture
+	glDeleteTextures(1, &glInfo.fbo_tj_color_buf);
+	glDeleteTextures(1, &glInfo.fbo_tj_depth_buf);
+
+	// Create color texture, allocate, disable mipmaps
+	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_tj_color_buf);
+	glTextureStorage2D(glInfo.fbo_tj_color_buf, 1, GL_RGBA32F, width, height);
+	glTextureParameteri(glInfo.fbo_tj_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(glInfo.fbo_tj_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTextureParameteri(glInfo.fbo_tj_color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTextureParameteri(glInfo.fbo_tj_color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	// Create depth texture, allocate
+	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_tj_depth_buf);
+	glTextureStorage2D(glInfo.fbo_tj_depth_buf, 1, get_default_framebuffer_depth_attachment_type(), width, height);
+	glTextureParameteri(glInfo.fbo_tj_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTextureParameteri(glInfo.fbo_tj_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTextureParameteri(glInfo.fbo_tj_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTextureParameteri(glInfo.fbo_tj_depth_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	// Bind color / depth textures to FBO
+	glNamedFramebufferTexture(glInfo.fbo_tjunc_fix, GL_COLOR_ATTACHMENT0, glInfo.fbo_tj_color_buf, 0);
+	glNamedFramebufferTexture(glInfo.fbo_tjunc_fix, GL_DEPTH_ATTACHMENT, glInfo.fbo_tj_depth_buf, 0);
+
 }
 
 void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message) {

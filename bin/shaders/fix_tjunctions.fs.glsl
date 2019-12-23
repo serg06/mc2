@@ -1,24 +1,30 @@
 #version 450 core
+#define TOO_MUCH_DEPTH 0.0000001
 
 // width and height of image we're processing
-uniform float width;
-uniform float height;
+layout (location = 0) uniform float width;
+layout (location = 1) uniform float height;
 
 // one pixel distance in each direction (lmao nice one OpenGL this is dumb)
 float dx = 1/width;
 float dy = 1/height;
+
 
 // texture arrays
 layout (binding = 4) uniform sampler2D tjunc_color_in;
 layout (binding = 5) uniform sampler2D tjunc_depth_in;
 
 // outputs
-out vec4 color_out;
-layout (depth_less) out float gl_FragDepth;
+layout (location = 0) out vec4 color_out;
+//layout (depth_less) out float gl_FragDepth;
+out float gl_FragDepth; // DEBUG: no layout
 
-// global vars
-float x = gl_FragCoord.x;
-float y = gl_FragCoord.y;
+// global vars -- x and y are in [0.0, 1.0] now.
+float x = gl_FragCoord.x / width;
+float y = gl_FragCoord.y / height;
+
+// TODO: compare generating x/y like that ^ with passing texture coordinate
+in vec2 gs_tex_coord;
 
 struct color_depth_pair {
 	vec4 color;
@@ -28,7 +34,7 @@ struct color_depth_pair {
 // fix color/depth of pixel depending on two other pixels
 void fix_two(inout color_depth_pair cd, const color_depth_pair side1, const color_depth_pair side2) {
 	// if depth is (much?) larger than both, fix it
-	if (cd.depth - side1.depth > 0.001 && cd.depth - side2.depth > 0.001) {
+	if (cd.depth > 0.999999 && cd.depth - side1.depth > TOO_MUCH_DEPTH && cd.depth - side2.depth > TOO_MUCH_DEPTH) {
 		cd.color = mix(side1.color, side2.color, 0.5f);
 		cd.depth = mix(side1.depth, side2.depth, 0.5f);
 	}
@@ -77,4 +83,9 @@ void main() {
 	// output
 	color_out = cd.color;
 	gl_FragDepth = cd.depth;
+
+//	// DEBUG: passthrough
+//	color_out = texture(tjunc_color_in, vec2(x, y));
+//	gl_FragDepth = texture(tjunc_depth_in, vec2(x, y))[0];
+
 }

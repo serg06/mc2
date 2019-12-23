@@ -21,7 +21,6 @@ private:
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
 
 public:
-	GLuint block_types_buf; // each mini gets its own buf -- easy this way for now
 	bool invisible = false;
 	MiniChunkMesh* mesh = nullptr;
 	MiniChunkMesh* water_mesh = nullptr;
@@ -55,7 +54,7 @@ public:
 	}
 
 	// render this minichunk's texture meshes
-	void render_meshes(OpenGLInfo* glInfo) {
+	inline void render_meshes(const OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
 		if (invisible || mesh == nullptr) {
 			return;
@@ -97,7 +96,7 @@ public:
 	}
 
 	// render this minichunk's water meshes
-	void render_water_meshes(OpenGLInfo* glInfo) {
+	inline void render_water_meshes(const OpenGLInfo* glInfo) {
 		// don't draw if covered in all sides
 		if (invisible || water_mesh == nullptr) {
 			return;
