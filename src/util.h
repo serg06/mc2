@@ -2,38 +2,6 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
-#define NORTH_0 vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f)
-#define NORTH_1 vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f)
-
-#define SOUTH_0 vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f)
-#define SOUTH_1 vmath::vec4(0.0f, 0.0f, 1.0f, 1.0f)
-
-#define EAST_0 vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f)
-#define EAST_1 vmath::vec4(1.0f, 0.0f, 0.0f, 1.0f)
-
-#define WEST_0 vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f)
-#define WEST_1 vmath::vec4(-1.0f, 0.0f, 0.0f, 1.0f)
-
-#define UP_0 vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f)
-#define UP_1 vmath::vec4(0.0f, 1.0f, 0.0f, 1.0f)
-
-#define DOWN_0 vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f)
-#define DOWN_1 vmath::vec4(0.0f, -1.0f, 0.0f, 1.0f)
-
-#define INORTH_0 vmath::ivec4(0, 0, -1, 0)
-#define ISOUTH_0 vmath::ivec4(0, 0, 1, 0)
-#define IEAST_0 vmath::ivec4(1, 0, 0, 0)
-#define IWEST_0 vmath::ivec4(-1, 0, 0, 0)
-#define IUP_0 vmath::ivec4(0, 1, 0, 0)
-#define IDOWN_0 vmath::ivec4(0, -1, 0, 0)
-
-#define INORTH vmath::ivec3(0, 0, -1)
-#define ISOUTH vmath::ivec3(0, 0, 1)
-#define IEAST vmath::ivec3(1, 0, 0)
-#define IWEST vmath::ivec3(-1, 0, 0)
-#define IUP vmath::ivec3(0, 1, 0)
-#define IDOWN vmath::ivec3(0, -1, 0)
-
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
@@ -43,6 +11,38 @@
 #include <tuple>
 #include <vector>
 #include <vmath.h>
+
+static const vmath::vec4 NORTH_0 = vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+static const vmath::vec4 NORTH_1 = vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+
+static const vmath::vec4 SOUTH_0 = vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+static const vmath::vec4 SOUTH_1 = vmath::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
+static const vmath::vec4 EAST_0 = vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+static const vmath::vec4 EAST_1 = vmath::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
+static const vmath::vec4 WEST_0 = vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+static const vmath::vec4 WEST_1 = vmath::vec4(-1.0f, 0.0f, 0.0f, 1.0f);
+
+static const vmath::vec4 UP_0 = vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+static const vmath::vec4 UP_1 = vmath::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+static const vmath::vec4 DOWN_0 = vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+static const vmath::vec4 DOWN_1 = vmath::vec4(0.0f, -1.0f, 0.0f, 1.0f);
+
+static const vmath::ivec4 INORTH_0 = vmath::ivec4(0, 0, -1, 0);
+static const vmath::ivec4 ISOUTH_0 = vmath::ivec4(0, 0, 1, 0);
+static const vmath::ivec4 IEAST_0 = vmath::ivec4(1, 0, 0, 0);
+static const vmath::ivec4 IWEST_0 = vmath::ivec4(-1, 0, 0, 0);
+static const vmath::ivec4 IUP_0 = vmath::ivec4(0, 1, 0, 0);
+static const vmath::ivec4 IDOWN_0 = vmath::ivec4(0, -1, 0, 0);
+
+static const vmath::ivec3 INORTH = vmath::ivec3(0, 0, -1);
+static const vmath::ivec3 ISOUTH = vmath::ivec3(0, 0, 1);
+static const vmath::ivec3 IEAST = vmath::ivec3(1, 0, 0);
+static const vmath::ivec3 IWEST = vmath::ivec3(-1, 0, 0);
+static const vmath::ivec3 IUP = vmath::ivec3(0, 1, 0);
+static const vmath::ivec3 IDOWN = vmath::ivec3(0, -1, 0);
 
 using namespace vmath;
 
