@@ -88,13 +88,10 @@ namespace {
 
 		// create program
 		glInfo->game_rendering_program = compile_shaders(shader_fnames);
-
-		// use our program object for rendering
-		glUseProgram(glInfo->game_rendering_program);
 	}
 
 	void setup_text_rendering_program(OpenGLInfo* glInfo) {
-	// list of shaders to create program with
+		// list of shaders to create program with
 		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
 			{ "shaders/render_text.vs.glsl", GL_VERTEX_SHADER },
 			{ "shaders/render_text.gs.glsl", GL_GEOMETRY_SHADER },
@@ -103,9 +100,18 @@ namespace {
 
 		// create program
 		glInfo->text_rendering_program = compile_shaders(shader_fnames);
+	}
 
-		// use our program object for rendering
-		glUseProgram(glInfo->text_rendering_program);
+	void setup_tjunction_fixing_program(OpenGLInfo* glInfo) {
+		// list of shaders to create program with
+		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+			{ "shaders/fix_tjunctions.vs.glsl", GL_VERTEX_SHADER },
+			{ "shaders/fix_tjunctions.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "shaders/fix_tjunctions.fs.glsl", GL_FRAGMENT_SHADER },
+		};
+
+		// create program
+		glInfo->tjunction_fixing_program = compile_shaders(shader_fnames);
 	}
 
 	void setup_opengl_vao_quad(OpenGLInfo* glInfo) {
@@ -674,6 +680,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	// setup shaders
 	setup_game_rendering_program(glInfo);
 	setup_text_rendering_program(glInfo);
+	setup_tjunction_fixing_program(glInfo);
 
 	// setup VAOs
 	setup_opengl_vao_quad(glInfo);

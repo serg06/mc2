@@ -37,22 +37,22 @@ struct OpenGLInfo {
 	// program
 	GLuint game_rendering_program;
 	GLuint text_rendering_program;
-	GLuint tjunction_fix_program;
+	GLuint tjunction_fixing_program;
 
 	// VAOs
 	GLuint vao_cube, vao_quad, vao_text;
 
 	// FBOs
 	GLuint fbo_out;
-	GLuint fbo_tj;
+	GLuint fbo_tjunc_fix;
 
-	// FBO buffers
+	// FBO output buffers
 	GLuint fbo_out_color_buf = 0;
 	GLuint fbo_out_depth_buf = 0;
 	GLuint fbo_tj_color_buf = 0;
 	GLuint fbo_tj_depth_buf = 0;
 
-	// render buffers
+	// render input buffers
 	GLuint trans_uni_buf = 0; // transformations uniform buffer - for game rendering 
 	GLuint text_buf = 0; // text input buffer - for text rendering
 	GLuint text_uni_buf = 0; // text uniform buffer - for text rendering
