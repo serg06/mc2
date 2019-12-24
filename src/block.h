@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#define MAX_BLOCK_TYPES 256
+constexpr int MAX_BLOCK_TYPES = 256;
 
 enum class BlockSolidity {
 	Solid,
