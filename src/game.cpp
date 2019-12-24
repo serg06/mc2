@@ -155,7 +155,7 @@ void App::render(float time) {
 	auto direction = staring_direction();
 	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](ivec3 coords, ivec3 face) {
 		auto block = this->world->get_type(coords);
-		return block != Block::Air && block != Block::StillWater;
+		return block != BlockType::Air && block != BlockType::StillWater;
 	});
 
 	/* TRANSFORMATION MATRICES */
@@ -191,8 +191,8 @@ void App::render(float time) {
 	glClearBufferfv(GL_DEPTH, 0, one);
 
 	// check if in water
-	Block face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
-	GLuint in_water = face_block == Block::StillWater;
+	BlockType face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
+	GLuint in_water = face_block == BlockType::StillWater;
 
 	// Update transformation buffer with matrices
 	glNamedBufferSubData(glInfo.trans_uni_buf, 0, sizeof(model_view_matrix), model_view_matrix);
@@ -358,7 +358,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	auto blocks = get_intersecting_blocks(char_position + position_change);
 
 	// if all blocks are non-solid, we done
-	if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == Block::Air || block == Block::StillWater; })) {
+	if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == BlockType::Air || block == BlockType::StillWater; })) {
 		return position_change;
 	}
 
@@ -375,7 +375,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are non-solid, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == Block::Air || block == Block::StillWater; })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == BlockType::Air || block == BlockType::StillWater; })) {
 			return position_change_fixed;
 		}
 	}
@@ -400,7 +400,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == Block::Air || block == Block::StillWater; })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == BlockType::Air || block == BlockType::StillWater; })) {
 			return position_change_fixed;
 		}
 	}
@@ -651,7 +651,7 @@ void App::onMouseButton(int button, int action) {
 
 			// if we're not in the way, place it
 			if (result == end(intersecting_blocks)) {
-				world->add_block(&glInfo, desired_position, Block::DiamondBlock);
+				world->add_block(&glInfo, desired_position, BlockType::DiamondBlock);
 			}
 		}
 	}

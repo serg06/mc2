@@ -26,9 +26,9 @@ namespace WorldTests {
 		for (auto &mini2 : chunk->minis) {
 			bool has_air = false, has_stone = false, has_grass = false;
 			for (int i = 0; i < MINICHUNK_SIZE; i++) {
-				has_air |= mini2.data[i] == Block::Air;
-				has_stone |= mini2.data[i] == Block::Stone;
-				has_grass |= mini2.data[i] == Block::Grass;
+				has_air |= mini2.data[i] == BlockType::Air;
+				has_stone |= mini2.data[i] == BlockType::Stone;
+				has_grass |= mini2.data[i] == BlockType::Grass;
 			}
 
 			if (has_air && has_stone && has_grass) {
@@ -41,7 +41,7 @@ namespace WorldTests {
 		}
 
 		// grab 2nd layer facing us in z direction
-		Block result[16][16];
+		BlockType result[16][16];
 		int z = 1;
 		ivec3 face = { 0, 0, -1 };
 
@@ -51,15 +51,15 @@ namespace WorldTests {
 				ivec3 coords = { x, y, z };
 
 				// get block at these coordinates
-				Block block = mini->get_block(coords);
+				BlockType block = mini->get_block(coords);
 
 				// dgaf about air blocks
-				if (block == Block::Air) {
+				if (block == BlockType::Air) {
 					continue;
 				}
 
 				// get face block
-				Block face_block = mini->get_block(coords + face);
+				BlockType face_block = mini->get_block(coords + face);
 
 				// if block's face is visible, set it
 				if (World::is_face_visible(block, face_block)) {
@@ -69,7 +69,7 @@ namespace WorldTests {
 		}
 
 		// Do the same with gen_layer_fast
-		Block expected[16][16];
+		BlockType expected[16][16];
 		World::gen_layer_generalized(mini, mini, 2, 1, face, expected);
 
 		// Make sure they're the same
@@ -87,36 +87,36 @@ namespace WorldTests {
 
 	void test_gen_quads() {
 		// create layer of all air
-		Block layer[16][16];
-		memset(layer, (uint8_t)Block::Air, 16 * 16 * sizeof(Block));
+		BlockType layer[16][16];
+		memset(layer, (uint8_t)BlockType::Air, 16 * 16 * sizeof(BlockType));
 
 		// 1. Add rectangle from (1,3) to (3,6)
 		for (int i = 1; i <= 3; i++) {
 			for (int j = 3; j <= 6; j++) {
-				layer[i][j] = Block::Stone;
+				layer[i][j] = BlockType::Stone;
 			}
 		}
 		// expected result
 		Quad2D q1;
-		q1.block = Block::Stone;
+		q1.block = BlockType::Stone;
 		q1.corners[0] = { 1, 3 };
 		q1.corners[1] = { 4, 7 };
 
 		// 2. Add plus symbol - line from (7,5)->(7,9), and (5,7)->(9,7)
 		for (int i = 7; i <= 7; i++) {
 			for (int j = 5; j <= 9; j++) {
-				layer[i][j] = Block::Stone;
+				layer[i][j] = BlockType::Stone;
 			}
 		}
 		for (int i = 5; i <= 9; i++) {
 			for (int j = 7; j <= 7; j++) {
-				layer[i][j] = Block::Stone;
+				layer[i][j] = BlockType::Stone;
 			}
 		}
 		// expected result
 		vector<Quad2D> vq2;
 		Quad2D q2;
-		q2.block = Block::Stone;
+		q2.block = BlockType::Stone;
 
 		q2.corners[0] = { 5, 7 };
 		q2.corners[1] = { 10, 8 };
@@ -133,12 +133,12 @@ namespace WorldTests {
 		// Finally, add line all along bottom
 		for (int i = 0; i <= 15; i++) {
 			for (int j = 15; j <= 15; j++) {
-				layer[i][j] = Block::Grass;
+				layer[i][j] = BlockType::Grass;
 			}
 		}
 		// expected result
 		Quad2D q3;
-		q3.block = Block::Grass;
+		q3.block = BlockType::Grass;
 		q3.corners[0] = { 0, 15 };
 		q3.corners[1] = { 16, 16 };
 
@@ -182,8 +182,8 @@ namespace WorldTests {
 
 	void test_get_max_size() {
 		// create layer of all air
-		Block layer[16][16];
-		memset(layer, (uint8_t)Block::Air, 16 * 16 * sizeof(Block));
+		BlockType layer[16][16];
+		memset(layer, (uint8_t)BlockType::Air, 16 * 16 * sizeof(BlockType));
 
 		// let's say nothing is merged yet
 		bool merged[16][16];
@@ -192,37 +192,37 @@ namespace WorldTests {
 		// 1. Add rectangle from (1,3) to (3,6)
 		for (int i = 1; i <= 3; i++) {
 			for (int j = 3; j <= 6; j++) {
-				layer[i][j] = Block::Stone;
+				layer[i][j] = BlockType::Stone;
 			}
 		}
 
 		// 2. Add plus symbol - line from (7,5)->(7,9), and (5,7)->(9,7)
 		for (int i = 7; i <= 7; i++) {
 			for (int j = 5; j <= 9; j++) {
-				layer[i][j] = Block::Stone;
+				layer[i][j] = BlockType::Stone;
 			}
 		}
 		for (int i = 5; i <= 9; i++) {
 			for (int j = 7; j <= 7; j++) {
-				layer[i][j] = Block::Stone;
+				layer[i][j] = BlockType::Stone;
 			}
 		}
 
 		// 3. Add line all along bottom
 		for (int i = 0; i <= 15; i++) {
 			for (int j = 15; j <= 15; j++) {
-				layer[i][j] = Block::Grass;
+				layer[i][j] = BlockType::Grass;
 			}
 		}
 
 		// Get max size for rectangle top-left-corner
-		ivec2 max_size1 = World::get_max_size(layer, merged, { 1, 3 }, Block::Stone);
+		ivec2 max_size1 = World::get_max_size(layer, merged, { 1, 3 }, BlockType::Stone);
 		if (max_size1[0] != 3 || max_size1[1] != 4) {
 			throw "wrong max_size1";
 		}
 
 		// Get max size for plus center
-		ivec2 max_size2 = World::get_max_size(layer, merged, { 7, 7 }, Block::Stone);
+		ivec2 max_size2 = World::get_max_size(layer, merged, { 7, 7 }, BlockType::Stone);
 		if (max_size2[0] != 3 || max_size2[1] != 1) {
 			throw "wrong max_size2";
 		}
@@ -230,8 +230,8 @@ namespace WorldTests {
 	}
 
 	// given a layer and start point, find its best dimensions
-	inline ivec2 get_max_size(Block layer[16][16], ivec2 start_point, Block block_type) {
-		assert(block_type != Block::Air);
+	inline ivec2 get_max_size(BlockType layer[16][16], ivec2 start_point, BlockType block_type) {
+		assert(block_type != BlockType::Air);
 
 		// TODO: Start max size at {1,1}, and for loops at +1.
 		// TODO: Search width with find() instead of a for loop.
@@ -296,7 +296,7 @@ MiniChunkMesh* World::gen_minichunk_mesh(MiniChunk* mini) {
 
 		// for each layer
 		for (int i = 0; i < 16; i++) {
-			Block layer[16][16];
+			BlockType layer[16][16];
 
 			// extract it from the data
 			gen_layer(mini, layers_idx, i, face, layer);

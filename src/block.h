@@ -14,7 +14,7 @@ enum class BlockSolidity {
 	Other
 };
 
-class Block {
+class BlockType {
 public:
 	enum Value : uint8_t
 	{
@@ -274,9 +274,9 @@ public:
 		StructureBlock = 255
 	};
 
-	constexpr Block() : Block(Air) {}
-	constexpr Block(uint8_t value) : Block((Value)value) {}
-	constexpr Block(Value value) : value(value) {}
+	constexpr BlockType() : BlockType(Air) {}
+	constexpr BlockType(uint8_t value) : BlockType((Value)value) {}
+	constexpr BlockType(Value value) : value(value) {}
 	
 	// wew
 	operator Value() const { return value; }
@@ -286,12 +286,12 @@ public:
 	explicit operator bool() = delete;
 	
 	// comparing to Block
-	constexpr inline bool operator==(Block b) const { return value == b.value; }
-	constexpr inline bool operator!=(Block b) const { return value != b.value; }
+	constexpr inline bool operator==(BlockType b) const { return value == b.value; }
+	constexpr inline bool operator!=(BlockType b) const { return value != b.value; }
 
 	// comparing to Block::Value
-	constexpr inline bool operator==(Block::Value v) const { return value == v; }
-	constexpr inline bool operator!=(Block::Value v) const { return value != v; }
+	constexpr inline bool operator==(BlockType::Value v) const { return value == v; }
+	constexpr inline bool operator!=(BlockType::Value v) const { return value != v; }
 
 	// maps to texture names (unordered maps aren't an ideal solution, but it's the cleanest solution I can think of ATM)
 	static const std::unordered_map<Value, std::string> top_texture_names;
@@ -301,7 +301,7 @@ public:
 
 	// check if are transparent
 	constexpr inline bool is_transparent() {
-		return value == Block::Air;
+		return value == BlockType::Air;
 	}
 
 	// check if are translucent
@@ -349,26 +349,26 @@ private:
 	Value value;
 };
 
-inline std::string block_name(Block b) {
-	switch ((Block::Value)b) {
-	case Block::Air:
+inline std::string block_name(BlockType b) {
+	switch ((BlockType::Value)b) {
+	case BlockType::Air:
 		return "Air";
-	case Block::Grass:
+	case BlockType::Grass:
 		return "Grass";
-	case Block::Stone:
+	case BlockType::Stone:
 		return "Stone";
 	default:
 		throw "Unknown block type.";
 	}
 }
 
-inline vmath::vec3 block_color(Block b) {
-	switch ((Block::Value)b) {
-	case Block::Air:
+inline vmath::vec3 block_color(BlockType b) {
+	switch ((BlockType::Value)b) {
+	case BlockType::Air:
 		throw "Air has no color.";
-	case Block::Grass:
+	case BlockType::Grass:
 		return { 34 / 255.0f, 161 / 255.0f, 51 / 255.0f };
-	case Block::Stone:
+	case BlockType::Stone:
 		return { 84 / 255.0f, 89 / 255.0f, 86 / 255.0f };
 	default:
 		throw "Unknown block type.";

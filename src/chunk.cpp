@@ -86,9 +86,9 @@ void Chunk::generate() {
 
 			// fill everything under that height
 			for (int i = 0; i < y; i++) {
-				set_block(x, i, z, Block::Stone);
+				set_block(x, i, z, BlockType::Stone);
 			}
-			set_block(x, (int)floor(y), z, Block::Grass);
+			set_block(x, (int)floor(y), z, BlockType::Grass);
 
 			// generate tree if we wanna
 			if (y >= WATER_HEIGHT) {
@@ -103,7 +103,7 @@ void Chunk::generate() {
 								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
 									continue;
 								}
-								set_block(x + dx, y + dy, z + dz, Block::OakLeaves);
+								set_block(x + dx, y + dy, z + dz, BlockType::OakLeaves);
 							}
 						}
 					}
@@ -113,7 +113,7 @@ void Chunk::generate() {
 								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
 									continue;
 								}
-								set_block(x + dx, y + dy, z + dz, Block::OakLeaves);
+								set_block(x + dx, y + dy, z + dz, BlockType::OakLeaves);
 							}
 						}
 					}
@@ -123,14 +123,14 @@ void Chunk::generate() {
 								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
 									continue;
 								}
-								set_block(x + dx, y + dy, z + dz, Block::OakLeaves);
+								set_block(x + dx, y + dy, z + dz, BlockType::OakLeaves);
 							}
 						}
 					}
 
 					// generate logs
 					for (int dy = 1; dy <= 5; dy++) {
-						set_block(x, y + dy, z, Block::OakWood);
+						set_block(x, y + dy, z, BlockType::OakWood);
 					}
 				}
 			}
@@ -138,7 +138,7 @@ void Chunk::generate() {
 			// Fill water
 			if (y < WATER_HEIGHT - 1) {
 				for (int y2 = y + 1; y2 < WATER_HEIGHT; y2++) {
-					set_block(x, y2, z, Block::StillWater);
+					set_block(x, y2, z, BlockType::StillWater);
 				}
 			}
 		}

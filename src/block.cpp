@@ -1,38 +1,38 @@
 #include "block.h"
 
 // set up Block{} static variables
-const std::unordered_map<Block::Value, std::string> Block::top_texture_names = {
-	{ Block::Stone, "stone" },
-	{ Block::Grass, "grass_top" },
-	{ Block::StillWater, "water_square" },
-	{ Block::OakWood, "tree_top" },
-	{ Block::OakLeaves, "leaves" },
-	{ Block::DiamondBlock, "blockDiamond" },
-	{ Block::Outline, "outline" },
+const std::unordered_map<BlockType::Value, std::string> BlockType::top_texture_names = {
+	{ BlockType::Stone, "stone" },
+	{ BlockType::Grass, "grass_top" },
+	{ BlockType::StillWater, "water_square" },
+	{ BlockType::OakWood, "tree_top" },
+	{ BlockType::OakLeaves, "leaves" },
+	{ BlockType::DiamondBlock, "blockDiamond" },
+	{ BlockType::Outline, "outline" },
 };
 
-const std::unordered_map<Block::Value, std::string> Block::bottom_texture_names = {
-	{ Block::Stone, "stone" },
-	{ Block::Grass, "dirt" },
-	{ Block::StillWater, "water_square" },
-	{ Block::OakWood, "tree_top" },
-	{ Block::OakLeaves, "leaves" },
-	{ Block::DiamondBlock, "blockDiamond" },
-	{ Block::Outline, "outline" },
+const std::unordered_map<BlockType::Value, std::string> BlockType::bottom_texture_names = {
+	{ BlockType::Stone, "stone" },
+	{ BlockType::Grass, "dirt" },
+	{ BlockType::StillWater, "water_square" },
+	{ BlockType::OakWood, "tree_top" },
+	{ BlockType::OakLeaves, "leaves" },
+	{ BlockType::DiamondBlock, "blockDiamond" },
+	{ BlockType::Outline, "outline" },
 };
 
-const std::unordered_map<Block::Value, std::string> Block::side_texture_names = {
-	{ Block::Stone, "stone" },
-	{ Block::Grass, "grass_side" },
-	{ Block::StillWater, "water_square" },
-	{ Block::OakWood, "tree_side" },
-	{ Block::OakLeaves, "leaves" },
-	{ Block::DiamondBlock, "blockDiamond" },
-	{ Block::Outline, "outline" },
+const std::unordered_map<BlockType::Value, std::string> BlockType::side_texture_names = {
+	{ BlockType::Stone, "stone" },
+	{ BlockType::Grass, "grass_side" },
+	{ BlockType::StillWater, "water_square" },
+	{ BlockType::OakWood, "tree_side" },
+	{ BlockType::OakLeaves, "leaves" },
+	{ BlockType::DiamondBlock, "blockDiamond" },
+	{ BlockType::Outline, "outline" },
 };
 
 // 16 x 16 array to quickly look-up if a block is transparent -- I've gotta improve this somehow lmao
-const bool Block::translucent_blocks[MAX_BLOCK_TYPES] = {
+const bool BlockType::translucent_blocks[MAX_BLOCK_TYPES] = {
 	true,  false, false, false, false, false, false, false, false, true,  false, false, false, false, false, false,
 	false, false, true,  false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,

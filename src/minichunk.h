@@ -173,7 +173,7 @@ public:
 		num_water_quads = water_quads.size();
 
 		// map
-		Block* blocks = (Block*)glMapNamedBufferRange(quad_block_type_buf, 0, sizeof(Block) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		BlockType* blocks = (BlockType*)glMapNamedBufferRange(quad_block_type_buf, 0, sizeof(BlockType) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 		ivec3* corner1s = (ivec3*)glMapNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 		ivec3* corner2s = (ivec3*)glMapNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 		ivec3* faces = (ivec3*)glMapNamedBufferRange(quad_face_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
@@ -181,7 +181,7 @@ public:
 		// update quads
 		for (int i = 0; i < quads.size(); i++) {
 			// update blocks
-			blocks[i] = (Block)quads[i].block;
+			blocks[i] = (BlockType)quads[i].block;
 			faces[i] = quads[i].face;
 
 			ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
@@ -211,7 +211,7 @@ public:
 		// update water quads
 		for (int i = 0; i < water_quads.size(); i++) {
 			// update blocks
-			blocks[i + quads.size()] = (Block)water_quads[i].block;
+			blocks[i + quads.size()] = (BlockType)water_quads[i].block;
 			faces[i + quads.size()] = water_quads[i].face;
 
 			ivec3 diffs = water_quads[i].corners[1] - water_quads[i].corners[0];
@@ -238,7 +238,7 @@ public:
 		}
 
 		// flush
-		glFlushMappedNamedBufferRange(quad_block_type_buf, 0, sizeof(Block) * (quads.size() + water_quads.size()));
+		glFlushMappedNamedBufferRange(quad_block_type_buf, 0, sizeof(BlockType) * (quads.size() + water_quads.size()));
 		glFlushMappedNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
 		glFlushMappedNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
 		glFlushMappedNamedBufferRange(quad_face_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
@@ -294,7 +294,7 @@ public:
 		glCreateVertexArrays(1, &vao);
 
 		// allocate
-		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * size, NULL, GL_MAP_WRITE_BIT);
+		glNamedBufferStorage(quad_block_type_buf, sizeof(BlockType) * size, NULL, GL_MAP_WRITE_BIT);
 		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
 		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
 		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
@@ -323,7 +323,7 @@ public:
 		glVertexArrayAttribBinding(vao, glInfo->q_base_coords_attr_idx, glInfo->q_base_coords_bidx);
 
 		// vao: match attributes to buffers
-		glVertexArrayVertexBuffer(vao, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(vao, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(BlockType));
 		glVertexArrayVertexBuffer(vao, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(vao, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(vao, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));

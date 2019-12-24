@@ -461,7 +461,7 @@ namespace {
 		// write in each texture that we can
 		for (int i = 0; i < MAX_BLOCK_TYPES; i++) {
 			// get block
-			Block b = Block(i);
+			BlockType b = BlockType(i);
 
 			// get block's textures
 			std::string top = b.top_texture();

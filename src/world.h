@@ -32,7 +32,7 @@ using namespace std;
 
 class Quad2D {
 public:
-	Block block;
+	BlockType block;
 	ivec2 corners[2];
 };
 
@@ -362,19 +362,19 @@ public:
 
 	// get a block's type
 	// inefficient when called repeatedly - if you need multiple blocks from one mini/chunk, use get_mini (or get_chunk) and mini.get_block.
-	inline Block get_type(int x, int y, int z) {
+	inline BlockType get_type(int x, int y, int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 
 		if (!chunk) {
-			return Block::Air;
+			return BlockType::Air;
 		}
 
 		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
 		return chunk->get_block(chunk_coords);
 	}
 
-	inline Block get_type(vmath::ivec3 xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
-	inline Block get_type(vmath::ivec4 xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
+	inline BlockType get_type(vmath::ivec3 xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
+	inline BlockType get_type(vmath::ivec4 xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
 
 	inline bool check_if_covered(MiniChunk &mini) {
 		// if contains any translucent blocks, don't know how to handle that yet
@@ -497,7 +497,7 @@ public:
 	}
 
 	// generate layer by grabbing face blocks directly from the minichunk
-	static inline void gen_layer_generalized(MiniChunk* mini, MiniChunk* face_mini, int layers_idx, int layer_no, const ivec3 face, Block(&result)[16][16]) {
+	static inline void gen_layer_generalized(MiniChunk* mini, MiniChunk* face_mini, int layers_idx, int layer_no, const ivec3 face, BlockType(&result)[16][16]) {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -512,7 +512,7 @@ public:
 		assert(in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15)) && "Face outside minichunk.");
 
 		// reset all to air
-		memset(result, (uint8_t)Block::Air, sizeof(result));
+		memset(result, (uint8_t)BlockType::Air, sizeof(result));
 
 		// for each coordinate
 		// if face is y, iterate on x then z (best speed)
@@ -526,17 +526,17 @@ public:
 					coords[working_idx_2] = v;
 
 					// get block at these coordinates
-					Block block = mini->get_block(coords);
+					BlockType block = mini->get_block(coords);
 
 					// dgaf about air blocks and about invalid minis
-					if (block == Block::Air || face_mini == nullptr) {
+					if (block == BlockType::Air || face_mini == nullptr) {
 						continue;
 					}
 
 					// get face block
 					face_coords = coords + face;
 					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-					Block face_block = face_mini->get_block(face_coords);
+					BlockType face_block = face_mini->get_block(face_coords);
 
 					// if block's face is visible, set it
 					if (is_face_visible(block, face_block)) {
@@ -556,17 +556,17 @@ public:
 					coords[working_idx_2] = v;
 
 					// get block at these coordinates
-					Block block = mini->get_block(coords);
+					BlockType block = mini->get_block(coords);
 
 					// dgaf about air blocks and about invalid minis
-					if (block == Block::Air || face_mini == nullptr) {
+					if (block == BlockType::Air || face_mini == nullptr) {
 						continue;
 					}
 
 					// get face block
 					face_coords = coords + face;
 					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-					Block face_block = face_mini->get_block(face_coords);
+					BlockType face_block = face_mini->get_block(face_coords);
 
 					// if block's face is visible, set it
 					if (is_face_visible(block, face_block)) {
@@ -577,11 +577,11 @@ public:
 		}
 	}
 
-	static inline bool is_face_visible(Block &block, Block &face_block) {
-		return face_block.is_transparent() || (block != Block::StillWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
+	static inline bool is_face_visible(BlockType &block, BlockType &face_block) {
+		return face_block.is_transparent() || (block != BlockType::StillWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
-	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, Block(&result)[16][16]) {
+	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, BlockType(&result)[16][16]) {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -604,7 +604,7 @@ public:
 	}
 
 	// given 2D array of block numbers, generate optimal quads
-	static inline vector<Quad2D> gen_quads(const Block(&layer)[16][16]) {
+	static inline vector<Quad2D> gen_quads(const BlockType(&layer)[16][16]) {
 		bool merged[16][16];
 		memset(merged, false, sizeof(merged));
 
@@ -615,10 +615,10 @@ public:
 				// skip merged blocks
 				if (merged[i][j]) continue;
 
-				Block block = layer[i][j];
+				BlockType block = layer[i][j];
 
 				// skip air
-				if (block == Block::Air) continue;
+				if (block == BlockType::Air) continue;
 
 				// get max size of this quad
 				ivec2 max_size = get_max_size(layer, merged, { i, j }, block);
@@ -650,8 +650,8 @@ public:
 	}
 
 	// given a layer and start point, find its best dimensions
-	static inline ivec2 get_max_size(const Block(&layer)[16][16], const bool(&merged)[16][16], ivec2 start_point, Block block_type) {
-		assert(block_type != Block::Air);
+	static inline ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], ivec2 start_point, BlockType block_type) {
+		assert(block_type != BlockType::Air);
 		assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
 		// TODO: Start max size at {1,1}, and for loops at +1.
@@ -718,7 +718,7 @@ public:
 		// TODO: Don't recreate buffer every frame!
 
 		// Figure out corners / block types
-		Block blocks[6];
+		BlockType blocks[6];
 		ivec3 corner1s[6];
 		ivec3 corner2s[6];
 		ivec3 faces[6];
@@ -729,7 +729,7 @@ public:
 		ivec3 block_coords = { relative_coords[0], y % 16, relative_coords[2] };
 
 		for (int i = 0; i < 6; i++) {
-			blocks[i] = Block::Outline; // outline
+			blocks[i] = BlockType::Outline; // outline
 		}
 
 		// SOUTH
@@ -785,7 +785,7 @@ public:
 		glCreateBuffers(1, &mini_coords_buf);
 
 		// allocate them just enough space
-		glNamedBufferStorage(quad_block_type_buf, sizeof(Block) * 6, blocks, NULL);
+		glNamedBufferStorage(quad_block_type_buf, sizeof(BlockType) * 6, blocks, NULL);
 		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, corner1s, NULL);
 		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, corner2s, NULL);
 		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * 6, faces, NULL);
@@ -797,7 +797,7 @@ public:
 		glBindVertexArray(glInfo->vao_quad);
 
 		// bind to quads attribute binding point
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(Block));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(BlockType));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
@@ -1016,7 +1016,7 @@ public:
 				MiniChunkMesh* water = new MiniChunkMesh;
 
 				for (auto &quad : mesh->quads3d) {
-					if ((Block)quad.block == Block::StillWater) {
+					if ((BlockType)quad.block == BlockType::StillWater) {
 						water->quads3d.push_back(quad);
 					}
 					else {
@@ -1038,7 +1038,7 @@ public:
 		// update data
 		MiniChunk* mini = get_mini_containing_block(x, y, z);
 		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
-		mini->set_block(mini_coords, Block::Air);
+		mini->set_block(mini_coords, BlockType::Air);
 
 		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since >=3 sides of the destroyed block are facing its own mini.)
 		on_mini_update(glInfo, mini, { x, y, z });
@@ -1046,7 +1046,7 @@ public:
 
 	void destroy_block(OpenGLInfo* glInfo, ivec3 xyz) { return destroy_block(glInfo, xyz[0], xyz[1], xyz[2]); };
 
-	void add_block(OpenGLInfo* glInfo, int x, int y, int z, Block block) {
+	void add_block(OpenGLInfo* glInfo, int x, int y, int z, BlockType block) {
 		// update data
 		MiniChunk* mini = get_mini_containing_block(x, y, z);
 		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
@@ -1056,7 +1056,7 @@ public:
 		on_mini_update(glInfo, mini, { x, y, z });
 	}
 
-	void add_block(OpenGLInfo* glInfo, ivec3 xyz, Block block) { return add_block(glInfo, xyz[0], xyz[1], xyz[2], block); };
+	void add_block(OpenGLInfo* glInfo, ivec3 xyz, BlockType block) { return add_block(glInfo, xyz[0], xyz[1], xyz[2], block); };
 
 	// generate a minichunk mutex from queue
 	bool gen_minichunk_mesh_from_queue(vec3 player_pos) {
@@ -1089,7 +1089,7 @@ public:
 			MiniChunkMesh* water = new MiniChunkMesh;
 
 			for (auto &quad : mesh->quads3d) {
-				if ((Block)quad.block == Block::StillWater) {
+				if ((BlockType)quad.block == BlockType::StillWater) {
 					water->quads3d.push_back(quad);
 				}
 				else {
