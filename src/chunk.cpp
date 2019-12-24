@@ -1,17 +1,14 @@
 #include "chunk.h"
 #include "chunkdata.h"
-#include "kenp_noise/kenp_noise.h"
 #include "util.h"
 
-#include "GL/gl3w.h"
-#include "FastNoise/FastNoise.h"
+#include "cmake_pch.hxx"
 
 #include <assert.h>
 #include <cstdlib>
 #include <initializer_list>
 #include <stdio.h>
 #include <stdlib.h>
-#include <vmath.h>
 
 #define WATER_HEIGHT 64
 

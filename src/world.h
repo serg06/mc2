@@ -8,8 +8,7 @@
 #include "shapes.h"
 #include "util.h"
 
-#include "GL/gl3w.h"
-#include "GLFW/glfw3.h"
+#include "cmake_pch.hxx"
 
 #include <assert.h>
 #include <chrono>
@@ -22,7 +21,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <vmath.h>
 #include <windows.h>
 
 // radius from center of minichunk that must be included in view frustum

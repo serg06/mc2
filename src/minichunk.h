@@ -7,6 +7,8 @@
 #include "render.h"
 #include "util.h"
 
+#include "cmake_pch.hxx"
+
 #include <algorithm> // std::find
 #include <mutex>
 #include <vector> // std::find

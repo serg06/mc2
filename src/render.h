@@ -4,10 +4,7 @@
 
 #include "util.h"
 
-#include "GL/gl3w.h"
-#include "GLFW/glfw3.h"
-
-#include <vmath.h>
+#include "cmake_pch.hxx"
 
 #define TRANSFORM_BUFFER_COORDS_OFFSET (2*sizeof(vmath::mat4))
 // max chars displayed on screen horizontally

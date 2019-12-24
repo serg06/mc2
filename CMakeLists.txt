@@ -1,5 +1,4 @@
-# idk if it works for <3.14.7
-cmake_minimum_required(VERSION 3.14.7)
+cmake_minimum_required(VERSION 3.16.2)
 
 # vars
 set(SOLUTION_NAME mc2)
@@ -35,9 +34,6 @@ add_library(gl3w src/gl3w.c)
 # include fastnoise in compilation
 add_library(fastnoise include/FastNoise/FastNoise.cpp)
 
-# include kenp's shitty code in compilation -- just keeping it here 'til I better understand noise and decide on an implementation
-add_library(kenp_noise include/kenp_noise/kenp_noise.h include/kenp_noise/kenp_noise.cpp)
-
 # add source files (so they compile) and data (so we see it in IDE)
 source_group(Shaders FILES ${shaders})
 add_executable(${PROJECT_NAME} WIN32 ${sources} ${shaders})
@@ -49,6 +45,7 @@ target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d fastnoi
 # specify include directories
 include_directories(include)
 include_directories(extern/glfw-3.3/include)
+include_directories(build/CMakeFiles/mc2.dir)
 
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
@@ -59,3 +56,14 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CM
 # set to C++ 17 (we doin this hardcore)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
+# precompile header
+target_precompile_headers(${PROJECT_NAME}
+	PRIVATE include/kenp_noise.h
+	PRIVATE include/FastNoise/FastNoise.h
+	PRIVATE include/GL/gl3w.h
+	PRIVATE include/GL/glcorearb.h
+	PRIVATE include/KHR/khrplatform.h
+	PRIVATE include/stb_image.h
+	PRIVATE include/vmath.h
+	PRIVATE extern/glfw-3.3/include/GLFW/glfw3.h
+)

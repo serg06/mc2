@@ -3,10 +3,9 @@
 #include "shapes.h"
 #include "util.h"
 
-#include "GLFW/glfw3.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
-#include "stb_image.h"
+#include "cmake_pch.hxx"
 //#define STB_IMAGE_WRITE_IMPLEMENTATION
 //#include "stb_image_write.h"
 
@@ -16,7 +15,6 @@
 #include <sys/stat.h>
 #include <tuple>
 #include <vector>
-#include <vmath.h>
 
 #define BLOCK_TEXTURE_WIDTH 16
 #define BLOCK_TEXTURE_HEIGHT 16

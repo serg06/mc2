@@ -5,8 +5,9 @@
 #include "render.h"
 #include "util.h"
 
+#include "cmake_pch.hxx"
+
 #include <vector>
-#include <vmath.h>
 
 // A mesh of a minichunk, consisting of a bunch of quads & minichunk coordinates
 class MiniChunkMesh {

@@ -2,15 +2,11 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
-#include "GL/gl3w.h"
-#include "GLFW/glfw3.h"
-
 #include <limits>
 #include <map>
 #include <numeric>
 #include <tuple>
 #include <vector>
-#include <vmath.h>
 
 static const vmath::vec4 NORTH_0 = vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 static const vmath::vec4 NORTH_1 = vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f);

@@ -10,8 +10,7 @@
 #include "util.h"
 #include "world.h"
 
-#include "GL/gl3w.h"
-#include "GLFW/glfw3.h"
+#include "cmake_pch.hxx"
 
 #include <assert.h>
 #include <string>
@@ -19,7 +18,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <vmath.h>
 #include <windows.h>
 
 using namespace std;

@@ -8,12 +8,11 @@
 #include "render.h"
 #include "util.h"
 
-#include "GL/gl3w.h" // OutputDebugString
+#include "cmake_pch.hxx"
 
 #include <assert.h>
 #include <cstdint>
 #include <stdio.h> 
-#include <vmath.h>
 
 #define CHUNK_WIDTH 16
 #define CHUNK_HEIGHT 256

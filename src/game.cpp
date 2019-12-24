@@ -6,8 +6,7 @@
 #include "shapes.h"
 #include "util.h"
 
-#include "GL/gl3w.h"
-#include "GLFW/glfw3.h"
+#include "cmake_pch.hxx"
 
 #include <algorithm> // howbig?
 #include <assert.h>
@@ -18,7 +17,6 @@
 #include <numeric>
 #include <string>
 #include <thread>
-#include <vmath.h> // TODO: Upgrade version, or use better library?
 #include <windows.h>
 
 // 1. TODO: Apply C++11 features

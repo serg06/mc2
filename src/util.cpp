@@ -1,15 +1,13 @@
 #include "util.h"
 
-#include "GL/gl3w.h"
-#include "GLFW/glfw3.h"
+#include "cmake_pch.hxx"
 
 #include <assert.h>
 #include <fstream>
 #include <functional>
 #include <iterator> 
 #include <tuple> 
-#include <vector> 
-#include <vmath.h>
+#include <vector>
 
 #define SEED 5370157038
 

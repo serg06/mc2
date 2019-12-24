@@ -3,9 +3,7 @@
 
 #include "util.h"
 
-#include "GL/gl3w.h"
-
-#include <vmath.h>
+#include "cmake_pch.hxx"
 
 // player dimensions
 #define PLAYER_RADIUS 0.3125f

@@ -3,7 +3,8 @@
 #define __CHUNKDATA_H__
 
 #include "block.h"
-#include "vmath.h"
+
+#include "cmake_pch.hxx"
 
 // Chunk size
 #define BLOCK_MIN_HEIGHT 0
