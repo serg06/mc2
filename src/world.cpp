@@ -85,7 +85,7 @@ namespace WorldTests {
 		}
 
 		// free
-		chunk->free_data();
+		chunk->free();
 	}
 
 	void test_gen_quads() {

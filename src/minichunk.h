@@ -13,10 +13,10 @@
 #include <mutex>
 #include <vector> // std::find
 
-#define MINICHUNK_WIDTH 16
-#define MINICHUNK_HEIGHT 16
-#define MINICHUNK_DEPTH 16
-#define MINICHUNK_SIZE (MINICHUNK_WIDTH * MINICHUNK_DEPTH * MINICHUNK_HEIGHT)
+constexpr int MINICHUNK_WIDTH = 16;
+constexpr int MINICHUNK_HEIGHT = 16;
+constexpr int MINICHUNK_DEPTH = 16;
+constexpr int MINICHUNK_SIZE = (MINICHUNK_WIDTH * MINICHUNK_DEPTH * MINICHUNK_HEIGHT);
 
 class MiniChunk : public ChunkData {
 private:
