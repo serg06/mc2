@@ -67,3 +67,9 @@ target_precompile_headers(${PROJECT_NAME}
 	PRIVATE include/vmath.h
 	PRIVATE extern/glfw-3.3/include/GLFW/glfw3.h
 )
+
+if (WIN32)
+	target_precompile_headers(${PROJECT_NAME}
+		PRIVATE <windows.h>
+	)	
+endif (WIN32)

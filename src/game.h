@@ -18,7 +18,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <windows.h>
 
 using namespace std;
 using namespace vmath;

@@ -17,7 +17,6 @@
 #include <numeric>
 #include <string>
 #include <thread>
-#include <windows.h>
 
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
