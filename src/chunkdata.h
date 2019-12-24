@@ -119,10 +119,6 @@ public:
 
 		return result;
 	}
-
-	inline void free_data() {
-		delete[] data;
-	}
 };
 
 
