@@ -350,32 +350,4 @@ private:
 	Value value;
 };
 
-inline std::string block_name(BlockType b) {
-	switch ((BlockType::Value)b) {
-	case BlockType::Air:
-		return "Air";
-	case BlockType::Grass:
-		return "Grass";
-	case BlockType::Stone:
-		return "Stone";
-	default:
-		throw "Unknown block type.";
-	}
-}
-
-inline vmath::vec3 block_color(BlockType b) {
-	switch ((BlockType::Value)b) {
-	case BlockType::Air:
-		throw "Air has no color.";
-	case BlockType::Grass:
-		return { 34 / 255.0f, 161 / 255.0f, 51 / 255.0f };
-	case BlockType::Stone:
-		return { 84 / 255.0f, 89 / 255.0f, 86 / 255.0f };
-	default:
-		throw "Unknown block type.";
-	}
-}
-
-
-
 #endif // __BLOCK_H__
