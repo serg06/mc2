@@ -90,12 +90,14 @@ public:
 		}
 
 		// update quads if needed
-		mesh_lock.lock();
 		if (meshes_updated) {
-			meshes_updated = false;
-			update_quads_buf(glInfo);
+			mesh_lock.lock();
+			if (meshes_updated) {
+				meshes_updated = false;
+				update_quads_buf(glInfo);
+			}
+			mesh_lock.unlock();
 		}
-		mesh_lock.unlock();
 
 		if (num_water_quads == 0) {
 			return;
