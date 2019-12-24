@@ -6,11 +6,11 @@
 #include "cmake_pch.hxx"
 
 // player dimensions
-constexpr float PLAYER_RADIUS = 0.3125f;
-constexpr float PLAYER_WIDTH = 0.625f;
-constexpr float PLAYER_DEPTH = 0.625f;
-constexpr float PLAYER_HEIGHT = 1.8125f;
-constexpr float CAMERA_HEIGHT = PLAYER_HEIGHT * 0.9f;
+constexpr float PLAYER_RADIUS = 0.3f;
+constexpr float PLAYER_WIDTH = PLAYER_RADIUS*2;
+constexpr float PLAYER_DEPTH = PLAYER_RADIUS*2;
+constexpr float PLAYER_HEIGHT = 1.8f;
+constexpr float CAMERA_HEIGHT = 1.6f;
 
 // coordinates of player's bounding box w.r.t. player
 #define PLAYER_NORTH_0 (NORTH_0 * PLAYER_DEPTH / 2.0f)
