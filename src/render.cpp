@@ -16,11 +16,11 @@
 #include <tuple>
 #include <vector>
 
-#define BLOCK_TEXTURE_WIDTH 16
-#define BLOCK_TEXTURE_HEIGHT 16
-#define TEXTURE_COMPONENTS 4
-#define MAX_CHARS 256
-#define BLOCKS_NUM_MIPMAPS 3
+constexpr int BLOCK_TEXTURE_WIDTH = 16;
+constexpr int BLOCK_TEXTURE_HEIGHT = 16;
+constexpr int TEXTURE_COMPONENTS = 4;
+constexpr int MAX_CHARS = 256;
+constexpr int BLOCKS_NUM_MIPMAPS = 3;
 
 namespace fs = std::experimental::filesystem;
 using namespace vmath;

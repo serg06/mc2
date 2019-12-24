@@ -14,10 +14,10 @@
 #include <cstdint>
 #include <stdio.h> 
 
-#define CHUNK_WIDTH 16
-#define CHUNK_HEIGHT 256
-#define CHUNK_DEPTH 16
-#define CHUNK_SIZE (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
+constexpr int CHUNK_WIDTH = 16;
+constexpr int CHUNK_HEIGHT = 256;
+constexpr int CHUNK_DEPTH = 16;
+constexpr int CHUNK_SIZE = CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT;
 
 /*
 *
@@ -74,14 +74,6 @@ public:
 			// create mini and populate it
 			minis[i].data = data + i * MINICHUNK_SIZE;
 			minis[i].set_coords({ coords[0], i*MINICHUNK_HEIGHT, coords[1] });
-
-			//// TODO: Use this as a primary method of drawing, before meshes are generated?
-			//// create CUBE buffer
-			//glCreateBuffers(1, &mini.block_types_buf);
-			//glNamedBufferStorage(mini.block_types_buf, MINICHUNK_SIZE * sizeof(Block), NULL, GL_DYNAMIC_STORAGE_BIT);
-
-			//// fill CUBE buffer, cuz we already have all the data we need
-			//glNamedBufferSubData(mini.block_types_buf, 0, MINICHUNK_SIZE * sizeof(Block), mini.data);
 		}
 	}
 
@@ -129,9 +121,5 @@ struct chunk_hash
 		return std::hash<int>()(chunk->coords[0]) ^ std::hash<int>()(chunk->coords[1]);
 	}
 };
-
-// TODO: This maybe?
-//#define EL_TYPE uint8_t
-//#define EL_SIZE sizeof(EL_TYPE)
 
 #endif // __CHUNK_H__
