@@ -71,9 +71,7 @@ public:
 		}
 		mesh_lock.unlock();
 
-		auto &quads = mesh->quads3d;
-
-		if (quads.size() == 0) {
+		if (num_nonwater_quads == 0) {
 			return;
 		}
 
@@ -81,10 +79,7 @@ public:
 		glBindVertexArray(vao);
 
 		// DRAW!
-		glDrawArrays(GL_POINTS, 0, quads.size());
-
-		// unbind VAO jic
-		glBindVertexArray(0);
+		glDrawArrays(GL_POINTS, 0, num_nonwater_quads);
 	}
 
 	// render this minichunk's water meshes
@@ -101,11 +96,8 @@ public:
 			update_quads_buf(glInfo);
 		}
 		mesh_lock.unlock();
-		
-		auto &quads = mesh->quads3d;
-		auto &water_quads = water_mesh->quads3d;
 
-		if (water_quads.size() == 0) {
+		if (num_water_quads == 0) {
 			return;
 		}
 
@@ -113,10 +105,7 @@ public:
 		glBindVertexArray(vao);
 
 		// DRAW!
-		glDrawArrays(GL_POINTS, quads.size(), water_quads.size());
-
-		// unbind VAO jic
-		glBindVertexArray(0);
+		glDrawArrays(GL_POINTS, num_nonwater_quads, num_water_quads);
 	}
 
 	// get MiniChunk's base coords in real coordinates
