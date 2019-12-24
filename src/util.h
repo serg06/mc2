@@ -257,17 +257,20 @@ static constexpr inline void extract_from_atlas(float* atlas, unsigned atlas_wid
 
 // TODO: Could be slightly improved with `const`, `&`, and `private:` in the right places, but otherwise it works great.
 template <typename K, typename V>
-class interval_map
+class IntervalMap
 {
+private:
 	std::map<K, V> my_map;
+
+public:
 	typedef class std::map<K, V>::iterator iter;
 
 	// fill with 0 by default
-	interval_map() : interval_map(0) {
+	IntervalMap() : IntervalMap(0) {
 	}
 
 	// create interval map with default v
-	interval_map(V v) {
+	IntervalMap(V v) {
 		my_map.insert(my_map.end(), { std::numeric_limits<K>::lowest(), v });
 	}
 
@@ -329,6 +332,12 @@ class interval_map
 	// O(log N)
 	const V operator[](K const& k) {
 		return (--my_map.upper_bound(k))->second;
+	}
+
+	// clear
+	constexpr void clear(V const& v) {
+		my_map.clear();
+		my_map.insert(my_map.end(), { std::numeric_limits<K>::lowest(), v });
 	}
 };
 
