@@ -82,15 +82,10 @@ public:
 			return nullptr;
 		}
 
-		// TODO: Remove loop.
-		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
-			if (minis[i].get_coords()[1] == y) {
-				return &(minis[i]);
-			}
-		}
+		assert(0 <= y && y < 256 && y % 16 == 0);
+		assert(minis[y / 16].get_coords()[1] == y);
 
-		// Somehow reached here, bug.
-		throw "Bug";
+		return &(minis[y/16]);
 	}
 
 	// render this chunk
