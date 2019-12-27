@@ -22,11 +22,59 @@ static inline ivec3 clamp_coords_to_world(const ivec3 &coords) {
 	return { coords[0], std::clamp(coords[1], 0, BLOCK_MAX_HEIGHT), coords[2] };
 }
 
+// block metadata
+// stores some extra info depending on block type
+// e.g. flowing water => last 4 bits store water level
+union Metadata {
+private:
+	uint8_t data;
+
+public:
+	/* LIQUIDS | LAST 4 BITS | LIQUID LEVEL (REVERSED)*/
+	// Note: 0 = maximum height, 7 = minimum height. Could technicallyu fit into 3 bits.
+
+	uint8_t get_liquid_level() {
+		return data & 0xF;
+	}
+
+	void set_liquid_level(uint8_t water_level) {
+		assert(water_level == (water_level & 0xF) && "water level uses more than 4 bits");
+		data = (data & 0xF0) | (water_level & 0xF);
+	}
+};
+
+// block lighting
+struct Lighting {
+private:
+	uint8_t data;
+
+public:
+	uint8_t get_sunlight() {
+		return data >> 4;
+	}
+
+	void set_sunlight(uint8_t sunlight) {
+		assert(sunlight == (sunlight & 0xF) && "sunlight level uses more than 4 bits");
+		data = (sunlight << 4) | (data & 0xF);
+	}
+
+	uint8_t get_torchlight() {
+		return data & 0xF;
+	}
+
+	void set_torchlight(uint8_t torchlight) {
+		assert(sunlight == (sunlight & 0xF) && "torchlight level uses more than 4 bits");
+		data = (data & 0xF0) | torchlight;
+	}
+};
+
 
 // Chunk Data is always stored as width wide and depth deep
 class ChunkData {
 public:
-	BlockType * data = nullptr;
+	BlockType *blocks = nullptr;
+	Metadata *metadatas = nullptr;
+	Lighting *lightings = nullptr;
 
 	int width = 0;
 	int height = 0;
@@ -35,18 +83,18 @@ public:
 	// Memory leak, delete this when un-loading chunk from world.
 	ChunkData(int width, int height, int depth) : ChunkData(width, height, depth, nullptr) {}
 
-	ChunkData(int width, int height, int depth, BlockType* data) : width(width), height(height), depth(depth), data(data) {
+	ChunkData(int width, int height, int depth, BlockType* blocks) : width(width), height(height), depth(depth), blocks(blocks) {
 		assert(0 < width && "invalid chunk width");
 		assert(0 < depth && "invalid chunk depth");
 		assert(0 < height && "invalid chunk height");
 	}
 
 	inline void allocate() {
-		data = new BlockType[width * height * depth];
+		blocks = new BlockType[width * height * depth];
 	}
 
 	inline void free() {
-		delete[] data;
+		delete[] blocks;
 	}
 
 	inline int size() {
@@ -63,7 +111,7 @@ public:
 			return BlockType::Air;
 		}
 
-		return data[x + z * width + y * width * depth];
+		return blocks[x + z * width + y * width * depth];
 	}
 
 	inline BlockType get_block(const vmath::ivec3 &xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
@@ -75,30 +123,30 @@ public:
 		assert(0 <= y && y < height && "set_block invalid y coordinate");
 		assert(0 <= z && z < depth && "set_block invalid z coordinate");
 
-		data[x + z * width + y * width * depth] = val;
+		blocks[x + z * width + y * width * depth] = val;
 	}
 
 	inline void set_block(vmath::ivec3 xyz, BlockType val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
 	inline void set_block(vmath::ivec4 xyz_, BlockType val) { return set_block(xyz_[0], xyz_[1], xyz_[2], val); }
 
 	inline bool all_air() {
-		return std::find_if(data, data + size(), [](BlockType b) {return b != BlockType::Air; }) == (data + size());
+		return std::find_if(blocks, blocks + size(), [](BlockType b) {return b != BlockType::Air; }) == (blocks + size());
 	}
 
 	inline bool any_air() {
-		return std::find(data, data + size(), BlockType::Air) < (data + size());
+		return std::find(blocks, blocks + size(), BlockType::Air) < (blocks + size());
 	}
 
 	inline bool any_translucent() {
-		return std::find_if(data, data + size(), [](BlockType b) { return b.is_translucent(); }) < (data + size());
+		return std::find_if(blocks, blocks + size(), [](BlockType b) { return b.is_translucent(); }) < (blocks + size());
 	}
 
 	inline void set_all_air() {
-		memset(this->data, (uint8_t)BlockType::Air, sizeof(BlockType) * size());
+		memset(this->blocks, (uint8_t)BlockType::Air, sizeof(BlockType) * size());
 	}
 
 	inline int count_air() {
-		return std::count(data, data + size(), BlockType::Air);
+		return std::count(blocks, blocks + size(), BlockType::Air);
 	}
 
 	inline char* print_y_layer(int layer) {

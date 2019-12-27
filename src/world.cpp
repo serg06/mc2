@@ -29,9 +29,9 @@ namespace WorldTests {
 		for (auto &mini2 : chunk->minis) {
 			bool has_air = false, has_stone = false, has_grass = false;
 			for (int i = 0; i < MINICHUNK_SIZE; i++) {
-				has_air |= mini2.data[i] == BlockType::Air;
-				has_stone |= mini2.data[i] == BlockType::Stone;
-				has_grass |= mini2.data[i] == BlockType::Grass;
+				has_air |= mini2.blocks[i] == BlockType::Air;
+				has_stone |= mini2.blocks[i] == BlockType::Stone;
+				has_grass |= mini2.blocks[i] == BlockType::Grass;
 			}
 
 			if (has_air && has_stone && has_grass) {

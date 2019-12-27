@@ -68,17 +68,17 @@ public:
 
 	// split chunk into minichunks
 	inline void gen_minichunks() {
-		assert(data != nullptr);
+		assert(blocks != nullptr);
 
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
 			// create mini and populate it
-			minis[i].data = data + i * MINICHUNK_SIZE;
+			minis[i].blocks = blocks + i * MINICHUNK_SIZE;
 			minis[i].set_coords({ coords[0], i*MINICHUNK_HEIGHT, coords[1] });
 		}
 	}
 
 	inline MiniChunk* get_mini_with_y_level(int y) {
-		if (!data) {
+		if (!blocks) {
 			return nullptr;
 		}
 

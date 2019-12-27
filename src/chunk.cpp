@@ -60,7 +60,7 @@ void Chunk::generate() {
 	FastNoise fn;
 
 	// create chunk
-	if (data == nullptr) {
+	if (blocks == nullptr) {
 		allocate();
 	}
 	set_all_air();
