@@ -440,7 +440,7 @@ public:
 		for (auto &mini : minis_to_draw) {
 			mini->render_meshes(glInfo);
 		}
-		
+
 		for (auto &mini : minis_to_draw) {
 			mini->render_water_meshes(glInfo);
 		}
@@ -1107,6 +1107,69 @@ public:
 		// generated mini
 		return true;
 	}
+
+	///**
+	// * ? Get NEGATIVE? height liquid should be draw at, given negative water level.
+	// * (I.e. fullness level goes from 0 (full) to 7 (almost empty), and we return a similar ratio.)
+	// */
+	//constexpr inline float liquid_level_to_height(int liquid_level) {
+	//	// if empty (8 (or more)), height is 0 -- WHY? Shouldn't it be 1?
+	//	if (liquid_level >= 8) {
+	//		liquid_level = 0;
+	//	}
+
+	//	// liquidLevel is in [0,   7  ]
+	//	// result      is in [1/9, 8/9]
+	//	return (liquid_level + 1) / 9.0f;
+	//}
+
+	//inline float get_liquid_height(int x, int y, int z, BlockType block) {
+	//	int sumDivisor = 0;
+	//	float heightSum = 0.0F;
+
+	//	// for all blocks around the corner
+	//	for (int i = 0; i < 4; ++i) {
+
+	//		// (newX, y, newZ) is one block surrounding the corner (x, y, z)
+	//		int newX = x - (i & 1); // goes x, x-1, x, x-1
+	//		int newZ = z - (i >> 1 & 1); // goes z, z, z-1, z-1
+
+	//		// if same liquid on top, set to max height
+	//		if (get_type(newX, y + 1, newZ) == block) {
+	//			return 1.0f;
+	//		}
+
+	//		// get material at (newX, y, newZ)
+	//		BlockType newBlock = get_type(newX, y, newZ);
+
+	//		// if same material as the liquid we're deciding height for,
+	//		if (newBlock == block)
+	//		{
+	//			// get liquid level at (newX, y, newZ)
+	//			// NOTE: liquid level 0 = max, 7 = min.
+	//			int liquidLevel = get_metadata(newX, y, newZ).get_liquid_level();
+
+	//			// ? sanity check + if minimum level
+	//			if (liquidLevel >= 8 || liquidLevel == 0)
+	//			{
+	//				heightSum += liquid_level_to_height(liquidLevel) * 10.0F;
+	//				sumDivisor += 10;
+	//			}
+
+	//			heightSum += liquid_level_to_height(liquidLevel);
+	//			++sumDivisor;
+	//		}
+	//		// if newMaterial is different than given material and non-solid (e.g. air or a different liquid)
+	//		else if (!newBlock.isSolid())
+	//		{
+	//			// increase sum/divisor, but have a much smaller effect than when same liquid
+	//			++heightSum;
+	//			++sumDivisor;
+	//		}
+	//	}
+
+	//	return 1.0F - heightSum / (float)sumDivisor;
+	//}
 
 	MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini);
 };
