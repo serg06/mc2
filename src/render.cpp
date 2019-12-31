@@ -370,7 +370,7 @@ namespace {
 			}
 		}
 
-		// leaves
+		// leaves.png
 
 		// let's make sure non-transparent spots are 100% non-transparent
 		if (strcmp(tex_name, "leaves") == 0) {
@@ -395,6 +395,18 @@ namespace {
 					if (data[i] > 0) {
 						data[i] = 255;
 					}
+				}
+			}
+		}
+
+		// water_square_light.png
+
+		// let's make water_square_light lighter than default
+		if (strcmp(tex_name, "water_square_light") == 0) {
+			for (int i = 0; i < BLOCK_TEXTURE_HEIGHT * BLOCK_TEXTURE_WIDTH * TEXTURE_COMPONENTS; i++) {
+				// ALPHA
+				if ((i % 4) == 3) {
+					data[i] *= 0.75f;
 				}
 			}
 		}

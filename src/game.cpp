@@ -220,18 +220,22 @@ void App::render(float time) {
 	if (show_debug_info) {
 		char buf[256];
 		ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
+		int y_offset = 0;
 
 		sprintf(buf, "FPS: %-4.1f (%d ms) (%d distance)", fps, (int)(dt * 1000), min_render_distance);
-		render_text(&glInfo, { 0, 0 }, screen_dimensions, buf, strlen(buf));
+		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 
 		sprintf(buf, "Position: (%6.1f, %6.1f, %6.1f)", char_position[0], char_position[1], char_position[2]);
-		render_text(&glInfo, { 0, 1 }, screen_dimensions, buf, strlen(buf));
+		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 
 		sprintf(buf, "Facing:   (%6.1f, %6.1f, %6.1f)", direction[0], direction[1], direction[2]);
-		render_text(&glInfo, { 0, 2 }, screen_dimensions, buf, strlen(buf));
+		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 
 		sprintf(buf, "Face in water: %d", (int)in_water);
-		render_text(&glInfo, { 0, 3 }, screen_dimensions, buf, strlen(buf));
+		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+
+		sprintf(buf, "Held block: %d", held_block);
+		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 	}
 
 	// get polygon mode
@@ -649,13 +653,21 @@ void App::onMouseButton(int button, int action) {
 
 			// if we're not in the way, place it
 			if (result == end(intersecting_blocks)) {
-				world->add_block(desired_position, BlockType::StillWater);
+				world->add_block(desired_position, held_block);
 			}
 		}
 	}
 }
 
-void App::onMouseWheel(int pos) {}
+void App::onMouseWheel(double scroll_direction) {
+	// scrolled up   => scroll_direction > 0
+	// scrolled down => scroll_direction < 0
+	assert(scroll_direction != 0 && "onMouseWheel called with invalid scroll direction");
+
+	// increment/decrement block type
+	int scroll_offset = scroll_direction > 0 ? 1 : -1;
+	held_block = BlockType((int)held_block + scroll_offset);
+}
 
 namespace {
 	/* GLFW/GL callback functions */

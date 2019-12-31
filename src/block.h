@@ -282,6 +282,7 @@ public:
 	// wew
 	operator Value() const { return value; }
 	operator uint8_t() const { return value; }
+	operator int() const { return value; }
 
 	// prevent if(block)
 	explicit operator bool() = delete;

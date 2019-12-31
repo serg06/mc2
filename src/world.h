@@ -632,7 +632,7 @@ public:
 	}
 
 	static inline bool is_face_visible(BlockType &block, BlockType &face_block) {
-		return face_block.is_transparent() || (face_block.is_translucent() && !block.is_translucent());
+		return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
 	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, BlockType(&result)[16][16]) {

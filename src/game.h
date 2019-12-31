@@ -57,6 +57,7 @@ public:
 	int wew = 0;
 	bool show_debug_info = false;
 	double fps = 0;
+	BlockType held_block = BlockType::StillWater;
 
 	App() {}
 	void run();
@@ -72,7 +73,7 @@ public:
 	void onMouseMove(GLFWwindow* window, double x, double y);
 	void onResize(GLFWwindow* window, int width, int height);
 	void onMouseButton(int button, int action);
-	void onMouseWheel(int pos);
+	void onMouseWheel(double scroll_direction);
 
 	void onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
 

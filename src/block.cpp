@@ -5,7 +5,7 @@ const std::unordered_map<BlockType::Value, std::string> BlockType::top_texture_n
 	{ BlockType::Stone, "stone" },
 	{ BlockType::Grass, "grass_top" },
 	{ BlockType::StillWater, "water_square" },
-	{ BlockType::FlowingWater, "water_square" },
+	{ BlockType::FlowingWater, "water_square_light" },
 	{ BlockType::OakWood, "tree_top" },
 	{ BlockType::OakLeaves, "leaves" },
 	{ BlockType::DiamondBlock, "blockDiamond" },
@@ -16,7 +16,7 @@ const std::unordered_map<BlockType::Value, std::string> BlockType::bottom_textur
 	{ BlockType::Stone, "stone" },
 	{ BlockType::Grass, "dirt" },
 	{ BlockType::StillWater, "water_square" },
-	{ BlockType::FlowingWater, "water_square" },
+	{ BlockType::FlowingWater, "water_square_light" },
 	{ BlockType::OakWood, "tree_top" },
 	{ BlockType::OakLeaves, "leaves" },
 	{ BlockType::DiamondBlock, "blockDiamond" },
@@ -27,7 +27,7 @@ const std::unordered_map<BlockType::Value, std::string> BlockType::side_texture_
 	{ BlockType::Stone, "stone" },
 	{ BlockType::Grass, "grass_side" },
 	{ BlockType::StillWater, "water_square" },
-	{ BlockType::FlowingWater, "water_square" },
+	{ BlockType::FlowingWater, "water_square_light" },
 	{ BlockType::OakWood, "tree_side" },
 	{ BlockType::OakLeaves, "leaves" },
 	{ BlockType::DiamondBlock, "blockDiamond" },
@@ -38,6 +38,7 @@ const std::unordered_map<BlockType::Value, std::string> BlockType::side_texture_
 const bool BlockType::translucent_blocks[MAX_BLOCK_TYPES] = {
 	// air, flowing water, still water
 	true,  false, false, false, false, false, false, false, true, true,  false, false, false, false, false, false,
+	// leaves
 	false, false, true,  false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
@@ -59,7 +60,7 @@ const bool BlockType::translucent_blocks[MAX_BLOCK_TYPES] = {
 const bool BlockType::nonsolid_blocks[MAX_BLOCK_TYPES] = {
 	// air, flowing water, still water
 	true,  false, false, false, false, false, false, false, true, true,  false, false, false, false, false, false,
-	false, false, true,  false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
