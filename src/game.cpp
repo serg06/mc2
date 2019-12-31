@@ -234,7 +234,7 @@ void App::render(float time) {
 		sprintf(buf, "Face in water: %d", (int)in_water);
 		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 
-		sprintf(buf, "Held block: %d", held_block);
+		sprintf(buf, "Held block: %d (%s)", (int)held_block, held_block.side_texture().c_str());
 		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 	}
 
