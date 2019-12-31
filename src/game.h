@@ -38,7 +38,7 @@ public:
 	// key inputs
 	bool held_keys[GLFW_KEY_LAST + 1];
 	bool noclip = false;
-	unsigned min_render_distance = 3;
+	unsigned min_render_distance = 0;
 
 	// movement
 	vec4 char_position = { 8.0f, 73.0f, 8.0f, 1.0f };

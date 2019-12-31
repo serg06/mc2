@@ -72,8 +72,46 @@ public:
 	// count how many times render() has been called
 	int rendered = 0;
 
+	// what tick the world is at
+	// TODO: private
+	int current_tick = 0;
+
+	// water propagation min-priority queue
+	// maps <tick to propagate water at> to <coordinate of water>
+	// TODO: uniqueness (have hashtable which maps coords -> tick, and always keep earliest tick when adding)
+	std::priority_queue<std::pair<int, vmath::ivec3>, std::vector<std::pair<int, vmath::ivec3>>, std::greater<std::pair<int, vmath::ivec3>>> water_propagation_queue;
+
 	World() {
 
+	}
+
+	// update tick to *new_tick*
+	inline void update_tick(int new_tick) {
+		// can only grow, not shrink
+		if (new_tick <= current_tick) {
+			return;
+		}
+
+		current_tick = new_tick;
+
+		char buf[256];
+		sprintf(buf, "Update tick to %d\n", new_tick);
+		OutputDebugString(buf);
+
+		// propagate any water we need to propagate
+		while (!water_propagation_queue.empty()) {
+			// get item from queue
+			auto &[tick, xyz] = water_propagation_queue.top();
+
+			// if tick is in the future, ignore
+			if (tick > current_tick) {
+				break;
+			}
+
+			// do it
+			water_propagation_queue.pop();
+			propagate_water(xyz[0], xyz[1], xyz[2]);
+		}
 	}
 
 	// enqueue mesh generation of this mini
@@ -321,6 +359,9 @@ public:
 	// get minichunk that contains block at (x, y, z)
 	inline MiniChunk* get_mini_containing_block(int x, int y, int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
+		if (chunk == nullptr) {
+			return nullptr;
+		}
 		return chunk->get_mini_with_y_level((y / 16) * 16);
 	}
 
@@ -370,8 +411,24 @@ public:
 		return chunk->get_block(chunk_coords);
 	}
 
-	inline BlockType get_type(vmath::ivec3 xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
-	inline BlockType get_type(vmath::ivec4 xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
+	inline BlockType get_type(const vmath::ivec3 &xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
+	inline BlockType get_type(const vmath::ivec4 &xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
+
+	// set a block's type
+	// inefficient when called repeatedly
+	inline void set_type(int x, int y, int z, const BlockType &val) {
+		Chunk* chunk = get_chunk_containing_block(x, z);
+
+		if (!chunk) {
+			return;
+		}
+
+		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
+		chunk->set_block(chunk_coords, val);
+	}
+
+	inline void set_type(const vmath::ivec3 &xyz, const BlockType &val) { return set_type(xyz[0], xyz[1], xyz[2], val); }
+	inline void set_type(const vmath::ivec4 &xyz_, const BlockType &val) { return set_type(xyz_[0], xyz_[1], xyz_[2], val); }
 
 	inline bool check_if_covered(MiniChunk &mini) {
 		// if contains any translucent blocks, don't know how to handle that yet
@@ -989,7 +1046,13 @@ public:
 	// mini: the mini that changed
 	// block: the mini-coordinates of the block that was added/deleted
 	// TODO: Use block.
-	void on_mini_update(OpenGLInfo* glInfo, MiniChunk* mini, vmath::ivec3 block) {
+	void on_mini_update(MiniChunk* mini, vmath::ivec3 block) {
+		// DEBUG: commented
+		//// for now, don't care if something was done in an unloaded mini
+		//if (mini == nullptr) {
+		//	return;
+		//}
+
 		// need to regenerate self and neighbors
 		vector<MiniChunk*> minis_to_regenerate = { mini };
 
@@ -1007,7 +1070,6 @@ public:
 			mini->invisible = mini->all_air() || check_if_covered(*mini);
 			if (!mini->invisible) {
 				MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
-				//MiniChunkMesh* mesh = gen_minichunk_mesh_gpu(glInfo, mini);
 
 				MiniChunkMesh* non_water = new MiniChunkMesh;
 				MiniChunkMesh* water = new MiniChunkMesh;
@@ -1026,34 +1088,52 @@ public:
 				mini->mesh = non_water;
 				mini->water_mesh = water;
 
-				mini->update_quads_buf(glInfo);
+				if (!mini->meshes_updated) {
+					mini->mesh_lock.lock();
+					if (!mini->meshes_updated) {
+						mini->meshes_updated = true;
+					}
+					mini->mesh_lock.unlock();
+				}
 			}
 		}
+
+		// finally, add nearby waters to propagation queue
+		// TODO: do this smarter?
+		schedule_water_propagation(block);
+		schedule_water_propagation_neighbors(block);
 	}
 
-	void destroy_block(OpenGLInfo* glInfo, int x, int y, int z) {
+	// update meshes
+	void on_block_update(const vmath::ivec3 &block) {
+		MiniChunk* mini = get_mini_containing_block(block[0], block[1], block[2]);
+		ivec3 mini_coords = get_mini_relative_coords(block[0], block[1], block[2]);
+		on_mini_update(mini, block);
+	}
+
+	void destroy_block(int x, int y, int z) {
 		// update data
 		MiniChunk* mini = get_mini_containing_block(x, y, z);
 		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, BlockType::Air);
 
 		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since >=3 sides of the destroyed block are facing its own mini.)
-		on_mini_update(glInfo, mini, { x, y, z });
+		on_mini_update(mini, { x, y, z });
 	}
 
-	void destroy_block(OpenGLInfo* glInfo, ivec3 xyz) { return destroy_block(glInfo, xyz[0], xyz[1], xyz[2]); };
+	void destroy_block(ivec3 xyz) { return destroy_block(xyz[0], xyz[1], xyz[2]); };
 
-	void add_block(OpenGLInfo* glInfo, int x, int y, int z, BlockType block) {
+	void add_block(int x, int y, int z, BlockType block) {
 		// update data
 		MiniChunk* mini = get_mini_containing_block(x, y, z);
 		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, block);
 
 		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since the block always has at least 3 sides inside its mini.)
-		on_mini_update(glInfo, mini, { x, y, z });
+		on_mini_update(mini, { x, y, z });
 	}
 
-	void add_block(OpenGLInfo* glInfo, ivec3 xyz, BlockType block) { return add_block(glInfo, xyz[0], xyz[1], xyz[2], block); };
+	void add_block(ivec3 xyz, BlockType block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
 	// generate a minichunk mutex from queue
 	bool gen_minichunk_mesh_from_queue(vec3 player_pos) {
@@ -1106,6 +1186,133 @@ public:
 
 		// generated mini
 		return true;
+	}
+
+	// TODO
+	inline Metadata get_metadata(int x, int y, int z) {
+		Chunk* chunk = get_chunk_containing_block(x, z);
+
+		if (!chunk) {
+			return 0;
+		}
+
+		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
+		return chunk->get_metadata(chunk_coords);
+	}
+
+	inline Metadata get_metadata(const vmath::ivec3 &xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
+	inline Metadata get_metadata(const vmath::ivec4 &xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
+
+	// TODO
+	inline void set_metadata(int x, int y, int z, Metadata val) {
+		Chunk* chunk = get_chunk_containing_block(x, z);
+
+		if (!chunk) {
+			OutputDebugString("Warning: Set metadata for unloaded chunk.\n");
+			return;
+		}
+
+		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
+		chunk->set_metadata(chunk_coords, val);
+	}
+
+	inline void set_metadata(const vmath::ivec3 &xyz, const Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
+	inline void set_metadata(const vmath::ivec4 &xyz_, const Metadata &val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
+
+	// TODO
+	inline void schedule_water_propagation(const ivec3 &xyz) {
+		// push to water propagation priority queue
+		water_propagation_queue.push({ current_tick + 5, xyz });
+	}
+
+	inline void schedule_water_propagation_neighbors(const ivec3 &xyz) {
+		auto directions = { INORTH, ISOUTH, IEAST, IWEST, IDOWN };
+		for (const auto &ddir : directions) {
+			schedule_water_propagation(xyz + ddir);
+		}
+	}
+
+	// get liquid at (x, y, z) and propagate it
+	inline void propagate_water(int x, int y, int z) {
+		ivec3 coords = { x, y, z };
+
+		// get chunk which block is in, and if it's unloaded, don't both propagating
+		auto chunk = get_chunk_containing_block(x, z);
+		if (chunk == nullptr) {
+			return;
+		}
+
+		// get block at propagation location
+		auto block = get_type(x, y, z);
+
+		// if we're air or flowing water, adjust height
+		if (block == BlockType::Air || block == BlockType::FlowingWater) {
+			char buf[256];
+			sprintf(buf, "Propagating water at (%d, %d, %d)\n", x, y, z);
+			OutputDebugString(buf);
+
+			uint8_t water_level = block == BlockType::FlowingWater ? get_metadata(x, y, z).get_liquid_level() : block == BlockType::StillWater ? 7 : 0;
+			uint8_t new_water_level = water_level;
+
+			// if water on top, max height
+			auto top_block = get_type(coords + IUP);
+			if (top_block == BlockType::StillWater || top_block == BlockType::FlowingWater) {
+				// update water level if needed
+				new_water_level = 7; // max
+				if (new_water_level != water_level) {
+					set_type(x, y, z, BlockType::StillWater); // DEBUG: use flowing water
+					set_metadata(x, y, z, new_water_level);
+					schedule_water_propagation_neighbors(coords);
+					on_block_update(coords);
+				}
+				return;
+			}
+
+			// record highest water level in side blocks
+			uint8_t highest_side_water = 0;
+			auto directions = { INORTH, ISOUTH, IEAST, IWEST };
+			for (auto &ddir : directions) {
+				BlockType side_block = get_type(coords + ddir);
+
+				// if side block is still, its level is max
+				if (side_block == BlockType::StillWater) {
+					highest_side_water = 7;
+					break;
+				}
+
+				// if side block is flowing, update highest side water
+				else if (side_block == BlockType::FlowingWater) {
+					auto side_water_level = get_metadata(coords + ddir).get_liquid_level();
+					if (side_water_level > highest_side_water) {
+						highest_side_water = side_water_level;
+						if (side_water_level == 7) {
+							break;
+						}
+					}
+				}
+			}
+
+			// TODO: ONCE WE UPDATE A BLOCK, CALL ON_BLOCK_UPDATE
+
+			// update water level if needed
+			new_water_level = highest_side_water - 1;
+			if (new_water_level != water_level) {
+				// if water level in range, set it
+				if (0 <= new_water_level && new_water_level <= 7) {
+					// DEBUG: this should be FlowingWater.
+					set_type(x, y, z, BlockType::StillWater);
+					set_metadata(x, y, z, new_water_level);
+					schedule_water_propagation_neighbors(coords);
+					on_block_update(coords);
+				}
+				// otherwise destroy water
+				else if (block == BlockType::FlowingWater) {
+					set_type(x, y, z, BlockType::Air);
+					schedule_water_propagation_neighbors(coords);
+					on_block_update(coords);
+				}
+			}
+		}
 	}
 
 	///**

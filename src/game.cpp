@@ -139,6 +139,7 @@ void App::render(float time) {
 	const float dt = time - last_render_time;
 	last_render_time = time;
 	fps = (1 - 5 * dt) * fps + 5;
+	world->update_tick((int)floorf(time * 20));
 
 	/* CHANGES IN WORLD */
 
@@ -629,7 +630,7 @@ void App::onMouseButton(int button, int action) {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 		// if staring at valid block
 		if (staring_at[1] >= 0) {
-			world->destroy_block(&glInfo, staring_at);
+			world->destroy_block(staring_at);
 		}
 	}
 
@@ -648,7 +649,7 @@ void App::onMouseButton(int button, int action) {
 
 			// if we're not in the way, place it
 			if (result == end(intersecting_blocks)) {
-				world->add_block(&glInfo, desired_position, BlockType::DiamondBlock);
+				world->add_block(desired_position, BlockType::StillWater);
 			}
 		}
 	}
