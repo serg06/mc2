@@ -180,14 +180,10 @@ public:
 		Quad3D* gpu_quads = (Quad3D*)glMapNamedBufferRange(quad_data_buf, 0, sizeof(Quad3D) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 		// update quads
-		// TODO: once we get lighting and metadata figured out, just use std::copy.
-		for (int i = 0; i < quads.size(); i++) {
-			// update blocks
-			gpu_quads[i].block = (BlockType)quads[i].block;
-			gpu_quads[i].corner1 = quads[i].corner1;
-			gpu_quads[i].corner2 = quads[i].corner2;
-			gpu_quads[i].face = quads[i].face;
+		std::copy(quads.begin(), quads.end(), gpu_quads);
 
+		// error check
+		for (int i = 0; i < quads.size(); i++) {
 			// error check:
 			// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
 			ivec3 diffs = quads[i].corner2 - quads[i].corner1;
@@ -207,13 +203,10 @@ public:
 		}
 
 		// update water quads
-		for (int i = 0; i < water_quads.size(); i++) {
-			// update blocks
-			gpu_quads[i + quads.size()].block = (BlockType)water_quads[i].block;
-			gpu_quads[i + quads.size()].corner1 = water_quads[i].corner1;
-			gpu_quads[i + quads.size()].corner2 = water_quads[i].corner2;
-			gpu_quads[i + quads.size()].face = water_quads[i].face;
+		std::copy(water_quads.begin(), water_quads.end(), gpu_quads + quads.size());
 
+		// error check
+		for (int i = 0; i < water_quads.size(); i++) {
 			// error check:
 			// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
 			ivec3 diffs = water_quads[i].corner2 - water_quads[i].corner1;
@@ -308,7 +301,7 @@ public:
 		// vao: match attributes to buffers
 		glVertexArrayVertexBuffer(vao, glInfo->quad_data_bidx, quad_data_buf, 0, sizeof(Quad3D));
 
-		glVertexArrayVertexBuffer(vao, glInfo->q_base_coords_bidx, base_coords_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(vao, glInfo->q_base_coords_bidx, base_coords_buf, 0, sizeof(coords));
 
 		// vao: extra properties
 		glBindVertexArray(vao);
