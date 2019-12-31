@@ -27,10 +27,11 @@
 
 using namespace std;
 
-class Quad2D {
-public:
+struct Quad2D {
 	BlockType block;
 	ivec2 corners[2];
+	uint8_t lighting;
+	Metadata metadata;
 };
 
 inline bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
