@@ -95,6 +95,8 @@ struct OpenGLInfo {
 	const GLuint q_corner2_attr_idx = 4;
 	const GLuint q_face_attr_idx = 5;
 	const GLuint q_base_coords_attr_idx = 6;
+	const GLuint q_lighting_attr_idx = 7;
+	const GLuint q_metadata_attr_idx = 8;
 
 	// attribute indices for TEXT VAO
 	const GLuint text_char_code_attr_idx = 0;
@@ -129,7 +131,7 @@ struct Quad3D {
 	vmath::ivec3 corner1;
 	vmath::ivec3 corner2;
 	vmath::ivec3 face;
-	uint8_t light_level; // left 4 bits: sunlight. right 4 bits: torchlight.
+	uint8_t lighting; // left 4 bits: sunlight. right 4 bits: torchlight.
 	uint8_t metadata; // other metadata that a block can have. Should never use more than 4 bits.
 };
 #pragma pop()

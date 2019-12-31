@@ -286,12 +286,16 @@ public:
 		glEnableVertexArrayAttrib(vao, glInfo->q_corner2_attr_idx);
 		glEnableVertexArrayAttrib(vao, glInfo->q_face_attr_idx);
 		glEnableVertexArrayAttrib(vao, glInfo->q_base_coords_attr_idx);
+		glEnableVertexArrayAttrib(vao, glInfo->q_lighting_attr_idx);
+		glEnableVertexArrayAttrib(vao, glInfo->q_metadata_attr_idx);
 
 		// vao: set up formats for Quad's attributes, 1 at a time
 		glVertexArrayAttribIFormat(vao, glInfo->q_block_type_attr_idx, 1, GL_UNSIGNED_BYTE, offsetof(Quad3D, block));
 		glVertexArrayAttribIFormat(vao, glInfo->q_corner1_attr_idx, 3, GL_INT, offsetof(Quad3D, corner1));
 		glVertexArrayAttribIFormat(vao, glInfo->q_corner2_attr_idx, 3, GL_INT, offsetof(Quad3D, corner2));
 		glVertexArrayAttribIFormat(vao, glInfo->q_face_attr_idx, 3, GL_INT, offsetof(Quad3D, face));
+		glVertexArrayAttribIFormat(vao, glInfo->q_lighting_attr_idx, 1, GL_UNSIGNED_BYTE, offsetof(Quad3D, lighting));
+		glVertexArrayAttribIFormat(vao, glInfo->q_metadata_attr_idx, 1, GL_UNSIGNED_BYTE, offsetof(Quad3D, metadata));
 
 		glVertexArrayAttribIFormat(vao, glInfo->q_base_coords_attr_idx, 3, GL_INT, 0);
 
@@ -300,6 +304,8 @@ public:
 		glVertexArrayAttribBinding(vao, glInfo->q_corner1_attr_idx, glInfo->quad_data_bidx);
 		glVertexArrayAttribBinding(vao, glInfo->q_corner2_attr_idx, glInfo->quad_data_bidx);
 		glVertexArrayAttribBinding(vao, glInfo->q_face_attr_idx, glInfo->quad_data_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_lighting_attr_idx, glInfo->quad_data_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_metadata_attr_idx, glInfo->quad_data_bidx);
 
 		glVertexArrayAttribBinding(vao, glInfo->q_base_coords_attr_idx, glInfo->q_base_coords_bidx);
 

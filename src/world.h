@@ -779,6 +779,8 @@ public:
 
 		for (int i = 0; i < 6; i++) {
 			quads[i].block = BlockType::Outline; // outline
+			quads[i].lighting = 0; // TODO: set to max instead?
+			quads[i].metadata = 0;
 		}
 
 		// SOUTH

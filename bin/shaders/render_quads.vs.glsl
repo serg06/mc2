@@ -14,6 +14,8 @@ layout (location = 3) in ivec3 q_corner1;
 layout (location = 4) in ivec3 q_corner2;
 layout (location = 5) in ivec3 q_face;
 layout (location = 6) in ivec3 q_base_coords;
+layout (location = 7) in uint q_lighting;
+layout (location = 8) in uint q_metadata;
 
 //out vec2 vs_tex_coords; // texture coords in [0.0, 1.0]
 out uint vs_block_type;
@@ -21,6 +23,8 @@ out ivec3 vs_face;
 out ivec3 vs_corner1;
 out ivec3 vs_corner2;
 out ivec3 vs_base_coords;
+out uint vs_lighting;
+out uint vs_metadata;
 
 layout (std140, binding = 0) uniform UNI_IN
 {
@@ -48,4 +52,6 @@ void main(void)
 	vs_corner1 = q_corner1;
 	vs_corner2 = q_corner2;
 	vs_base_coords = q_base_coords;
+	vs_lighting = q_lighting;
+	vs_metadata = q_metadata;
 }

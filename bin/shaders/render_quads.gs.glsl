@@ -1,5 +1,7 @@
 #version 450 core
 
+#define BLOCK_FLOWING_WATER 8
+
 layout (points) in;
 layout (triangle_strip, max_vertices = 4) out;
 
@@ -22,6 +24,8 @@ in ivec3 vs_face[];
 in ivec3 vs_corner1[];
 in ivec3 vs_corner2[];
 in ivec3 vs_base_coords[];
+in uint vs_lighting[];
+in uint vs_metadata[];
 
 out vec2 gs_tex_coords;
 out flat uint gs_block_type;
@@ -34,9 +38,20 @@ void main(void)
 	gs_block_type = vs_block_type[0];
 	gs_face = vs_face[0];
 
-	ivec3 corner1 = vs_corner1[0];
-	ivec3 corner2 = vs_corner2[0];
-	ivec3 diffs = corner2 - corner1;
+	vec3 corner1 = vs_corner1[0];
+	vec3 corner2 = vs_corner2[0];
+	ivec3 diffs = vs_corner2[0] - vs_corner1[0];
+
+	// render top of flowing water by lowering corners depending on liquid level
+	if (gs_block_type == BLOCK_FLOWING_WATER && gs_face[1] > 0 && vs_metadata[0] < 6) {
+		corner1[1] += (vs_metadata[0] - 7.0f)/8.0f;
+		corner2[1] += (vs_metadata[0] - 7.0f)/8.0f;
+	}
+
+	// render side of flowing water by lowering corners depending on liquid level
+	if (gs_block_type == BLOCK_FLOWING_WATER && gs_face[1] == 0 && vs_metadata[0] < 6) {
+		return;
+	}
 
 	// figure out which index stays the same and which indices change
 	// TODO: pass in face as int, then get zero_idx by face % 3, and regenerate face vec easily
