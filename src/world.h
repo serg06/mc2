@@ -1289,6 +1289,24 @@ public:
 		}
 	}
 
+	// given water at (x, y, z), find all directions which lead to A shortest path down
+	// radius = 5
+	// TODO
+	inline std::vector<vmath::ivec3> find_shortest_water_path(int x, int y, int z) {
+		std::vector<vmath::ivec3> result;
+
+		vmath::ivec3 coords = { x, y, z };
+		auto directions = { INORTH, ISOUTH, IEAST, IWEST };
+
+		assert(get_type(coords + IDOWN).is_solid() && "block under starter block is non-solid!");
+
+		
+
+		for (auto &ddir : directions) {
+
+		}
+	}
+
 	///**
 	// * ? Get NEGATIVE? height liquid should be draw at, given negative water level.
 	// * (I.e. fullness level goes from 0 (full) to 7 (almost empty), and we return a similar ratio.)
