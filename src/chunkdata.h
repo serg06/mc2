@@ -95,10 +95,13 @@ public:
 		blocks = new BlockType[width * height * depth];
 		metadatas = new Metadata[width * height * depth];
 		lightings = new Lighting[width * height * depth];
+		memset(lightings, 0, sizeof(Lighting) * width * height * depth);
 	}
 
 	inline void free() {
 		delete[] blocks;
+		delete[] metadatas;
+		delete[] lightings;
 	}
 
 	inline int size() {

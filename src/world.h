@@ -365,6 +365,34 @@ public:
 		return chunk->get_mini_with_y_level((y / 16) * 16);
 	}
 
+
+	// get minichunks that touch any face of the block at (x, y, z)
+	inline vector<MiniChunk*> get_minis_touching_block(int x, int y, int z) {
+		vector<MiniChunk*> result;
+		vector<ivec3> potential_mini_coords;
+
+		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
+		potential_mini_coords.push_back(mini_coords);
+
+		if (x % 16 == 0) potential_mini_coords.push_back(mini_coords + IWEST);
+		if (x % 16 == 15) potential_mini_coords.push_back(mini_coords + IEAST);
+
+		if (y % 16 == 0 && y > 0) potential_mini_coords.push_back(mini_coords + IDOWN);
+		if (y % 16 == 15 && y < 255) potential_mini_coords.push_back(mini_coords + IUP);
+
+		if (z % 16 == 0) potential_mini_coords.push_back(mini_coords + INORTH);
+		if (z % 16 == 15) potential_mini_coords.push_back(mini_coords + ISOUTH);
+
+		for (auto &coords : potential_mini_coords) {
+			auto mini = get_mini(coords);
+			if (mini != nullptr) {
+				result.push_back(mini);
+			}
+		}
+
+		return result;
+	}
+
 	// get chunk-coordinates of chunk containing the block at (x, _, z)
 	inline ivec2 get_chunk_coords(int x, int z) {
 		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
@@ -1041,11 +1069,10 @@ public:
 		enqueue_mesh_gen(mini);
 
 		// regenerate neighbors' meshes
-		auto neighbors = mini->neighbors();
-		for (auto &coord : neighbors) {
-			MiniChunk* m = get_mini(coord);
-			if (m != nullptr) {
-				enqueue_mesh_gen(m);
+		auto neighbors = get_minis_touching_block(block[0], block[1], block[2]);
+		for (auto &neighbor : neighbors) {
+			if (neighbor != mini) {
+				enqueue_mesh_gen(neighbor);
 			}
 		}
 
