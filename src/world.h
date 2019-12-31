@@ -1237,10 +1237,16 @@ public:
 				return;
 			}
 
-			// record highest water level in side blocks
+			// record highest water level in side blocks, out of side blocks that are ON a block
 			uint8_t highest_side_water = 0;
 			auto directions = { INORTH, ISOUTH, IEAST, IWEST };
 			for (auto &ddir : directions) {
+				// BEAUTIFUL - don't inherit height from nearby water UNLESS it's ON A SOLID BLOCK!
+				BlockType under_side_block = get_type(coords + ddir + IDOWN);
+				if (under_side_block.is_nonsolid()) {
+					continue;
+				}
+
 				BlockType side_block = get_type(coords + ddir);
 
 				// if side block is still, its level is max
