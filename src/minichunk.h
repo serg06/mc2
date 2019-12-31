@@ -28,7 +28,7 @@ public:
 	MiniChunkMesh* water_mesh = nullptr;
 	bool meshes_updated = false;
 	// TODO: When someone else sets invisibility, we want to delete bufs as well.
-	GLuint quad_block_type_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
+	GLuint quad_data_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
 	GLuint base_coords_buf = 0;
 
 	// number of quads inside the buffer, as reading from mesh is not always reliable
@@ -177,20 +177,21 @@ public:
 		num_water_quads = water_quads.size();
 
 		// map
-		BlockType* blocks = (BlockType*)glMapNamedBufferRange(quad_block_type_buf, 0, sizeof(BlockType) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-		ivec3* corner1s = (ivec3*)glMapNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-		ivec3* corner2s = (ivec3*)glMapNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-		ivec3* faces = (ivec3*)glMapNamedBufferRange(quad_face_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		Quad3D* gpu_quads = (Quad3D*)glMapNamedBufferRange(quad_data_buf, 0, sizeof(Quad3D) * (quads.size() + water_quads.size()), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 		// update quads
+		// TODO: once we get lighting and metadata figured out, just use std::copy.
 		for (int i = 0; i < quads.size(); i++) {
 			// update blocks
-			blocks[i] = (BlockType)quads[i].block;
-			faces[i] = quads[i].face;
+			gpu_quads[i].block = (BlockType)quads[i].block;
+			gpu_quads[i].corners[0] = quads[i].corners[0];
+			gpu_quads[i].corners[1] = quads[i].corners[1];
+			gpu_quads[i].face = quads[i].face;
 
+			// error check:
+			// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
 			ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
 
-			// make sure at least one dimension is killed - i.e, it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
 			int num_diffs_0 = 0;
 			int zero_idx = 0;
 
@@ -203,24 +204,20 @@ public:
 
 			// this assert has saved me so many times!
 			assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
-
-			// working indices are always gonna be xy, xz, or yz.
-			int working_idx_1, working_idx_2;
-			gen_working_indices(zero_idx, working_idx_1, working_idx_2);
-
-			corner1s[i] = quads[i].corners[0];
-			corner2s[i] = quads[i].corners[1];
 		}
 
 		// update water quads
 		for (int i = 0; i < water_quads.size(); i++) {
 			// update blocks
-			blocks[i + quads.size()] = (BlockType)water_quads[i].block;
-			faces[i + quads.size()] = water_quads[i].face;
+			gpu_quads[i + quads.size()].block = (BlockType)water_quads[i].block;
+			gpu_quads[i + quads.size()].corners[0] = water_quads[i].corners[0];
+			gpu_quads[i + quads.size()].corners[1] = water_quads[i].corners[1];
+			gpu_quads[i + quads.size()].face = water_quads[i].face;
 
+			// error check:
+			// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
 			ivec3 diffs = water_quads[i].corners[1] - water_quads[i].corners[0];
 
-			// make sure at least one dimension is killed - i.e, it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
 			int num_diffs_0 = 0;
 			int zero_idx = 0;
 
@@ -231,27 +228,15 @@ public:
 				}
 			}
 
+			// this assert has saved me so many times!
 			assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
-
-			// working indices are always gonna be xy, xz, or yz.
-			int working_idx_1, working_idx_2;
-			gen_working_indices(zero_idx, working_idx_1, working_idx_2);
-
-			corner1s[i + quads.size()] = water_quads[i].corners[0];
-			corner2s[i + quads.size()] = water_quads[i].corners[1];
 		}
 
 		// flush
-		glFlushMappedNamedBufferRange(quad_block_type_buf, 0, sizeof(BlockType) * (quads.size() + water_quads.size()));
-		glFlushMappedNamedBufferRange(quad_corner1_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
-		glFlushMappedNamedBufferRange(quad_corner2_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
-		glFlushMappedNamedBufferRange(quad_face_buf, 0, sizeof(ivec3) * (quads.size() + water_quads.size()));
+		glFlushMappedNamedBufferRange(quad_data_buf, 0, sizeof(Quad3D) * (quads.size() + water_quads.size()));
 
 		// unmap
-		glUnmapNamedBuffer(quad_block_type_buf);
-		glUnmapNamedBuffer(quad_corner1_buf);
-		glUnmapNamedBuffer(quad_corner2_buf);
-		glUnmapNamedBuffer(quad_face_buf);
+		glUnmapNamedBuffer(quad_data_buf);
 	}
 
 	inline char* print_layer(int face, int layer) {
@@ -282,26 +267,18 @@ public:
 		return result;
 	}
 
+	// TODO: remove this from render.cpp?
 	inline void recreate_vao(const OpenGLInfo* glInfo, const GLuint size) {
 		// delete
-		glDeleteBuffers(1, &quad_block_type_buf);
-		glDeleteBuffers(1, &quad_corner1_buf);
-		glDeleteBuffers(1, &quad_corner2_buf);
-		glDeleteBuffers(1, &quad_face_buf);
+		glDeleteBuffers(1, &quad_data_buf);
 		glDeleteVertexArrays(1, &vao);
 
 		// create
-		glCreateBuffers(1, &quad_block_type_buf);
-		glCreateBuffers(1, &quad_corner1_buf);
-		glCreateBuffers(1, &quad_corner2_buf);
-		glCreateBuffers(1, &quad_face_buf);
+		glCreateBuffers(1, &quad_data_buf);
 		glCreateVertexArrays(1, &vao);
 
 		// allocate
-		glNamedBufferStorage(quad_block_type_buf, sizeof(BlockType) * size, NULL, GL_MAP_WRITE_BIT);
-		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
-		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
-		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * size, NULL, GL_MAP_WRITE_BIT);
+		glNamedBufferStorage(quad_data_buf, sizeof(Quad3D) * size, NULL, GL_MAP_WRITE_BIT);
 
 		// vao: create VAO for Quads, so we can tell OpenGL how to use it when it's bound
 
@@ -313,24 +290,24 @@ public:
 		glEnableVertexArrayAttrib(vao, glInfo->q_base_coords_attr_idx);
 
 		// vao: set up formats for Quad's attributes, 1 at a time
-		glVertexArrayAttribIFormat(vao, glInfo->q_block_type_attr_idx, 1, GL_UNSIGNED_BYTE, 0);
-		glVertexArrayAttribIFormat(vao, glInfo->q_corner1_attr_idx, 3, GL_INT, 0);
-		glVertexArrayAttribIFormat(vao, glInfo->q_corner2_attr_idx, 3, GL_INT, 0);
-		glVertexArrayAttribIFormat(vao, glInfo->q_face_attr_idx, 3, GL_INT, 0);
+		glVertexArrayAttribIFormat(vao, glInfo->q_block_type_attr_idx, 1, GL_UNSIGNED_BYTE, offsetof(Quad3D, block));
+		glVertexArrayAttribIFormat(vao, glInfo->q_corner1_attr_idx, 3, GL_INT, offsetof(Quad3D, corners));
+		glVertexArrayAttribIFormat(vao, glInfo->q_corner2_attr_idx, 3, GL_INT, offsetof(Quad3D, corners) + sizeof(ivec3)); // TODO: improve this offsetof by splitting corners into corner1 and corner2
+		glVertexArrayAttribIFormat(vao, glInfo->q_face_attr_idx, 3, GL_INT, offsetof(Quad3D, face));
+
 		glVertexArrayAttribIFormat(vao, glInfo->q_base_coords_attr_idx, 3, GL_INT, 0);
 
 		// vao: match attributes to binding indices
-		glVertexArrayAttribBinding(vao, glInfo->q_block_type_attr_idx, glInfo->quad_block_type_bidx);
-		glVertexArrayAttribBinding(vao, glInfo->q_corner1_attr_idx, glInfo->q_corner1_bidx);
-		glVertexArrayAttribBinding(vao, glInfo->q_corner2_attr_idx, glInfo->q_corner2_bidx);
-		glVertexArrayAttribBinding(vao, glInfo->q_face_attr_idx, glInfo->q_face_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_block_type_attr_idx, glInfo->quad_data_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_corner1_attr_idx, glInfo->quad_data_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_corner2_attr_idx, glInfo->quad_data_bidx);
+		glVertexArrayAttribBinding(vao, glInfo->q_face_attr_idx, glInfo->quad_data_bidx);
+
 		glVertexArrayAttribBinding(vao, glInfo->q_base_coords_attr_idx, glInfo->q_base_coords_bidx);
 
 		// vao: match attributes to buffers
-		glVertexArrayVertexBuffer(vao, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(BlockType));
-		glVertexArrayVertexBuffer(vao, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(vao, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(vao, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(vao, glInfo->quad_data_bidx, quad_data_buf, 0, sizeof(Quad3D));
+
 		glVertexArrayVertexBuffer(vao, glInfo->q_base_coords_bidx, base_coords_buf, 0, sizeof(ivec3));
 
 		// vao: extra properties

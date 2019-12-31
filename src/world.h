@@ -768,13 +768,8 @@ public:
 	}
 
 	inline void highlight_block(OpenGLInfo* glInfo, GlfwInfo* windowInfo, int x, int y, int z) {
-		// TODO: Don't recreate buffer every frame!
-
-		// Figure out corners / block types
-		BlockType blocks[6];
-		ivec3 corner1s[6];
-		ivec3 corner2s[6];
-		ivec3 faces[6];
+		// Figure out mini-relative quads
+		Quad3D quads[6];
 
 		ivec3 mini_coords = get_mini_coords(x, y, z);
 
@@ -782,78 +777,67 @@ public:
 		ivec3 block_coords = { relative_coords[0], y % 16, relative_coords[2] };
 
 		for (int i = 0; i < 6; i++) {
-			blocks[i] = BlockType::Outline; // outline
+			quads[i].block = BlockType::Outline; // outline
 		}
 
 		// SOUTH
 		//	bottom-left corner
-		corner1s[0] = block_coords + ivec3(1, 0, 1);
+		quads[0].corners[0] = block_coords + ivec3(1, 0, 1);
 		//	top-right corner
-		corner2s[0] = block_coords + ivec3(0, 1, 1);
-		faces[0] = ivec3(0, 0, 1);
+		quads[0].corners[1] = block_coords + ivec3(0, 1, 1);
+		quads[0].face = ivec3(0, 0, 1);
 
 		// NORTH
 		//	bottom-left corner
-		corner1s[1] = block_coords + ivec3(0, 0, 0);
+		quads[1].corners[0] = block_coords + ivec3(0, 0, 0);
 		//	top-right corner
-		corner2s[1] = block_coords + ivec3(1, 1, 0);
-		faces[1] = ivec3(0, 0, -1);
+		quads[1].corners[1] = block_coords + ivec3(1, 1, 0);
+		quads[1].face = ivec3(0, 0, -1);
 
 		// EAST
 		//	bottom-left corner
-		corner1s[2] = block_coords + ivec3(1, 1, 1);
+		quads[2].corners[0] = block_coords + ivec3(1, 1, 1);
 		//	top-right corner
-		corner2s[2] = block_coords + ivec3(1, 0, 0);
-		faces[2] = ivec3(1, 0, 0);
+		quads[2].corners[1] = block_coords + ivec3(1, 0, 0);
+		quads[2].face = ivec3(1, 0, 0);
 
 		// WEST
 		//	bottom-left corner
-		corner1s[3] = block_coords + ivec3(0, 1, 0);
+		quads[3].corners[0] = block_coords + ivec3(0, 1, 0);
 		//	top-right corner
-		corner2s[3] = block_coords + ivec3(0, 0, 1);
-		faces[3] = ivec3(-1, 0, 0);
+		quads[3].corners[1] = block_coords + ivec3(0, 0, 1);
+		quads[3].face = ivec3(-1, 0, 0);
 
 		// UP
 		//	bottom-left corner
-		corner1s[4] = block_coords + ivec3(0, 1, 0);
+		quads[4].corners[0] = block_coords + ivec3(0, 1, 0);
 		//	top-right corner
-		corner2s[4] = block_coords + ivec3(1, 1, 1);
-		faces[4] = ivec3(0, 1, 0);
+		quads[4].corners[1] = block_coords + ivec3(1, 1, 1);
+		quads[4].face = ivec3(0, 1, 0);
 
 		// DOWN
 		//	bottom-left corner
-		corner1s[5] = block_coords + ivec3(0, 0, 1);
+		quads[5].corners[0] = block_coords + ivec3(0, 0, 1);
 		//	top-right corner
-		corner2s[5] = block_coords + ivec3(1, 0, 0);
-		faces[5] = ivec3(0, -1, 0);
+		quads[5].corners[1] = block_coords + ivec3(1, 0, 0);
+		quads[5].face = ivec3(0, -1, 0);
 
-		GLuint quad_block_type_buf, quad_corner1_buf, quad_corner2_buf, quad_face_buf;
+		GLuint quad_data_buf;
 		GLuint mini_coords_buf;
 
-		// create buffers with just the right sizes
-		glCreateBuffers(1, &quad_block_type_buf);
-		glCreateBuffers(1, &quad_corner1_buf);
-		glCreateBuffers(1, &quad_corner2_buf);
-		glCreateBuffers(1, &quad_face_buf);
+		// create buffers
+		glCreateBuffers(1, &quad_data_buf);
 		glCreateBuffers(1, &mini_coords_buf);
 
 		// allocate them just enough space
-		glNamedBufferStorage(quad_block_type_buf, sizeof(BlockType) * 6, blocks, NULL);
-		glNamedBufferStorage(quad_corner1_buf, sizeof(ivec3) * 6, corner1s, NULL);
-		glNamedBufferStorage(quad_corner2_buf, sizeof(ivec3) * 6, corner2s, NULL);
-		glNamedBufferStorage(quad_face_buf, sizeof(ivec3) * 6, faces, NULL);
+		glNamedBufferStorage(quad_data_buf, sizeof(Quad3D) * 6, quads, NULL);
 		glNamedBufferStorage(mini_coords_buf, sizeof(ivec3), mini_coords, NULL);
-
-		// DRAW!
 
 		// quad VAO
 		glBindVertexArray(glInfo->vao_quad);
 
 		// bind to quads attribute binding point
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_block_type_bidx, quad_block_type_buf, 0, sizeof(BlockType));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner1_bidx, quad_corner1_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_corner2_bidx, quad_corner2_buf, 0, sizeof(ivec3));
-		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_face_bidx, quad_face_buf, 0, sizeof(ivec3));
+		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_data_bidx, quad_data_buf, 0, sizeof(Quad3D));
 		glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_base_coords_bidx, mini_coords_buf, 0, sizeof(ivec3));
 
 		// save properties before we overwrite them
@@ -894,10 +878,7 @@ public:
 		glBindVertexArray(0);
 
 		// DELETE
-		glDeleteBuffers(1, &quad_block_type_buf);
-		glDeleteBuffers(1, &quad_corner1_buf);
-		glDeleteBuffers(1, &quad_corner2_buf);
-		glDeleteBuffers(1, &quad_face_buf);
+		glDeleteBuffers(1, &quad_data_buf);
 		glDeleteBuffers(1, &mini_coords_buf);
 	}
 
