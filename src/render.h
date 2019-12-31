@@ -129,8 +129,8 @@ struct Quad3D {
 	vmath::ivec3 corner1;
 	vmath::ivec3 corner2;
 	vmath::ivec3 face;
-	//uint8_t light_level; // left 4 bits: sunlight. right 4 bits: torchlight.
-	//uint8_t metadata; // other metadata that a block can have. Should never use more than 4 bits.
+	uint8_t light_level; // left 4 bits: sunlight. right 4 bits: torchlight.
+	uint8_t metadata; // other metadata that a block can have. Should never use more than 4 bits.
 };
 #pragma pop()
 
