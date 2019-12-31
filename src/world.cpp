@@ -325,8 +325,8 @@ MiniChunkMesh* World::gen_minichunk_mesh(MiniChunk* mini) {
 			// if not backface (i.e. not facing (0,0,0)), move 1 forwards
 			if (face[0] > 0 || face[1] > 0 || face[2] > 0) {
 				for (auto &quad : quads) {
-					quad.corners[0] += face;
-					quad.corners[1] += face;
+					quad.corner1 += face;
+					quad.corner2 += face;
 				}
 			}
 

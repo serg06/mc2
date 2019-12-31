@@ -73,10 +73,6 @@ struct OpenGLInfo {
 	const GLuint chunk_types_bidx = 1;
 
 	const GLuint quad_data_bidx = 2;
-	// TODO: remove extras
-	const GLuint q_corner1_bidx = 3;
-	const GLuint q_corner2_bidx = 4;
-	const GLuint q_face_bidx = 5;
 	const GLuint q_base_coords_bidx = 6;
 
 	// TEXT VAO binding points
@@ -130,7 +126,8 @@ inline GLenum get_default_framebuffer_depth_attachment_type() {
 #pragma pack(push, 1)
 struct Quad3D {
 	uint8_t block;
-	vmath::ivec3 corners[2];
+	vmath::ivec3 corner1;
+	vmath::ivec3 corner2;
 	vmath::ivec3 face;
 	//uint8_t light_level; // left 4 bits: sunlight. right 4 bits: torchlight.
 	//uint8_t metadata; // other metadata that a block can have. Should never use more than 4 bits.

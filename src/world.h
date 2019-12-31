@@ -535,13 +535,14 @@ public:
 			// set block
 			quad3d.block = (uint8_t)quad2d.block;
 
-			// for each corner in the quad
-			for (int i = 0; i < 2; i++) {
-				// set 3D coordinates
-				quad3d.corners[i][layers_idx] = layer_no;
-				quad3d.corners[i][working_idx_1] = quad2d.corners[i][0];
-				quad3d.corners[i][working_idx_2] = quad2d.corners[i][1];
-			}
+			// convert both corners to 3D coordinates
+			quad3d.corner1[layers_idx] = layer_no;
+			quad3d.corner1[working_idx_1] = quad2d.corners[0][0];
+			quad3d.corner1[working_idx_2] = quad2d.corners[0][1];
+
+			quad3d.corner2[layers_idx] = layer_no;
+			quad3d.corner2[working_idx_1] = quad2d.corners[1][0];
+			quad3d.corner2[working_idx_2] = quad2d.corners[1][1];
 
 			// set face
 			quad3d.face = face;
@@ -782,44 +783,44 @@ public:
 
 		// SOUTH
 		//	bottom-left corner
-		quads[0].corners[0] = block_coords + ivec3(1, 0, 1);
+		quads[0].corner1 = block_coords + ivec3(1, 0, 1);
 		//	top-right corner
-		quads[0].corners[1] = block_coords + ivec3(0, 1, 1);
+		quads[0].corner2 = block_coords + ivec3(0, 1, 1);
 		quads[0].face = ivec3(0, 0, 1);
 
 		// NORTH
 		//	bottom-left corner
-		quads[1].corners[0] = block_coords + ivec3(0, 0, 0);
+		quads[1].corner1 = block_coords + ivec3(0, 0, 0);
 		//	top-right corner
-		quads[1].corners[1] = block_coords + ivec3(1, 1, 0);
+		quads[1].corner2 = block_coords + ivec3(1, 1, 0);
 		quads[1].face = ivec3(0, 0, -1);
 
 		// EAST
 		//	bottom-left corner
-		quads[2].corners[0] = block_coords + ivec3(1, 1, 1);
+		quads[2].corner1 = block_coords + ivec3(1, 1, 1);
 		//	top-right corner
-		quads[2].corners[1] = block_coords + ivec3(1, 0, 0);
+		quads[2].corner2 = block_coords + ivec3(1, 0, 0);
 		quads[2].face = ivec3(1, 0, 0);
 
 		// WEST
 		//	bottom-left corner
-		quads[3].corners[0] = block_coords + ivec3(0, 1, 0);
+		quads[3].corner1 = block_coords + ivec3(0, 1, 0);
 		//	top-right corner
-		quads[3].corners[1] = block_coords + ivec3(0, 0, 1);
+		quads[3].corner2 = block_coords + ivec3(0, 0, 1);
 		quads[3].face = ivec3(-1, 0, 0);
 
 		// UP
 		//	bottom-left corner
-		quads[4].corners[0] = block_coords + ivec3(0, 1, 0);
+		quads[4].corner1 = block_coords + ivec3(0, 1, 0);
 		//	top-right corner
-		quads[4].corners[1] = block_coords + ivec3(1, 1, 1);
+		quads[4].corner2 = block_coords + ivec3(1, 1, 1);
 		quads[4].face = ivec3(0, 1, 0);
 
 		// DOWN
 		//	bottom-left corner
-		quads[5].corners[0] = block_coords + ivec3(0, 0, 1);
+		quads[5].corner1 = block_coords + ivec3(0, 0, 1);
 		//	top-right corner
-		quads[5].corners[1] = block_coords + ivec3(1, 0, 0);
+		quads[5].corner2 = block_coords + ivec3(1, 0, 0);
 		quads[5].face = ivec3(0, -1, 0);
 
 		GLuint quad_data_buf;

@@ -184,13 +184,13 @@ public:
 		for (int i = 0; i < quads.size(); i++) {
 			// update blocks
 			gpu_quads[i].block = (BlockType)quads[i].block;
-			gpu_quads[i].corners[0] = quads[i].corners[0];
-			gpu_quads[i].corners[1] = quads[i].corners[1];
+			gpu_quads[i].corner1 = quads[i].corner1;
+			gpu_quads[i].corner2 = quads[i].corner2;
 			gpu_quads[i].face = quads[i].face;
 
 			// error check:
 			// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
-			ivec3 diffs = quads[i].corners[1] - quads[i].corners[0];
+			ivec3 diffs = quads[i].corner2 - quads[i].corner1;
 
 			int num_diffs_0 = 0;
 			int zero_idx = 0;
@@ -210,13 +210,13 @@ public:
 		for (int i = 0; i < water_quads.size(); i++) {
 			// update blocks
 			gpu_quads[i + quads.size()].block = (BlockType)water_quads[i].block;
-			gpu_quads[i + quads.size()].corners[0] = water_quads[i].corners[0];
-			gpu_quads[i + quads.size()].corners[1] = water_quads[i].corners[1];
+			gpu_quads[i + quads.size()].corner1 = water_quads[i].corner1;
+			gpu_quads[i + quads.size()].corner2 = water_quads[i].corner2;
 			gpu_quads[i + quads.size()].face = water_quads[i].face;
 
 			// error check:
 			// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
-			ivec3 diffs = water_quads[i].corners[1] - water_quads[i].corners[0];
+			ivec3 diffs = water_quads[i].corner2 - water_quads[i].corner1;
 
 			int num_diffs_0 = 0;
 			int zero_idx = 0;
@@ -291,8 +291,8 @@ public:
 
 		// vao: set up formats for Quad's attributes, 1 at a time
 		glVertexArrayAttribIFormat(vao, glInfo->q_block_type_attr_idx, 1, GL_UNSIGNED_BYTE, offsetof(Quad3D, block));
-		glVertexArrayAttribIFormat(vao, glInfo->q_corner1_attr_idx, 3, GL_INT, offsetof(Quad3D, corners));
-		glVertexArrayAttribIFormat(vao, glInfo->q_corner2_attr_idx, 3, GL_INT, offsetof(Quad3D, corners) + sizeof(ivec3)); // TODO: improve this offsetof by splitting corners into corner1 and corner2
+		glVertexArrayAttribIFormat(vao, glInfo->q_corner1_attr_idx, 3, GL_INT, offsetof(Quad3D, corner1));
+		glVertexArrayAttribIFormat(vao, glInfo->q_corner2_attr_idx, 3, GL_INT, offsetof(Quad3D, corner2));
 		glVertexArrayAttribIFormat(vao, glInfo->q_face_attr_idx, 3, GL_INT, offsetof(Quad3D, face));
 
 		glVertexArrayAttribIFormat(vao, glInfo->q_base_coords_attr_idx, 3, GL_INT, 0);
