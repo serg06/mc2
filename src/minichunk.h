@@ -182,7 +182,18 @@ public:
 		// update quads
 		std::copy(quads.begin(), quads.end(), gpu_quads);
 
-		// error check
+		// update water quads
+		std::copy(water_quads.begin(), water_quads.end(), gpu_quads + quads.size());
+
+		// flush
+		glFlushMappedNamedBufferRange(quad_data_buf, 0, sizeof(Quad3D) * (quads.size() + water_quads.size()));
+
+		// unmap
+		glUnmapNamedBuffer(quad_data_buf);
+
+#ifdef _DEBUG
+
+		// quads error check
 		for (int i = 0; i < quads.size(); i++) {
 			// error check:
 			// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
@@ -202,10 +213,8 @@ public:
 			assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
 		}
 
-		// update water quads
-		std::copy(water_quads.begin(), water_quads.end(), gpu_quads + quads.size());
 
-		// error check
+		// water quads error check
 		for (int i = 0; i < water_quads.size(); i++) {
 			// error check:
 			// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
@@ -222,14 +231,10 @@ public:
 			}
 
 			// this assert has saved me so many times!
-			assert(num_diffs_0 == 1 && "Invalid quad dimensions.");
+			assert(num_diffs_0 == 1 && "Invalid water quad dimensions.");
 		}
 
-		// flush
-		glFlushMappedNamedBufferRange(quad_data_buf, 0, sizeof(Quad3D) * (quads.size() + water_quads.size()));
-
-		// unmap
-		glUnmapNamedBuffer(quad_data_buf);
+#endif
 	}
 
 	inline char* print_layer(int face, int layer) {
