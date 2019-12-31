@@ -1047,56 +1047,26 @@ public:
 	// block: the mini-coordinates of the block that was added/deleted
 	// TODO: Use block.
 	void on_mini_update(MiniChunk* mini, vmath::ivec3 block) {
-		// DEBUG: commented
-		//// for now, don't care if something was done in an unloaded mini
-		//if (mini == nullptr) {
-		//	return;
-		//}
+		// for now, don't care if something was done in an unloaded mini
+		if (mini == nullptr) {
+			return;
+		}
 
-		// need to regenerate self and neighbors
-		vector<MiniChunk*> minis_to_regenerate = { mini };
+		mesh_gen_mutex.lock();
 
-		// get all neighbors
-		auto neighbor_coords = mini->neighbors();
-		for (auto coord : neighbor_coords) {
+		// regenerate own meshes
+		enqueue_mesh_gen(mini);
+
+		// regenerate neighbors' meshes
+		auto neighbors = mini->neighbors();
+		for (auto &coord : neighbors) {
 			MiniChunk* m = get_mini(coord);
 			if (m != nullptr) {
-				minis_to_regenerate.push_back(m);
+				enqueue_mesh_gen(m);
 			}
 		}
 
-		// update self and neighbors
-		for (auto mini : minis_to_regenerate) {
-			mini->invisible = mini->all_air() || check_if_covered(*mini);
-			if (!mini->invisible) {
-				MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
-
-				MiniChunkMesh* non_water = new MiniChunkMesh;
-				MiniChunkMesh* water = new MiniChunkMesh;
-
-				for (auto &quad : mesh->quads3d) {
-					if ((BlockType)quad.block == BlockType::StillWater) {
-						water->quads3d.push_back(quad);
-					}
-					else {
-						non_water->quads3d.push_back(quad);
-					}
-				}
-
-				assert(mesh->size() == non_water->size() + water->size());
-
-				mini->mesh = non_water;
-				mini->water_mesh = water;
-
-				if (!mini->meshes_updated) {
-					mini->mesh_lock.lock();
-					if (!mini->meshes_updated) {
-						mini->meshes_updated = true;
-					}
-					mini->mesh_lock.unlock();
-				}
-			}
-		}
+		mesh_gen_mutex.unlock();
 
 		// finally, add nearby waters to propagation queue
 		// TODO: do this smarter?
