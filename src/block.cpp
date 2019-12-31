@@ -36,7 +36,29 @@ const std::unordered_map<BlockType::Value, std::string> BlockType::side_texture_
 
 // 16 x 16 array to quickly look-up if a block is transparent -- I've gotta improve this somehow lmao
 const bool BlockType::translucent_blocks[MAX_BLOCK_TYPES] = {
-	true,  false, false, false, false, false, false, false, false, true,  false, false, false, false, false, false,
+	// air, flowing water, still water
+	true,  false, false, false, false, false, false, false, true, true,  false, false, false, false, false, false,
+	false, false, true,  false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+};
+
+// 16 x 16 array to quickly look-up if a block is transparent -- I've gotta improve this somehow lmao
+const bool BlockType::nonsolid_blocks[MAX_BLOCK_TYPES] = {
+	// air, flowing water, still water
+	true,  false, false, false, false, false, false, false, true, true,  false, false, false, false, false, false,
 	false, false, true,  false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,

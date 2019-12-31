@@ -632,7 +632,7 @@ public:
 	}
 
 	static inline bool is_face_visible(BlockType &block, BlockType &face_block) {
-		return face_block.is_transparent() || (block != BlockType::StillWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
+		return face_block.is_transparent() || (face_block.is_translucent() && !block.is_translucent());
 	}
 
 	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, BlockType(&result)[16][16]) {
@@ -648,7 +648,6 @@ public:
 		// figure out which mini has our face layer (usually ours)
 		MiniChunk* face_mini = mini;
 		if (!in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
-			//gen_layer_slow(mini, layers_idx, layer_no, face, result);
 			auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
 			face_mini = (face_mini_coords[1] < 0 || face_mini_coords[1] > BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) ? nullptr : get_mini(face_mini_coords);
 		}
@@ -1136,7 +1135,7 @@ public:
 			MiniChunkMesh* water = new MiniChunkMesh;
 
 			for (auto &quad : mesh->quads3d) {
-				if ((BlockType)quad.block == BlockType::StillWater) {
+				if ((BlockType)quad.block == BlockType::StillWater || (BlockType)quad.block == BlockType::FlowingWater) {
 					water->quads3d.push_back(quad);
 				}
 				else {
@@ -1230,7 +1229,7 @@ public:
 				// update water level if needed
 				new_water_level = 7; // max
 				if (new_water_level != water_level) {
-					set_type(x, y, z, BlockType::StillWater); // DEBUG: use flowing water
+					set_type(x, y, z, BlockType::FlowingWater);
 					set_metadata(x, y, z, new_water_level);
 					schedule_water_propagation_neighbors(coords);
 					on_block_update(coords);
@@ -1269,8 +1268,7 @@ public:
 			if (new_water_level != water_level) {
 				// if water level in range, set it
 				if (0 <= new_water_level && new_water_level <= 7) {
-					// DEBUG: this should be FlowingWater.
-					set_type(x, y, z, BlockType::StillWater);
+					set_type(x, y, z, BlockType::FlowingWater);
 					set_metadata(x, y, z, new_water_level);
 					schedule_water_propagation_neighbors(coords);
 					on_block_update(coords);

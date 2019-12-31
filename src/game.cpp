@@ -153,7 +153,7 @@ void App::render(float time) {
 	auto direction = staring_direction();
 	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](ivec3 coords, ivec3 face) {
 		auto block = this->world->get_type(coords);
-		return block != BlockType::Air && block != BlockType::StillWater;
+		return block.is_solid();
 	});
 
 	/* TRANSFORMATION MATRICES */
@@ -356,7 +356,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	auto blocks = get_intersecting_blocks(char_position + position_change);
 
 	// if all blocks are non-solid, we done
-	if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == BlockType::Air || block == BlockType::StillWater; })) {
+	if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
 		return position_change;
 	}
 
@@ -373,7 +373,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are non-solid, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == BlockType::Air || block == BlockType::StillWater; })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
 			return position_change_fixed;
 		}
 	}
@@ -398,7 +398,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block == BlockType::Air || block == BlockType::StillWater; })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
 			return position_change_fixed;
 		}
 	}

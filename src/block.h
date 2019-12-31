@@ -299,15 +299,26 @@ public:
 	static const std::unordered_map<Value, std::string> side_texture_names;
 	static const std::unordered_map<Value, std::string> bottom_texture_names;
 	static const bool translucent_blocks[MAX_BLOCK_TYPES];
+	static const bool nonsolid_blocks[MAX_BLOCK_TYPES];
 
-	// check if are transparent
+	// check if transparent
 	constexpr inline bool is_transparent() {
 		return value == BlockType::Air;
 	}
 
-	// check if are translucent
+	// check if translucent
 	constexpr inline bool is_translucent() {
 		return translucent_blocks[value];
+	}
+
+	// check if solid
+	constexpr inline bool is_solid() {
+		return !nonsolid_blocks[value];
+	}
+
+	// check if non-solid
+	constexpr inline bool is_nonsolid() {
+		return nonsolid_blocks[value];
 	}
 
 	// get from map
