@@ -30,8 +30,8 @@ using namespace std;
 struct Quad2D {
 	BlockType block;
 	ivec2 corners[2];
-	uint8_t lighting;
-	Metadata metadata;
+	uint8_t lighting = 0; // TODO: max instead?
+	Metadata metadata = 0;
 };
 
 inline bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
