@@ -255,6 +255,13 @@ static constexpr inline void extract_from_atlas(float* atlas, unsigned atlas_wid
 	}
 }
 
+
+// In C++, -1 % 16 == -1. Want it to be 15 instead.
+template<typename T>
+static constexpr T posmod(const T &x, const T &m) {
+	return ((x % m) + m) % m;
+}
+
 // TODO: Could be slightly improved with `const`, `&`, and `private:` in the right places, but otherwise it works great.
 template <typename K, typename V>
 class IntervalMap

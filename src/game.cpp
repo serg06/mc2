@@ -231,6 +231,9 @@ void App::render(float time) {
 		sprintf(buf, "Facing:   (%6.1f, %6.1f, %6.1f)", direction[0], direction[1], direction[2]);
 		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 
+		sprintf(buf, "Looking at block: (%d, %d, %d)", staring_at[0], staring_at[1], staring_at[2]);
+		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+
 		sprintf(buf, "Face in water: %d", (int)in_water);
 		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 

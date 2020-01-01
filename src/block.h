@@ -303,27 +303,27 @@ public:
 	static const bool nonsolid_blocks[MAX_BLOCK_TYPES];
 
 	// check if transparent
-	constexpr inline bool is_transparent() {
+	constexpr inline bool is_transparent() const {
 		return value == BlockType::Air;
 	}
 
 	// check if translucent
-	constexpr inline bool is_translucent() {
+	constexpr inline bool is_translucent() const {
 		return translucent_blocks[value];
 	}
 
 	// check if solid
-	constexpr inline bool is_solid() {
+	constexpr inline bool is_solid() const {
 		return !nonsolid_blocks[value];
 	}
 
 	// check if non-solid
-	constexpr inline bool is_nonsolid() {
+	constexpr inline bool is_nonsolid() const {
 		return nonsolid_blocks[value];
 	}
 
 	// get from map
-	inline std::string top_texture() {
+	inline std::string top_texture() const {
 		auto search = top_texture_names.find(value);
 
 		// if element doesn't exist, null
@@ -335,7 +335,7 @@ public:
 	}
 
 	// get from map
-	inline std::string side_texture() {
+	inline std::string side_texture() const {
 		auto search = side_texture_names.find(value);
 
 		// if element doesn't exist, null
@@ -347,7 +347,7 @@ public:
 	}
 
 	// get from map
-	inline std::string bottom_texture() {
+	inline std::string bottom_texture() const {
 		auto search = bottom_texture_names.find(value);
 
 		// if element doesn't exist, null

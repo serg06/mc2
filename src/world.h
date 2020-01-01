@@ -372,23 +372,29 @@ public:
 		vector<MiniChunk*> result;
 		vector<ivec3> potential_mini_coords;
 
-		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
+		ivec3 mini_coords = get_mini_coords(x, y, z);
+		ivec3 mini_relative_coords = get_mini_relative_coords(x, y, z);
+
 		potential_mini_coords.push_back(mini_coords);
 
-		if (x % 16 == 0) potential_mini_coords.push_back(mini_coords + IWEST);
-		if (x % 16 == 15) potential_mini_coords.push_back(mini_coords + IEAST);
+		if (mini_relative_coords[0] == 0) potential_mini_coords.push_back(mini_coords + IWEST);
+		if (mini_relative_coords[0] == 15) potential_mini_coords.push_back(mini_coords + IEAST);
 
-		if (y % 16 == 0 && y > 0) potential_mini_coords.push_back(mini_coords + IDOWN);
-		if (y % 16 == 15 && y < 255) potential_mini_coords.push_back(mini_coords + IUP);
+		if (mini_relative_coords[1] == 0 && y > 0) potential_mini_coords.push_back(mini_coords + IDOWN);
+		if (mini_relative_coords[1] == 15 && y < 255) potential_mini_coords.push_back(mini_coords + IUP);
 
-		if (z % 16 == 0) potential_mini_coords.push_back(mini_coords + INORTH);
-		if (z % 16 == 15) potential_mini_coords.push_back(mini_coords + ISOUTH);
+		if (mini_relative_coords[2] == 0) potential_mini_coords.push_back(mini_coords + INORTH);
+		if (mini_relative_coords[2] == 15) potential_mini_coords.push_back(mini_coords + ISOUTH);
 
 		for (auto &coords : potential_mini_coords) {
 			auto mini = get_mini(coords);
 			if (mini != nullptr) {
 				result.push_back(mini);
 			}
+		}
+
+		if (result.size() > 1) {
+			OutputDebugString("");
 		}
 
 		return result;
@@ -409,7 +415,7 @@ public:
 		return vmath::ivec3(((x % CHUNK_WIDTH) + CHUNK_WIDTH) % 16, y, ((z % CHUNK_DEPTH) + CHUNK_DEPTH) % 16);
 	}
 
-	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
+	// given a block's real-world coordinates, return that block's coordinates relative to its mini
 	inline vmath::ivec3 get_mini_relative_coords(int x, int y, int z) {
 		// adjust x and y
 		x = x % MINICHUNK_WIDTH;
@@ -661,7 +667,7 @@ public:
 		}
 	}
 
-	static inline bool is_face_visible(BlockType &block, BlockType &face_block) {
+	static inline bool is_face_visible(const BlockType &block, const BlockType &face_block) {
 		return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
@@ -724,7 +730,7 @@ public:
 		return result;
 	}
 
-	static inline void mark_as_merged(bool(&merged)[16][16], ivec2 &start, ivec2 &max_size) {
+	static inline void mark_as_merged(bool(&merged)[16][16], const ivec2 &start, const ivec2 &max_size) {
 		for (int i = start[0]; i < start[0] + max_size[0]; i++) {
 			for (int j = start[1]; j < start[1] + max_size[1]; j++) {
 				merged[i][j] = true;
@@ -733,7 +739,7 @@ public:
 	}
 
 	// given a layer and start point, find its best dimensions
-	static inline ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], ivec2 start_point, BlockType block_type) {
+	static inline ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const ivec2 &start_point, const BlockType &block_type) {
 		assert(block_type != BlockType::Air);
 		assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
@@ -1070,6 +1076,7 @@ public:
 		enqueue_mesh_gen(mini);
 
 		// regenerate neighbors' meshes
+		// PROBLEM: When we delete a block with z=0, we're not updating mini to the south.
 		auto neighbors = get_minis_touching_block(block[0], block[1], block[2]);
 		for (auto &neighbor : neighbors) {
 			if (neighbor != mini) {
