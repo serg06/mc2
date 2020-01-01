@@ -31,10 +31,11 @@ static const enum TextAlignment : GLuint {
 
 // all the OpenGL info for our game
 struct OpenGLInfo {
-	// program
+	// programs
 	GLuint game_rendering_program;
 	GLuint text_rendering_program;
 	GLuint tjunction_fixing_program;
+	GLuint fbo_merging_program;
 
 	// VAOs
 	GLuint vao_empty, vao_cube, vao_quad, vao_text;
@@ -61,12 +62,19 @@ struct OpenGLInfo {
 	GLuint font_textures;
 	
 	// texture units to bind to (like binding points but for textures)
+	// TODO: make sure I stay within limits - maybe re-use old binding points
 	GLuint top_textures_tunit = 0;
 	GLuint side_textures_tunit = 1;
 	GLuint bottom_textures_tunit = 2;
+
 	GLuint font_textures_tunit = 3;
+
 	GLuint tjunc_color_in_tunit = 4;
 	GLuint tjunc_depth_in_tunit = 5;
+
+	GLuint merger_depth1_in_tunit = 6;
+	GLuint merger_color2_in_tunit = 7;
+	GLuint merger_depth2_in_tunit = 8;
 
 	// QUAD VAO binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index

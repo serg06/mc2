@@ -103,13 +103,25 @@ namespace {
 	void setup_tjunction_fixing_program(OpenGLInfo* glInfo) {
 		// list of shaders to create program with
 		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
-			{ "shaders/fix_tjunctions.vs.glsl", GL_VERTEX_SHADER },
-			{ "shaders/fix_tjunctions.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "shaders/noop.vs.glsl", GL_VERTEX_SHADER },
+			{ "shaders/full_screen_quad.gs.glsl", GL_GEOMETRY_SHADER },
 			{ "shaders/fix_tjunctions.fs.glsl", GL_FRAGMENT_SHADER },
 		};
 
 		// create program
 		glInfo->tjunction_fixing_program = compile_shaders(shader_fnames);
+	}
+
+	void setup_fbo_merging_program(OpenGLInfo* glInfo) {
+		// list of shaders to create program with
+		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+			{ "shaders/noop.vs.glsl", GL_VERTEX_SHADER },
+			{ "shaders/full_screen_quad.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "shaders/merge_fbos.fs.glsl", GL_FRAGMENT_SHADER },
+		};
+
+		// create program
+		glInfo->fbo_merging_program = compile_shaders(shader_fnames);
 	}
 
 	void setup_opengl_vao_quad(OpenGLInfo* glInfo) {
@@ -735,6 +747,7 @@ void setup_opengl(OpenGLInfo* glInfo) {
 	setup_game_rendering_program(glInfo);
 	setup_text_rendering_program(glInfo);
 	setup_tjunction_fixing_program(glInfo);
+	setup_fbo_merging_program(glInfo);
 
 	// setup VAOs
 	setup_opengl_vao_empty(glInfo);
@@ -792,6 +805,7 @@ void render_text(OpenGLInfo* glInfo, const ivec2 start_pos, const ivec2 screen_d
 
 // fix the tjunctions in DEPTH/COLOR0 of fbo
 // TODO: fbo_in instead of color/depth-in
+// TODO: maybe write directly to fbo_out
 void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, GLuint color_tex, GLuint depth_tex) {
 	// set color/depth as inputs to tjunction fixing program
 	glBindTextureUnit(glInfo->tjunc_color_in_tunit, color_tex);

@@ -1,6 +1,10 @@
 #version 450 core
 #define TOO_MUCH_DEPTH 0.0000001
 
+/**
+ * This shader fixes tjunctions in a color/depth buffer pair by filling in tjunction holes/lines.
+ */
+
 // width and height of image we're processing
 layout (location = 0) uniform float width;
 layout (location = 1) uniform float height;
@@ -15,8 +19,7 @@ layout (binding = 5) uniform sampler2D tjunc_depth_in;
 
 // outputs
 layout (location = 0) out vec4 color_out;
-//layout (depth_less) out float gl_FragDepth;
-out float gl_FragDepth; // DEBUG: no layout
+layout (depth_less) out float gl_FragDepth;
 
 // global vars -- x and y are in [0.0, 1.0] now.
 float x = gl_FragCoord.x / width;
@@ -61,7 +64,6 @@ void fix_left_right(inout color_depth_pair cd) {
 
 	right.color = texture(tjunc_color_in, vec2(x + dx, y));
 	right.depth = texture(tjunc_depth_in, vec2(x + dx, y))[0];
-
 
 	fix_two(cd, left, right);
 }
