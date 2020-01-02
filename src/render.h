@@ -132,7 +132,7 @@ inline GLenum get_default_framebuffer_depth_attachment_type() {
 	return result;
 }
 
-// packed to that quads match quads on GPU
+// packed so that quads match quads on GPU
 #pragma pack(push, 1)
 struct Quad3D {
 	uint8_t block;
