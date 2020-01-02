@@ -45,7 +45,7 @@ target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d fastnoi
 # specify include directories
 include_directories(include)
 include_directories(extern/glfw-3.3/include)
-include_directories(build/CMakeFiles/mc2.dir)
+include_directories(build/CMakeFiles/mc2.dir)  # for pre-compiled header
 
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
