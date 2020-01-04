@@ -99,6 +99,7 @@ void App::run() {
 		// run rendering function
 		render((float)glfwGetTime());
 
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 		glfwSwapBuffers(window);
 
 		// poll window system for events
@@ -129,7 +130,7 @@ void App::startup() {
 
 void App::render(float time) {
 	// FBO: BIND
-	glBindFramebuffer(GL_FRAMEBUFFER, glInfo.fbo_out);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo.fbo_out);
 
 	char buf[256];
 

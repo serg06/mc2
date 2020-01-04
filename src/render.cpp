@@ -812,7 +812,7 @@ void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, GL
 	glBindTextureUnit(glInfo->tjunc_depth_in_tunit, depth_tex);
 
 	// switch to tjunc fbo so output goes into it
-	glBindFramebuffer(GL_FRAMEBUFFER, glInfo->fbo_tjunc_fix);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_tjunc_fix);
 
 	// clear output buffers
 	//const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
