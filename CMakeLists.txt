@@ -40,7 +40,7 @@ add_executable(${PROJECT_NAME} WIN32 ${sources} ${shaders})
 
 # link executable to libraries
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
-target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d fastnoise kenp_noise )
+target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d fastnoise )
 
 # specify include directories
 include_directories(include)
