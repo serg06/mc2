@@ -365,6 +365,8 @@ void App::update_player_movement(const float dt) {
 
 // given a player's change-in-position, modify the change to optimally prevent collisions
 vec4 App::prevent_collisions(const vec4 position_change) {
+	// TODO: prioritize removing velocity that won't change our position when snapping.
+
 	// Get all blocks we might be intersecting with
 	auto blocks = get_intersecting_blocks(char_position + position_change);
 
