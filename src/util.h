@@ -4,6 +4,7 @@
 
 #include <limits>
 #include <map>
+#include <memory>
 #include <numeric>
 #include <tuple>
 #include <vector>
@@ -118,10 +119,10 @@ static inline bool in_range(const vecN<T, len> &vec, const vecN<T, len> &min, co
 
 // Memory leak, delete returned result.
 template <typename T, const int len>
-static inline char* vec2str(vecN<T, len> vec) {
-	int bufsize = vec.size() * 16 + 4;
-	char* result = new char[bufsize];
-	char* tmp = result;
+static inline std::unique_ptr<char[]> vec2str(vecN<T, len> vec) {
+	const int bufsize = vec.size() * 16 + 4;
+	auto result = std::make_unique<char[]>(bufsize);
+	char* tmp = result.get();
 
 	tmp += sprintf(tmp, "(");
 	for (int i = 0; i < len; i++) {
@@ -133,7 +134,7 @@ static inline char* vec2str(vecN<T, len> vec) {
 
 	tmp += sprintf(tmp, ")");
 
-	assert(tmp - result <= bufsize && "buffer overflow");
+	assert(tmp - result.get() <= bufsize && "buffer overflow");
 
 	return result;
 }

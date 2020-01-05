@@ -12,11 +12,11 @@
 #include <assert.h>
 #include <chrono>
 #include <cmath>
+#include <future>
 #include <math.h>
 #include <mutex>          // std::mutex
 #include <numeric>
 #include <string>
-#include <thread>
 
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
@@ -92,9 +92,9 @@ void App::run() {
 	startup();
 
 	// Spawn mesh generation threads
-	vector<std::thread> mesh_gen_threads;
+	vector<std::future<void>> chunk_gen_futures;
 	for (int i = 0; i < NUM_MESH_GEN_THREADS; i++) {
-		mesh_gen_threads.push_back(std::thread(ChunkGenThread));
+		chunk_gen_futures.push_back(std::async(std::launch::async, ChunkGenThread));
 	}
 
 	// run until user presses ESC or tries to close window
@@ -112,9 +112,12 @@ void App::run() {
 
 	// Stop all other threads
 	stop = true;
-	world->mesh_gen_cv.notify_all(); // wake up any sleeping threads -- 0.001% chance of this freezing everything, I think -- could only happen if this is run RIGHT before the thread sleeps
-	for (auto &thread : mesh_gen_threads) {
-		thread.join();
+	world->mesh_gen_cv.notify_all(); // wake up any sleeping threads so they can exit
+	for (auto &fut : chunk_gen_futures) {
+		// keep waking them up until they get their lazy butts up and shut down
+		while (fut.wait_for(std::chrono::milliseconds(100)) == future_status::timeout) {
+			world->mesh_gen_cv.notify_all();
+		}
 	}
 
 	shutdown();
