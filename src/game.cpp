@@ -55,9 +55,13 @@ void ChunkGenThread() {
 		// try to generate a mesh
 		bool success = app->world->gen_minichunk_mesh_from_queue(vec3(app->char_position[0], app->char_position[1], app->char_position[2]));
 
-		// if queue empty, wait a bit before trying again
+		if (stop) break; // just in case stop==true once gen_minichunk_mesh_from_queue returns
+
+		// if failed, queue was empty, so wait until woken up again
+		// TODO: can be done a little better, like checking queue size right in here maybe
 		if (!success) {
-			Sleep(100);
+			std::unique_lock<std::mutex> mesh_lock(app->world->mesh_gen_mutex);
+			app->world->mesh_gen_cv.wait(mesh_lock);
 		}
 	}
 }
@@ -108,6 +112,7 @@ void App::run() {
 
 	// Stop all other threads
 	stop = true;
+	world->mesh_gen_cv.notify_all(); // wake up any sleeping threads -- 0.001% chance of this freezing everything, I think -- could only happen if this is run RIGHT before the thread sleeps
 	for (auto &thread : mesh_gen_threads) {
 		thread.join();
 	}

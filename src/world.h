@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <mutex>          // std::mutex
 #include <queue>
@@ -68,7 +69,10 @@ public:
 	// multi-thread-access minis who need their mesh generated
 	queue<MiniChunk*> mesh_gen_queue; // storage
 	unordered_set<MiniChunk*> mesh_gen_set; // uniqueness
-	std::mutex mesh_gen_mutex; // thread-safety
+
+	// thread safety
+	std::mutex mesh_gen_mutex;
+	std::condition_variable mesh_gen_cv;
 
 	// count how many times render() has been called
 	int rendered = 0;
@@ -289,6 +293,7 @@ public:
 			enqueue_mesh_gen(mini);
 		}
 		mesh_gen_mutex.unlock();
+		mesh_gen_cv.notify_all();
 	}
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
@@ -1085,6 +1090,7 @@ public:
 		}
 
 		mesh_gen_mutex.unlock();
+		mesh_gen_cv.notify_all();
 
 		// finally, add nearby waters to propagation queue
 		// TODO: do this smarter?

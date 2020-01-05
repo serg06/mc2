@@ -11,7 +11,7 @@
 
 #include <algorithm> // std::find
 #include <mutex>
-#include <vector> // std::find
+#include <vector>
 
 constexpr int MINICHUNK_WIDTH = 16;
 constexpr int MINICHUNK_HEIGHT = 16;
