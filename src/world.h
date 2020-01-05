@@ -1261,6 +1261,8 @@ public:
 				return;
 			}
 
+			/* UPDATE WATER LEVEL FOR CURRENT BLOCK BY CHECKING SIDES */
+
 			// record highest water level in side blocks, out of side blocks that are ON a block
 			uint8_t highest_side_water = 0;
 			auto directions = { INORTH, ISOUTH, IEAST, IWEST };
@@ -1291,7 +1293,7 @@ public:
 				}
 			}
 
-			// TODO: ONCE WE UPDATE A BLOCK, CALL ON_BLOCK_UPDATE
+			/* UPDATE WATER LEVEL FOR CURRENT BLOCK IF IT'S CHANGED */
 
 			// update water level if needed
 			new_water_level = highest_side_water - 1;
@@ -1314,21 +1316,133 @@ public:
 	}
 
 	// given water at (x, y, z), find all directions which lead to A shortest path down
-	// radius = 5
+	// radius = 4
 	// TODO
-	inline std::vector<vmath::ivec3> find_shortest_water_path(int x, int y, int z) {
-		std::vector<vmath::ivec3> result;
-
+	inline std::unordered_set<vmath::ivec3, vecN_hash> find_shortest_water_path(int x, int y, int z) {
 		vmath::ivec3 coords = { x, y, z };
-		auto directions = { INORTH, ISOUTH, IEAST, IWEST };
-
 		assert(get_type(coords + IDOWN).is_solid() && "block under starter block is non-solid!");
 
-		
+		// extract a 9x9 radius of blocks which we can traverse (1) and goals (2)
 
-		for (auto &ddir : directions) {
+		constexpr unsigned radius = 4;
+		constexpr unsigned invalid_path = 0;
+		constexpr unsigned valid_path = 1;
+		constexpr unsigned goal = 2;
 
+		static_assert(radius > 0);
+		uint8_t extracted[radius * 2 - 1][radius * 2 - 1];
+		memset(extracted, invalid_path, sizeof(extracted));
+
+		// for every block in radius
+		for (int dx = -radius; dx <= radius; dx++) {
+			for (int dz = -radius; dz <= radius; dz++) {
+				// if the block is empty
+				if (get_type(x + dx, y, z + dz) == BlockType::Air) {
+					// if the block below it is solid, it's a valid path to take
+					if (get_type(x + dx, y - 1, z + dz).is_solid()) {
+						extracted[x + dx][z + dz] = valid_path;
+					}
+					// if the block below it is non-solid, it's a goal
+					else {
+						extracted[x + dx][z + dz] = goal;
+					}
+				}
+			}
 		}
+
+		// find all shortest paths (1) to goal (2) using bfs
+		struct search_item {
+			int distance = -1;
+			bool reachable_from_west = false;
+			bool reachable_from_east = false;
+			bool reachable_from_north = false;
+			bool reachable_from_south = false;
+		};
+
+		search_item search_items[radius * 2 + 1][radius * 2 + 1];
+
+		std::queue<vmath::ivec2> bfs_queue;
+
+		// set very center
+		search_items[radius][radius].distance = 0;
+
+		// set items around center
+		search_items[radius + 1][radius].distance = 1;
+		search_items[radius + 1][radius].reachable_from_west = true;
+
+		search_items[radius - 1][radius].distance = 1;
+		search_items[radius - 1][radius].reachable_from_east = true;
+
+		search_items[radius][radius + 1].distance = 1;
+		search_items[radius][radius + 1].reachable_from_north = true;
+
+		search_items[radius][radius - 1].distance = 1;
+		search_items[radius][radius - 1].reachable_from_south = true;
+
+		// insert items around center into queue
+		// TODO: do clever single for loop instead of creating std::vector?
+		std::vector<std::pair<int, int>> nearby = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
+		for (auto &[dx, dy] : nearby) {
+			bfs_queue.push({ dx, dy });
+		}
+
+		// store queue items that have shortest distance
+		int found_distance = -1;
+		std::vector<search_item*> found; // TODO: only store valid directions. Or even better, just have 4 bools, then convert them to coords when returning.
+
+		// perform bfs
+		while (!bfs_queue.empty()) {
+			// get first item in bfs
+			const auto item_coords = bfs_queue.front();
+			bfs_queue.pop();
+			auto &item = search_items[item_coords[0] + radius][item_coords[1] + radius];
+			const auto block_type = extracted[item_coords[0] + radius][item_coords[1] + radius];
+
+			// if invalid location, yeet out
+			if (block_type == invalid_path) {
+				break;
+			}
+
+			// if we've already found, and this is too big, yeet out
+			if (found_distance >= 0 && found_distance < item.distance) {
+				break;
+			}
+
+			// if item is a goal, add it to found
+			if (block_type == goal) {
+				assert(found_distance == -1 || found_distance == item.distance);
+				found_distance = item.distance;
+				found.push_back(&item);
+			}
+			// otherwise, add its neighbors
+			else {
+				for (auto &[dx, dy] : nearby) {
+					// if item_coords + [dx, dy] in range
+					if (abs(item_coords[0] + dx) <= radius && abs(item_coords[1] + dy) <= radius) {
+						// add it
+						bfs_queue.push({ item_coords[0] + dx, item_coords[1] + dy });
+					}
+				}
+			}
+		}
+
+		std::unordered_set<vmath::ivec3, vecN_hash> reachable_from_dirs;
+		for (auto &result : found) {
+			if (result->reachable_from_east) {
+				reachable_from_dirs.insert(IEAST);
+			}
+			if (result->reachable_from_west) {
+				reachable_from_dirs.insert(IWEST);
+			}
+			if (result->reachable_from_north) {
+				reachable_from_dirs.insert(INORTH);
+			}
+			if (result->reachable_from_south) {
+				reachable_from_dirs.insert(ISOUTH);
+			}
+		}
+		
+		return reachable_from_dirs;
 	}
 
 	///**
