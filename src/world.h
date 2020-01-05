@@ -385,9 +385,8 @@ public:
 		if (mini_relative_coords[0] == 0) potential_mini_coords.push_back(mini_coords + IWEST);
 		if (mini_relative_coords[0] == 15) potential_mini_coords.push_back(mini_coords + IEAST);
 
-		if (mini_relative_coords[1] == 0 && y > 0) potential_mini_coords.push_back(mini_coords + IDOWN);
-		if (mini_relative_coords[1] == 15 && y < 255) potential_mini_coords.push_back(mini_coords + IUP);
-
+		if (mini_relative_coords[1] == 0 && y > 0) potential_mini_coords.push_back(mini_coords + IDOWN * MINICHUNK_HEIGHT);
+		if (mini_relative_coords[1] == 15 && y + MINICHUNK_HEIGHT < 256) potential_mini_coords.push_back(mini_coords + IUP * MINICHUNK_HEIGHT);
 		if (mini_relative_coords[2] == 0) potential_mini_coords.push_back(mini_coords + INORTH);
 		if (mini_relative_coords[2] == 15) potential_mini_coords.push_back(mini_coords + ISOUTH);
 
