@@ -73,7 +73,6 @@ public:
 	}
 };
 
-
 // Chunk Data is always stored as width wide and depth deep
 class ChunkData {
 public:
@@ -119,6 +118,13 @@ public:
 		return width * height * depth;
 	}
 
+	// convert coordinates to idx
+	constexpr inline int c2idx(const int &x, const int &y, const int &z) {
+		return x + z * width + y * width * depth;
+	}
+	constexpr inline int c2idx(const vmath::ivec3 &xyz) { return c2idx(xyz[0], xyz[1], xyz[2]); }
+
+
 	// get block at these coordinates
 	inline BlockType get_block(const int &x, const int &y, const int &z) {
 		assert(0 <= x && x < width && "get_block invalid x coordinate");
@@ -129,7 +135,7 @@ public:
 			return BlockType::Air;
 		}
 
-		return blocks[x + z * width + y * width * depth];
+		return blocks[c2idx(x, y, z)];
 	}
 
 	inline BlockType get_block(const vmath::ivec3 &xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
@@ -141,12 +147,17 @@ public:
 		assert(0 <= y && y < height && "set_block invalid y coordinate");
 		assert(0 <= z && z < depth && "set_block invalid z coordinate");
 
-		int idx = x + z * width + y * width * depth;
+		int idx = c2idx(x, y, z);
 		blocks.set_interval(idx, idx + 1, val);
 	}
 
 	inline void set_block(const vmath::ivec3 &xyz, const BlockType &val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
 	inline void set_block(const vmath::ivec4 &xyz_, const BlockType &val) { return set_block(xyz_[0], xyz_[1], xyz_[2], val); }
+
+	//// set all blocks in this range
+	//inline void set_block_range(const vmath::ivec3 &min_xyz, const vmath::ivec3 &max_xyz, const BlockType &val) {
+	//	std::vector<std::pair<
+	//}
 
 	inline bool all_air() {
 		return blocks[0] == BlockType::Air && blocks.num_intervals() == 1;
@@ -198,7 +209,7 @@ public:
 			return 0;
 		}
 
-		return metadatas[x + z * width + y * width * depth];
+		return metadatas[c2idx(x, y, z)];
 	}
 
 	inline Metadata get_metadata(const vmath::ivec3 &xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
@@ -210,7 +221,7 @@ public:
 		assert(0 <= y && y < height && "set_metadata invalid y coordinate");
 		assert(0 <= z && z < depth && "set_metadata invalid z coordinate");
 
-		metadatas[x + z * width + y * width * depth] = val;
+		metadatas[c2idx(x, y, z)] = val;
 	}
 
 	inline void set_metadata(const vmath::ivec3 &xyz, Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
