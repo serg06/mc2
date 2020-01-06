@@ -99,9 +99,11 @@ public:
 
 		current_tick = new_tick;
 
+#ifdef _DEBUG
 		char buf[256];
 		sprintf(buf, "Update tick to %d\n", new_tick);
 		OutputDebugString(buf);
+#endif
 
 		// propagate any water we need to propagate
 		while (!water_propagation_queue.empty()) {
