@@ -347,14 +347,16 @@ namespace {
 		}
 	}
 
-	//template<typename T>
-	//static void write_png(char* fname, T* data, int width, int height, int components, bool normalized) {
-	//	int whc = width * height * components;
-	//	unsigned char *fixed = new unsigned char[whc];
-	//	std::transform(data, data + whc, fixed, [&normalized](auto val) { return normalized ? val * 255 : val; });
-	//	stbi_write_png(fname, width, height, components, fixed, width * components);
-	//	delete[] fixed;
-	//}
+#ifdef INCLUDE_STB_IMAGE_WRITE_H
+	template<typename T>
+	static void write_png(char* fname, T* data, int width, int height, int components, bool normalized) {
+		int whc = width * height * components;
+		unsigned char *fixed = new unsigned char[whc];
+		std::transform(data, data + whc, fixed, [&normalized](auto val) { return normalized ? val * 255 : val; });
+		stbi_write_png(fname, width, height, components, fixed, width * components);
+		delete[] fixed;
+	}
+#endif
 
 	// load texture data for a block, plus generate mipmaps up to mipmap_level
 	void load_block_texture_data(const char* tex_name, unsigned char(&data)[((16 * 16) + (8 * 8) + (4 * 4) + (2 * 2) + (1 * 1)) * 4], unsigned num_mipmaps) {

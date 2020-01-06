@@ -184,6 +184,7 @@ public:
 	inline void set_metadata(const vmath::ivec3 &xyz, Metadata val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
 	inline void set_metadata(const vmath::ivec4 &xyz_, Metadata val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
 
+	// TODO: unique_ptr
 	inline char* print_y_layer(int layer) {
 		assert(layer < height && "cannot print this layer, too high");
 

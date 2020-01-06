@@ -22,10 +22,6 @@
 // 1. TODO: Apply C++11 features
 // 2. TODO: Apply C++14 features
 // 3. TODO: Apply C++17 features
-// 4. TODO: Make everything more object-oriented.
-//		That way, I can define functions without having to declare them first, and shit.
-//		And more good shit comes of it too.
-//		Then from WinMain(), just call MyApp a = new MyApp, a.run(); !!
 
 using namespace std;
 using namespace vmath;
@@ -465,18 +461,6 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 			noclip = !noclip;
 		}
 
-		// + = increase render distance
-		if (key == GLFW_KEY_KP_ADD || key == GLFW_KEY_EQUAL) {
-			min_render_distance++;
-		}
-
-		// - = decrease render distance
-		if (key == GLFW_KEY_KP_SUBTRACT || key == GLFW_KEY_MINUS) {
-			if (min_render_distance > 0) {
-				min_render_distance--;
-			}
-		}
-
 		// p = cycle poylgon mode
 		if (key == GLFW_KEY_P) {
 			GLint polygon_mode;
@@ -508,6 +492,21 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 		// F3 = toggle debug info
 		if (key == GLFW_KEY_F3) {
 			show_debug_info = !show_debug_info;
+		}
+	}
+	
+	// handle optionally-repeatable key presses
+	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+		// + = increase render distance
+		if (key == GLFW_KEY_KP_ADD || key == GLFW_KEY_EQUAL) {
+			min_render_distance++;
+		}
+
+		// - = decrease render distance
+		if (key == GLFW_KEY_KP_SUBTRACT || key == GLFW_KEY_MINUS) {
+			if (min_render_distance > 0) {
+				min_render_distance--;
+			}
 		}
 	}
 

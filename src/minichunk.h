@@ -10,6 +10,7 @@
 #include "cmake_pch.hxx"
 
 #include <algorithm> // std::find
+#include <memory>
 #include <mutex>
 #include <vector>
 
