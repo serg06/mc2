@@ -14,6 +14,7 @@
 #include <cmath>
 #include <future>
 #include <math.h>
+#include <memory>
 #include <mutex>          // std::mutex
 #include <numeric>
 #include <string>
@@ -37,7 +38,7 @@ namespace {
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	glfwSetErrorCallback(glfw_onError);
-	App::app = new App();
+	App::app = make_unique<App>();
 	App::app->run();
 }
 
@@ -48,7 +49,7 @@ void ChunkGenThread() {
 	}
 
 	// get global app
-	App *app = App::app;
+	App* app = App::app.get();
 
 	// run
 	while (!stop) {

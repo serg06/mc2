@@ -13,6 +13,7 @@
 #include "cmake_pch.hxx"
 
 #include <assert.h>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -24,7 +25,7 @@ using namespace vmath;
 
 class App {
 public:
-	static App* app;
+	static std::unique_ptr<App> app;
 	GLFWwindow* window;
 
 	// settings
@@ -92,7 +93,7 @@ public:
 		return rotate_pitch_yaw(char_pitch, char_yaw) * EAST_0;
 	}
 };
-App* App::app;
+std::unique_ptr<App> App::app;
 
 namespace {
 	// global GLFW/GL callback functions
