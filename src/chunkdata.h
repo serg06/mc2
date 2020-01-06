@@ -92,16 +92,26 @@ public:
 	}
 
 	inline void allocate() {
+		assert(blocks == nullptr && metadatas == nullptr && lightings == nullptr);
+
 		blocks = new BlockType[width * height * depth];
 		metadatas = new Metadata[width * height * depth];
 		lightings = new Lighting[width * height * depth];
+
 		memset(lightings, 0, sizeof(Lighting) * width * height * depth);
 	}
 
+	// TODO: replace this with unique_ptr
 	inline void free() {
+		assert(blocks != nullptr && metadatas != nullptr && lightings != nullptr);
+
 		delete[] blocks;
 		delete[] metadatas;
 		delete[] lightings;
+
+		blocks = nullptr;
+		metadatas = nullptr;
+		lightings = nullptr;
 	}
 
 	inline int size() {
@@ -173,7 +183,7 @@ public:
 	inline Metadata get_metadata(const vmath::ivec4 &xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// set metadata at these coordinates
-	inline void set_metadata(int x, int y, int z, Metadata val) {
+	inline void set_metadata(int x, int y, int z, Metadata &val) {
 		assert(0 <= x && x < width && "set_metadata invalid x coordinate");
 		assert(0 <= y && y < height && "set_metadata invalid y coordinate");
 		assert(0 <= z && z < depth && "set_metadata invalid z coordinate");
@@ -181,8 +191,8 @@ public:
 		metadatas[x + z * width + y * width * depth] = val;
 	}
 
-	inline void set_metadata(const vmath::ivec3 &xyz, Metadata val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
-	inline void set_metadata(const vmath::ivec4 &xyz_, Metadata val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
+	inline void set_metadata(const vmath::ivec3 &xyz, Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
+	inline void set_metadata(const vmath::ivec4 &xyz_, Metadata &val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
 
 	// TODO: unique_ptr
 	inline char* print_y_layer(int layer) {

@@ -58,40 +58,72 @@ static inline std::vector<ivec2> surrounding_chunks_sides_s(ivec2 chunk_coord) {
 	};
 }
 
-class Chunk : public ChunkData {
+class Chunk {
 public:
 	vmath::ivec2 coords; // coordinates in chunk format
 	MiniChunk minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT];
 
 	Chunk() : Chunk({ 0, 0 }) {}
-	Chunk(vmath::ivec2 coords) : coords(coords), ChunkData(CHUNK_WIDTH, CHUNK_HEIGHT, CHUNK_DEPTH) {};
+	Chunk(vmath::ivec2 coords) : coords(coords) {};
 
-	// split chunk into minichunks
-	inline void gen_minichunks() {
-		assert(blocks != nullptr);
-
+	// initialize minichunks by setting coords and allocating space
+	inline void init_minichunks() {
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
 			// create mini and populate it
-			minis[i].blocks = blocks + i * MINICHUNK_SIZE;
 			minis[i].set_coords({ coords[0], i*MINICHUNK_HEIGHT, coords[1] });
+			minis[i].allocate();
+			minis[i].set_all_air();
 		}
 	}
 
 	inline MiniChunk* get_mini_with_y_level(int y) {
-		if (!blocks) {
-			return nullptr;
-		}
-
-		assert(0 <= y && y < 256 && y % 16 == 0);
-		assert(minis[y / 16].get_coords()[1] == y);
-
-		return &(minis[y/16]);
+		return &minis[y/16];
 	}
+
+	// get block at these coordinates
+	inline BlockType get_block(const int &x, const int &y, const int &z) {
+		return get_mini_with_y_level(y)->get_block(x, y % MINICHUNK_HEIGHT, z);
+	}
+
+	inline BlockType get_block(const vmath::ivec3 &xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
+	inline BlockType get_block(const vmath::ivec4 &xyz_) { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
+
+	// set block at these coordinates
+	inline void set_block(int x, int y, int z, const BlockType &val) {
+		get_mini_with_y_level(y)->set_block(x, y % MINICHUNK_HEIGHT, z, val);
+	}
+
+	inline void set_block(const vmath::ivec3 &xyz, const BlockType &val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
+	inline void set_block(const vmath::ivec4 &xyz_, const BlockType &val) { return set_block(xyz_[0], xyz_[1], xyz_[2], val); }
+
+	// get metadata at these coordinates
+	inline Metadata get_metadata(const int &x, const int &y, const int &z) {
+		return get_mini_with_y_level(y)->get_metadata(x, y % MINICHUNK_HEIGHT, z);
+	}
+
+	inline Metadata get_metadata(const vmath::ivec3 &xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
+	inline Metadata get_metadata(const vmath::ivec4 &xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
+
+	// set metadata at these coordinates
+	inline void set_metadata(int x, int y, int z, Metadata &val) {
+		get_mini_with_y_level(y)->set_metadata(x, y % MINICHUNK_HEIGHT, z, val);
+	}
+
+	inline void set_metadata(const vmath::ivec3 &xyz, Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
+	inline void set_metadata(const vmath::ivec4 &xyz_, Metadata &val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
+
+
+	// TODO: replace this with unique_ptr
+	inline void free() {
+		for (auto &mini : minis) {
+			mini.free();
+		}
+	}
+
 
 	// render this chunk
 	inline void render(OpenGLInfo* glInfo) {
 		for (auto &mini : minis) {
-			//mini.render_cubes(glInfo);
 			mini.render_meshes(glInfo);
 		}
 	}

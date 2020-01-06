@@ -60,13 +60,20 @@ void Chunk::generate() {
 	FastNoise fn;
 
 	// create chunk
-	if (blocks == nullptr) {
-		allocate();
+	if (minis[0].blocks == nullptr) {
+		init_minichunks();
 	}
-	set_all_air();
+	else {
+		for (auto &mini : minis) {
+			mini.set_all_air();
+		}
+	}
+
+#ifdef _DEBUG
 	if (coords == ivec2(0, 0)) {
 		OutputDebugString("Warning: Generating chunk for {0, 0}.\n");
 	}
+#endif
 
 	// fill data
 	for (int z = 0; z < CHUNK_DEPTH; z++) {
@@ -140,7 +147,4 @@ void Chunk::generate() {
 			}
 		}
 	}
-
-	// chunk is ready, generate mini-chunks
-	gen_minichunks();
 }
