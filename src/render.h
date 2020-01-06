@@ -142,7 +142,7 @@ struct Quad3D {
 	uint8_t lighting; // left 4 bits: sunlight. right 4 bits: torchlight.
 	uint8_t metadata; // other metadata that a block can have. Should never use more than 4 bits.
 };
-#pragma pop()
+#pragma pack(pop)
 
 void setup_glfw(GlfwInfo*, GLFWwindow**);
 void setup_opengl(OpenGLInfo*);
