@@ -183,10 +183,6 @@ public:
 				chunk_cache_ivec2[i] = ivec2(INT_MAX);
 			}
 		}
-
-		//char buf[256];
-		//sprintf(buf, "Loaded chunks: %d\n", chunk_map.size());
-		//OutputDebugString(buf);
 	}
 
 	// get multiple chunks -- much faster than get_chunk_generate_if_required when n > 1
