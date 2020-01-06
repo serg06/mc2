@@ -697,8 +697,7 @@ public:
 	}
 
 	// given 2D array of block numbers, generate optimal quads
-	static inline vector<Quad2D> gen_quads(const BlockType(&layer)[16][16]) {
-		bool merged[16][16];
+	static inline vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], bool (&merged)[16][16]) {
 		memset(merged, false, sizeof(merged));
 
 		vector<Quad2D> result;

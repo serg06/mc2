@@ -145,7 +145,8 @@ namespace WorldTests {
 		q3.corners[0] = { 0, 15 };
 		q3.corners[1] = { 16, 16 };
 
-		vector<Quad2D> result = World::gen_quads(layer);
+		bool merged[16][16];
+		vector<Quad2D> result = World::gen_quads(layer, merged);
 
 		assert(result.size() == 5 && "wrong number of results");
 		assert(find(begin(result), end(result), q1) != end(result) && "q1 not in results list");
@@ -300,12 +301,13 @@ MiniChunkMesh* World::gen_minichunk_mesh(MiniChunk* mini) {
 		// for each layer
 		for (int i = 0; i < 16; i++) {
 			BlockType layer[16][16];
+			bool merged[16][16];
 
 			// extract it from the data
 			gen_layer(mini, layers_idx, i, face, layer);
 
 			// get quads from layer
-			vector<Quad2D> quads2d = gen_quads(layer);
+			vector<Quad2D> quads2d = gen_quads(layer, merged);
 
 			// if -x, -y, or +z, flip triangles around so that we're not drawing them backwards
 			if (face[0] < 0 || face[1] < 0 || face[2] > 0) {
