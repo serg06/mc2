@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.16.2)
 
+if ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "x64")
+	set(BUILDING_64_BIT TRUE)
+	message("Building 64-bit")
+else()
+	set(BUILDING_64_BIT FALSE)
+	message("Building 32-bit")
+endif()
+
+
 # vars
 set(SOLUTION_NAME mc2)
 set(PROJECT_NAME game)
@@ -40,7 +49,11 @@ add_executable(${PROJECT_NAME} WIN32 ${sources} ${shaders})
 
 # link executable to libraries
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
-target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d fastnoise )
+if (BUILDING_64_BIT)
+	target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3_x64 debug glfw3_x64_d fastnoise)
+else()
+	target_link_libraries(${PROJECT_NAME} gl3w optimized glfw3 debug glfw3_d fastnoise )
+endif()
 
 # specify include directories
 include_directories(include)
