@@ -896,7 +896,7 @@ public:
 		// DRAW!
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 		glDrawArrays(GL_POINTS, 0, 6);
 
