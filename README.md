@@ -4,7 +4,7 @@ This is a from-scratch creation of a Minecraft-like game, using C++ and OpenGL. 
 
 Progress **video** (January 6, 2020):
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/wPdDSbGLJiE/0.jpg)](https://www.youtube.com/watch?v=wPdDSbGLJiE)
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/DtxxP2QCIko/0.jpg)](https://www.youtube.com/watch?v=DtxxP2QCIko)
 
 ## Wanna try it out?
 
