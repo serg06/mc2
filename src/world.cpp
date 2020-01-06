@@ -15,78 +15,78 @@ namespace WorldTests {
 		test_gen_quads();
 		test_mark_as_merged();
 		test_get_max_size();
-		test_gen_layer();
+		//test_gen_layer();
 		OutputDebugString("WorldTests completed successfully.\n");
 	}
 
-	void test_gen_layer() {
-		// gen chunk at 0,0
-		Chunk* chunk = new Chunk({ 0, 0 });
-		chunk->generate();
+	//void test_gen_layer() {
+	//	// gen chunk at 0,0
+	//	Chunk* chunk = new Chunk({ 0, 0 });
+	//	chunk->generate();
 
-		// grab first mini that has stone, grass, and air blocks
-		MiniChunk* mini;
-		for (auto &mini2 : chunk->minis) {
-			bool has_air = false, has_stone = false, has_grass = false;
-			for (int i = 0; i < MINICHUNK_SIZE; i++) {
-				has_air |= mini2.blocks[i] == BlockType::Air;
-				has_stone |= mini2.blocks[i] == BlockType::Stone;
-				has_grass |= mini2.blocks[i] == BlockType::Grass;
-			}
+	//	// grab first mini that has stone, grass, and air blocks
+	//	MiniChunk* mini;
+	//	for (auto &mini2 : chunk->minis) {
+	//		bool has_air = false, has_stone = false, has_grass = false;
+	//		for (int i = 0; i < MINICHUNK_SIZE; i++) {
+	//			has_air |= mini2.blocks[i] == BlockType::Air;
+	//			has_stone |= mini2.blocks[i] == BlockType::Stone;
+	//			has_grass |= mini2.blocks[i] == BlockType::Grass;
+	//		}
 
-			if (has_air && has_stone && has_grass) {
-				mini = &mini2;
-			}
-		}
+	//		if (has_air && has_stone && has_grass) {
+	//			mini = &mini2;
+	//		}
+	//	}
 
-		if (mini == nullptr) {
-			throw "No sufficient minis!";
-		}
+	//	if (mini == nullptr) {
+	//		throw "No sufficient minis!";
+	//	}
 
-		// grab 2nd layer facing us in z direction
-		BlockType result[16][16];
-		int z = 1;
-		ivec3 face = { 0, 0, -1 };
+	//	// grab 2nd layer facing us in z direction
+	//	BlockType result[16][16];
+	//	int z = 1;
+	//	ivec3 face = { 0, 0, -1 };
 
-		for (int x = 0; x < 16; x++) {
-			for (int y = 0; y < 16; y++) {
-				// set working indices (TODO: move u to outer loop)
-				ivec3 coords = { x, y, z };
+	//	for (int x = 0; x < 16; x++) {
+	//		for (int y = 0; y < 16; y++) {
+	//			// set working indices (TODO: move u to outer loop)
+	//			ivec3 coords = { x, y, z };
 
-				// get block at these coordinates
-				BlockType block = mini->get_block(coords);
+	//			// get block at these coordinates
+	//			BlockType block = mini->get_block(coords);
 
-				// dgaf about air blocks
-				if (block == BlockType::Air) {
-					continue;
-				}
+	//			// dgaf about air blocks
+	//			if (block == BlockType::Air) {
+	//				continue;
+	//			}
 
-				// get face block
-				BlockType face_block = mini->get_block(coords + face);
+	//			// get face block
+	//			BlockType face_block = mini->get_block(coords + face);
 
-				// if block's face is visible, set it
-				if (World::is_face_visible(block, face_block)) {
-					result[x][y] = block;
-				}
-			}
-		}
+	//			// if block's face is visible, set it
+	//			if (World::is_face_visible(block, face_block)) {
+	//				result[x][y] = block;
+	//			}
+	//		}
+	//	}
 
-		// Do the same with gen_layer_fast
-		BlockType expected[16][16];
-		World::gen_layer_generalized(mini, mini, 2, 1, face, expected);
+	//	// Do the same with gen_layer_fast
+	//	BlockType expected[16][16];
+	//	World::gen_layer_generalized(mini, mini, 2, 1, face, expected);
 
-		// Make sure they're the same
-		for (int x = 0; x < 16; x++) {
-			for (int y = 0; y < 16; y++) {
-				if (result[x][y] != expected[x][y]) {
-					throw "It broke!";
-				}
-			}
-		}
+	//	// Make sure they're the same
+	//	for (int x = 0; x < 16; x++) {
+	//		for (int y = 0; y < 16; y++) {
+	//			if (result[x][y] != expected[x][y]) {
+	//				throw "It broke!";
+	//			}
+	//		}
+	//	}
 
-		// free
-		chunk->free();
-	}
+	//	// free
+	//	chunk->free();
+	//}
 
 	void test_gen_quads() {
 		// create layer of all air

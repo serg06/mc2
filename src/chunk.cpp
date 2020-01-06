@@ -60,7 +60,7 @@ void Chunk::generate() {
 	FastNoise fn;
 
 	// create chunk
-	if (minis[0].blocks == nullptr) {
+	if (minis[0].metadatas == nullptr) {
 		init_minichunks();
 	}
 	else {
@@ -147,4 +147,8 @@ void Chunk::generate() {
 			}
 		}
 	}
+
+#ifdef _DEBUG
+	OutputDebugString("");
+#endif
 }

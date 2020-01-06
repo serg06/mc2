@@ -89,6 +89,7 @@ public:
 	inline BlockType get_block(const vmath::ivec4 &xyz_) { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// set block at these coordinates
+	// TODO: create a set_block_range that takes a min_xyz and max_xyz and efficiently set them.
 	inline void set_block(int x, int y, int z, const BlockType &val) {
 		get_mini_with_y_level(y)->set_block(x, y % MINICHUNK_HEIGHT, z, val);
 	}

@@ -3,8 +3,11 @@
 #define __CHUNKDATA_H__
 
 #include "block.h"
+#include "util.h"
 
 #include "cmake_pch.hxx"
+
+#include <iterator>
 
 // Chunk size
 #define BLOCK_MIN_HEIGHT 0
@@ -74,7 +77,8 @@ public:
 // Chunk Data is always stored as width wide and depth deep
 class ChunkData {
 public:
-	BlockType *blocks = nullptr;
+	// TODO: unsigned short
+	IntervalMap<short, BlockType> blocks;
 	Metadata *metadatas = nullptr; // TODO: make this a 4-byte array?
 	Lighting *lightings = nullptr;
 
@@ -83,18 +87,16 @@ public:
 	int depth = 0;
 
 	// Memory leak, delete this when un-loading chunk from world.
-	ChunkData(int width, int height, int depth) : ChunkData(width, height, depth, nullptr, nullptr, nullptr) {}
-
-	ChunkData(int width, int height, int depth, BlockType* blocks, Metadata* metadatas, Lighting* lightings) : width(width), height(height), depth(depth), blocks(blocks), metadatas(metadatas), lightings(lightings) {
+	ChunkData(int width, int height, int depth) : width(width), height(height), depth(depth) {
 		assert(0 < width && "invalid chunk width");
 		assert(0 < depth && "invalid chunk depth");
 		assert(0 < height && "invalid chunk height");
 	}
 
 	inline void allocate() {
-		assert(blocks == nullptr && metadatas == nullptr && lightings == nullptr);
+		assert(metadatas == nullptr && lightings == nullptr);
 
-		blocks = new BlockType[width * height * depth];
+		blocks.clear(BlockType::Air);
 		metadatas = new Metadata[width * height * depth];
 		lightings = new Lighting[width * height * depth];
 
@@ -103,13 +105,12 @@ public:
 
 	// TODO: replace this with unique_ptr
 	inline void free() {
-		assert(blocks != nullptr && metadatas != nullptr && lightings != nullptr);
+		assert(metadatas != nullptr && lightings != nullptr);
 
-		delete[] blocks;
 		delete[] metadatas;
 		delete[] lightings;
 
-		blocks = nullptr;
+		blocks.clear(BlockType::Air);
 		metadatas = nullptr;
 		lightings = nullptr;
 	}
@@ -140,30 +141,51 @@ public:
 		assert(0 <= y && y < height && "set_block invalid y coordinate");
 		assert(0 <= z && z < depth && "set_block invalid z coordinate");
 
-		blocks[x + z * width + y * width * depth] = val;
+		int idx = x + z * width + y * width * depth;
+		blocks.set_interval(idx, idx + 1, val);
 	}
 
 	inline void set_block(const vmath::ivec3 &xyz, const BlockType &val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
 	inline void set_block(const vmath::ivec4 &xyz_, const BlockType &val) { return set_block(xyz_[0], xyz_[1], xyz_[2], val); }
 
 	inline bool all_air() {
-		return std::find_if(blocks, blocks + size(), [](BlockType b) {return b != BlockType::Air; }) == (blocks + size());
+		return blocks[0] == BlockType::Air && blocks.num_intervals() == 1;
 	}
 
 	inline bool any_air() {
-		return std::find(blocks, blocks + size(), BlockType::Air) < (blocks + size());
+		for (auto iter = blocks.begin(); iter != blocks.end(); iter++) {
+			if (iter->first < width*depth*height && iter->second == BlockType::Air) {
+				return true;
+			}
+		}
+		//auto blocks_end = std::next(blocks.get_interval(MINICHUNK_SIZE - 1));
+		//return std::find(blocks.begin(), blocks_end, BlockType::Air) != blocks_end;
 	}
 
 	inline bool any_translucent() {
-		return std::find_if(blocks, blocks + size(), [](BlockType b) { return b.is_translucent(); }) < (blocks + size());
+		for (auto &iter = this->blocks.begin(); iter != blocks.end(); iter++) {
+			if (iter->first < width*depth*height && iter->second.is_translucent()) {
+				return true;
+			}
+		}
+		//auto blocks_end = std::next(blocks.get_interval(MINICHUNK_SIZE - 1));
+		//return std::find_if(blocks.begin(), blocks_end, [](BlockType b) { return b.is_translucent(); }) != blocks_end;
 	}
 
 	inline void set_all_air() {
-		memset(this->blocks, (uint8_t)BlockType::Air, sizeof(BlockType) * size());
+		blocks.clear(BlockType::Air);
 	}
 
 	inline int count_air() {
-		return std::count(blocks, blocks + size(), BlockType::Air);
+		int num_air = 0;
+		for (auto iter = blocks.begin(); iter != blocks.end(); iter++) {
+			if (iter->first < width*depth*height && iter->second.is_translucent()) {
+				num_air++;
+			}
+		}
+		return num_air;
+		//auto blocks_end = std::next(blocks.get_interval(MINICHUNK_SIZE - 1));
+		//return std::count(blocks.begin(), blocks_end, BlockType::Air);
 	}
 
 	// get metadata at these coordinates
