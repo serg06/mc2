@@ -22,7 +22,7 @@ struct GlfwInfo {
 	float mouseY_Sensitivity = 0.25f;
 };
 
-static const enum TextAlignment : GLuint {
+const enum TextAlignment : GLuint {
 	BOTTOM_LEFT = 0x0,
 	TOP_LEFT = 0x1,
 	BOTTOM_RIGHT = 0x2,

@@ -275,14 +275,14 @@ public:
 		StructureBlock = 255
 	};
 
-	constexpr BlockType() : BlockType(Air) {}
-	constexpr BlockType(uint8_t value) : BlockType((Value)value) {}
-	constexpr BlockType(Value value) : value(value) {}
+	constexpr inline BlockType() : BlockType(Air) {}
+	constexpr inline BlockType(uint8_t value) : BlockType((Value)value) {}
+	constexpr inline BlockType(Value value) : value(value) {}
 	
 	// wew
-	operator Value() const { return value; }
-	operator uint8_t() const { return value; }
-	operator int() const { return value; }
+	inline operator Value() const { return value; }
+	inline operator uint8_t() const { return value; }
+	inline operator int() const { return value; }
 
 	// prevent if(block)
 	explicit operator bool() = delete;

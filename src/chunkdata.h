@@ -33,19 +33,23 @@ private:
 	uint8_t data;
 
 public:
-	Metadata() : data(0) {} // TODO: don't set 0?
-	Metadata(uint8_t data) : data(data) {}
+	inline Metadata() : data(0) {} // TODO: don't set 0?
+	inline Metadata(uint8_t data) : data(data) {}
 
 	/* LIQUIDS | LAST 4 BITS | LIQUID LEVEL */
 
-	uint8_t get_liquid_level() {
+	inline uint8_t get_liquid_level() {
 		return data & 0xF;
 	}
 
-	void set_liquid_level(uint8_t water_level) {
+	inline void set_liquid_level(uint8_t water_level) {
 		assert(water_level == (water_level & 0xF) && "water level uses more than 4 bits");
 		data = (data & 0xF0) | (water_level & 0xF);
 	}
+
+	// comparing to Metadata
+	inline bool operator==(Metadata m) const { return data == m.data; }
+	inline bool operator!=(Metadata m) const { return data != m.data; }
 };
 
 // block lighting
@@ -78,7 +82,7 @@ class ChunkData {
 public:
 	// TODO: unsigned short
 	IntervalMap<short, BlockType> blocks;
-	Metadata *metadatas = nullptr; // TODO: make this a 4-byte array?
+	IntervalMap<short, Metadata> metadatas;
 	Lighting *lightings = nullptr;
 
 	int width = 0;
@@ -93,10 +97,10 @@ public:
 	}
 
 	inline void allocate() {
-		assert(metadatas == nullptr && lightings == nullptr);
+		assert(lightings == nullptr);
 
 		blocks.clear(BlockType::Air);
-		metadatas = new Metadata[width * height * depth];
+		metadatas.clear(0);
 		lightings = new Lighting[width * height * depth];
 
 		memset(lightings, 0, sizeof(Lighting) * width * height * depth);
@@ -104,13 +108,12 @@ public:
 
 	// TODO: replace this with unique_ptr
 	inline void free() {
-		assert(metadatas != nullptr && lightings != nullptr);
+		assert(lightings != nullptr);
 
-		delete[] metadatas;
 		delete[] lightings;
 
 		blocks.clear(BlockType::Air);
-		metadatas = nullptr;
+		metadatas.clear(0);
 		lightings = nullptr;
 	}
 
@@ -292,7 +295,8 @@ public:
 		assert(0 <= y && y < height && "set_metadata invalid y coordinate");
 		assert(0 <= z && z < depth && "set_metadata invalid z coordinate");
 
-		metadatas[c2idx(x, y, z)] = val;
+		int idx = c2idx(x, y, z);
+		metadatas.set_interval(idx, idx + 1, val);
 	}
 
 	inline void set_metadata(const vmath::ivec3 &xyz, Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }

@@ -60,7 +60,7 @@ void Chunk::generate() {
 	FastNoise fn;
 
 	// create chunk
-	if (minis[0].metadatas == nullptr) {
+	if (minis[0].lightings == nullptr) {
 		init_minichunks();
 	}
 	else {
