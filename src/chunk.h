@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <cstdint>
+#include <memory>
 #include <stdio.h> 
 
 constexpr int CHUNK_WIDTH = 16;
@@ -20,7 +21,7 @@ constexpr int CHUNK_DEPTH = 16;
 constexpr int CHUNK_SIZE = CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT;
 
 namespace {
-	static BlockType* __chunk_tmp_storage = (BlockType*)malloc(CHUNK_SIZE * sizeof(BlockType));
+	static std::unique_ptr<BlockType[]> __chunk_tmp_storage = std::make_unique<BlockType[]>(CHUNK_SIZE);
 }
 
 /*

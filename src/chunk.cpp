@@ -69,7 +69,7 @@ void Chunk::generate() {
 #endif
 
 	// create chunk data array
-	memset(__chunk_tmp_storage, 0, CHUNK_SIZE * sizeof(BlockType));
+	memset(__chunk_tmp_storage.get(), 0, CHUNK_SIZE * sizeof(BlockType));
 
 	// fill data
 	for (int z = 0; z < CHUNK_DEPTH; z++) {
@@ -144,7 +144,7 @@ void Chunk::generate() {
 		}
 	}
 
-	set_blocks(__chunk_tmp_storage);
+	set_blocks(__chunk_tmp_storage.get());
 
 #ifdef _DEBUG
 	OutputDebugString("");
