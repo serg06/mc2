@@ -58,23 +58,27 @@ private:
 	uint8_t data;
 
 public:
-	uint8_t get_sunlight() {
+	inline uint8_t get_sunlight() {
 		return data >> 4;
 	}
 
-	void set_sunlight(uint8_t sunlight) {
+	inline void set_sunlight(uint8_t sunlight) {
 		assert(sunlight == (sunlight & 0xF) && "sunlight level uses more than 4 bits");
 		data = (sunlight << 4) | (data & 0xF);
 	}
 
-	uint8_t get_torchlight() {
+	inline uint8_t get_torchlight() {
 		return data & 0xF;
 	}
 
-	void set_torchlight(uint8_t torchlight) {
+	inline void set_torchlight(uint8_t torchlight) {
 		assert(torchlight == (torchlight & 0xF) && "torchlight level uses more than 4 bits");
 		data = (data & 0xF0) | torchlight;
 	}
+
+	// comparing to Lighting
+	inline bool operator==(Lighting l) const { return data == l.data; }
+	inline bool operator!=(Lighting l) const { return data != l.data; }
 };
 
 // Chunk Data is always stored as width wide and depth deep
@@ -83,7 +87,7 @@ public:
 	// TODO: unsigned short
 	IntervalMap<short, BlockType> blocks;
 	IntervalMap<short, Metadata> metadatas;
-	Lighting *lightings = nullptr;
+	IntervalMap<short, Metadata> lightings;
 
 	int width = 0;
 	int height = 0;
@@ -97,24 +101,16 @@ public:
 	}
 
 	inline void allocate() {
-		assert(lightings == nullptr);
-
 		blocks.clear(BlockType::Air);
 		metadatas.clear(0);
-		lightings = new Lighting[width * height * depth];
-
-		memset(lightings, 0, sizeof(Lighting) * width * height * depth);
+		lightings.clear(0);
 	}
 
-	// TODO: replace this with unique_ptr
+	// TODO: replace allocate() and free() with just reset()
 	inline void free() {
-		assert(lightings != nullptr);
-
-		delete[] lightings;
-
 		blocks.clear(BlockType::Air);
 		metadatas.clear(0);
-		lightings = nullptr;
+		lightings.clear(0);
 	}
 
 	inline int size() {
@@ -150,8 +146,7 @@ public:
 		assert(0 <= y && y < height && "set_block invalid y coordinate");
 		assert(0 <= z && z < depth && "set_block invalid z coordinate");
 
-		int idx = c2idx(x, y, z);
-		blocks.set_interval(idx, idx + 1, val);
+		blocks.set_interval(c2idx(x, y, z), c2idx(x, y, z) + 1, val);
 	}
 
 	inline void set_block(const vmath::ivec3 &xyz, const BlockType &val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
@@ -295,8 +290,7 @@ public:
 		assert(0 <= y && y < height && "set_metadata invalid y coordinate");
 		assert(0 <= z && z < depth && "set_metadata invalid z coordinate");
 
-		int idx = c2idx(x, y, z);
-		metadatas.set_interval(idx, idx + 1, val);
+		metadatas.set_interval(c2idx(x, y, z), c2idx(x, y, z) + 1, val);
 	}
 
 	inline void set_metadata(const vmath::ivec3 &xyz, Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }

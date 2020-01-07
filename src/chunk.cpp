@@ -60,14 +60,7 @@ void Chunk::generate() {
 	FastNoise fn;
 
 	// create chunk
-	if (minis[0].lightings == nullptr) {
-		init_minichunks();
-	}
-	else {
-		for (auto &mini : minis) {
-			mini.set_all_air();
-		}
-	}
+	init_minichunks();
 
 #ifdef _DEBUG
 	if (coords == ivec2(0, 0)) {
