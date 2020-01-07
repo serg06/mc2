@@ -19,6 +19,10 @@ constexpr int CHUNK_HEIGHT = 256;
 constexpr int CHUNK_DEPTH = 16;
 constexpr int CHUNK_SIZE = CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT;
 
+namespace {
+	static BlockType* __chunk_tmp_storage = (BlockType*)malloc(CHUNK_SIZE * sizeof(BlockType));
+}
+
 /*
 *
 * CHUNK FORMAT
