@@ -271,47 +271,43 @@ private:
 	std::map<K, V> my_map;
 
 public:
-	typedef class std::map<K, V>::iterator iter;
-
-	// fill with 0 by default
-	IntervalMap() : IntervalMap(0) {
-	}
+	inline IntervalMap() : IntervalMap(0) {}
 
 	// create interval map with default v
-	IntervalMap(V v) {
-		my_map.insert(my_map.end(), { std::numeric_limits<K>::lowest(), v });
+	inline IntervalMap(const V& v) {
+		clear(v);
 	}
 
 	// map [begin, end) -> v
 	// O(log N)
-	void set_interval(K begin, K end, const V v) {
+	void set_interval(const K& begin, const K& end, const V& v) {
 		if (begin >= end) return;
 
 		// get end intersector (inclusive)
-		iter end_intersect = --my_map.upper_bound(end);
+		auto end_intersect = --my_map.upper_bound(end);
 
 		// if required, insert at end
-		iter inserted_end = my_map.end();
+		auto inserted_end = my_map.end();
 		if (end_intersect->second != v) {
 			inserted_end = my_map.insert_or_assign(end_intersect, end, end_intersect->second);
 		}
 
 		// get begin intersector (inclusive)
-		iter begin_intersect = --my_map.upper_bound(begin);
+		auto begin_intersect = --my_map.upper_bound(begin);
 
 		// if required, insert at start
-		iter inserted_start = my_map.end();
+		auto inserted_start = my_map.end();
 		if (begin_intersect->second != v) {
 			inserted_start = my_map.insert_or_assign(begin_intersect, begin, v);
 		}
 
 		// delete everyone inside
-		iter del_start = inserted_start != my_map.end() ? inserted_start : begin_intersect;
+		auto del_start = inserted_start != my_map.end() ? inserted_start : begin_intersect;
 		if (del_start->first < begin || (del_start->first == begin && std::prev(del_start)->second != v)) {
 			del_start++;
 		}
 
-		iter del_end = inserted_end != my_map.end() ? inserted_end : end_intersect;
+		auto del_end = inserted_end != my_map.end() ? inserted_end : end_intersect;
 		if (del_end != my_map.end() && del_end->first == end && std::next(del_end) != my_map.end() && del_end->second == v) {
 			del_end++;
 		}
@@ -323,19 +319,19 @@ public:
 
 	// iterator which traverses elements in sorted order (smallest to largest)
 	// O(1)
-	constexpr inline auto &begin() {
+	inline auto begin() {
 		return my_map.begin();
 	}
 
 	// end of elements
 	// O(1)
-	constexpr inline auto &end() {
+	inline auto end() {
 		return my_map.end();
 	}
 
 	// get iterator containing key `k`
 	// O(log N)
-	constexpr inline iter get_interval(K k) {
+	inline auto get_interval(K const& k) {
 		return --my_map.upper_bound(k);
 	}
 
@@ -344,27 +340,22 @@ public:
 	const inline V& operator[](K const& k) const {
 		return (--my_map.upper_bound(k))->second;
 	}
-	
-	// don't return reference because we don't want to allow map[whatever] = value as it would edit the next-earliest value instead of inserting a new element. (TODO: write better.)
-	inline V operator[](K const& k) {
-		return (--my_map.upper_bound(k))->second;
-	}
 
 	// clear
-	constexpr void clear(V const& v) {
+	inline void clear(V const& v) {
 		my_map.clear();
 		my_map.insert(my_map.end(), { std::numeric_limits<K>::lowest(), v });
 	}
 
 	// get num intervals overall
 	// always at least 1
-	constexpr int num_intervals() {
+	inline auto num_intervals() {
 		return my_map.size();
 	}
 
 	// get number of intervals in a range
 	// UNTESTED
-	constexpr int num_intervals(const K& start, const K& end) {
+	inline auto num_intervals(const K& start, const K& end) {
 		return get_interval(end) - get_interval(start);
 	}
 };
