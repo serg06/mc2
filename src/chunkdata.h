@@ -154,6 +154,49 @@ public:
 	inline void set_block(const vmath::ivec3 &xyz, const BlockType &val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
 	inline void set_block(const vmath::ivec4 &xyz_, const BlockType &val) { return set_block(xyz_[0], xyz_[1], xyz_[2], val); }
 
+	/**
+	 * Given a cube of chunkdata coordinates, convert it into optimal intervals.
+	 * NOTE: Relies on the fact that we go in the order x, z, y.
+	 */
+	inline std::vector<std::pair<int, int>> optimize_intervals(const vmath::ivec3 &min_xyz, const vmath::ivec3 &max_xyz) {
+		// TODO: Make sure it works. Right now I think there's an off-by-one error. (Should be doing <= instead of <.)
+		assert(min_xyz[0] < max_xyz[0] && min_xyz[1] < max_xyz[1] && min_xyz[2] < max_xyz[2]);
+
+		std::vector<std::pair<int, int>> result;
+
+		const vmath::ivec3 diffs = max_xyz - min_xyz;
+
+		// if x is 16
+		if (diffs[0] == 16) {
+			// if z is 16, only need one interval
+			if (diffs[2] == 16) {
+				result.push_back({ c2idx(min_xyz), c2idx(max_xyz) });
+			}
+			// x is 16 but z is not 16
+			else {
+				for (int y = min_xyz[1]; y < max_xyz[1]; y++) {
+					result.push_back({
+						c2idx(min_xyz[0], y, min_xyz[2]),
+						c2idx(max_xyz[0], y, max_xyz[2])
+						});
+				}
+			}
+		}
+		// neither x nor z are 16
+		else {
+			for (int y = min_xyz[1]; y < max_xyz[1]; y++) {
+				for (int z = min_xyz[2]; z < max_xyz[2]; z++) {
+					result.push_back({
+						c2idx(min_xyz[0], y, z),
+						c2idx(max_xyz[0], y, z)
+						});
+				}
+			}
+		}
+
+		return result;
+	}
+
 	//// set all blocks in this range
 	//inline void set_block_range(const vmath::ivec3 &min_xyz, const vmath::ivec3 &max_xyz, const BlockType &val) {
 	//	std::vector<std::pair<
