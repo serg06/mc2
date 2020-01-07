@@ -154,6 +154,34 @@ public:
 	inline void set_block(const vmath::ivec3 &xyz, const BlockType &val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
 	inline void set_block(const vmath::ivec4 &xyz_, const BlockType &val) { return set_block(xyz_[0], xyz_[1], xyz_[2], val); }
 
+	// set blocks in map using array, efficiently
+	// relies on x -> z -> y
+	inline void set_blocks(BlockType* new_blocks) {
+		blocks.clear(BlockType::Air);
+
+		int start = 0;
+		BlockType start_block = new_blocks[0];
+
+		for (int y = 0; y < width; y++) {
+			for (int z = 0; z < depth; z++) {
+				for (int x = 0; x < height; x++) {
+					// if different block
+					if (new_blocks[c2idx(x, y, z)] != start_block) {
+						// add interval
+						blocks.set_interval(start, c2idx(x, y, z), start_block);
+
+						// new start
+						start = c2idx(x, y, z);
+						start_block = new_blocks[c2idx(x, y, z)];
+					}
+				}
+			}
+		}
+
+		// add last interval
+		blocks.set_interval(start, width*depth*height, start_block);
+	}
+
 	/**
 	 * Given a cube of chunkdata coordinates, convert it into optimal intervals.
 	 * NOTE: Relies on the fact that we go in the order x, z, y.

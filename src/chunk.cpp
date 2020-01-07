@@ -75,6 +75,10 @@ void Chunk::generate() {
 	}
 #endif
 
+	// create chunk data array
+	auto chunk_data = std::make_unique<BlockType[]>(CHUNK_SIZE);
+	memset(chunk_data.get(), 0, CHUNK_SIZE * sizeof(BlockType));
+
 	// fill data
 	for (int z = 0; z < CHUNK_DEPTH; z++) {
 		for (int x = 0; x < CHUNK_WIDTH; x++) {
@@ -90,9 +94,9 @@ void Chunk::generate() {
 
 			// fill everything under that height
 			for (int i = 0; i < y; i++) {
-				set_block(x, i, z, BlockType::Stone);
+				chunk_data[c2idx_chunk(x, i, z)] = BlockType::Stone;
 			}
-			set_block(x, (int)floor(y), z, BlockType::Grass);
+			chunk_data[c2idx_chunk(x, (int)floor(y), z)] = BlockType::Grass;
 
 			// generate tree if we wanna
 			if (y >= WATER_HEIGHT) {
@@ -107,7 +111,7 @@ void Chunk::generate() {
 								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
 									continue;
 								}
-								set_block(x + dx, y + dy, z + dz, BlockType::OakLeaves);
+								chunk_data[c2idx_chunk(x + dx, y + dy, z + dz)] = BlockType::OakLeaves;
 							}
 						}
 					}
@@ -117,7 +121,7 @@ void Chunk::generate() {
 								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
 									continue;
 								}
-								set_block(x + dx, y + dy, z + dz, BlockType::OakLeaves);
+								chunk_data[c2idx_chunk(x + dx, y + dy, z + dz)] = BlockType::OakLeaves;
 							}
 						}
 					}
@@ -127,14 +131,14 @@ void Chunk::generate() {
 								if (x + dx < 0 || x + dx >= 16 || z + dz < 0 || z + dz >= 16) {
 									continue;
 								}
-								set_block(x + dx, y + dy, z + dz, BlockType::OakLeaves);
+								chunk_data[c2idx_chunk(x + dx, y + dy, z + dz)] = BlockType::OakLeaves;
 							}
 						}
 					}
 
 					// generate logs
 					for (int dy = 1; dy <= 5; dy++) {
-						set_block(x, y + dy, z, BlockType::OakWood);
+						chunk_data[c2idx_chunk(x, y + dy, z)] = BlockType::OakWood;
 					}
 				}
 			}
@@ -142,11 +146,13 @@ void Chunk::generate() {
 			// Fill water
 			if (y < WATER_HEIGHT - 1) {
 				for (int y2 = y + 1; y2 < WATER_HEIGHT; y2++) {
-					set_block(x, y2, z, BlockType::StillWater);
+					chunk_data[c2idx_chunk(x, y2, z)] = BlockType::StillWater;
 				}
 			}
 		}
 	}
+
+	set_blocks(chunk_data.get());
 
 #ifdef _DEBUG
 	OutputDebugString("");

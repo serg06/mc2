@@ -66,6 +66,13 @@ public:
 	Chunk() : Chunk({ 0, 0 }) {}
 	Chunk(vmath::ivec2 coords) : coords(coords) {};
 
+	// convert coordinates to idx
+	static inline int c2idx_chunk(const int &x, const int &y, const int &z) {
+		return x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH;
+	}
+	static inline int c2idx_chunk(const vmath::ivec3 &xyz) { return c2idx_chunk(xyz[0], xyz[1], xyz[2]); }
+
+
 	// initialize minichunks by setting coords and allocating space
 	inline void init_minichunks() {
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
@@ -87,6 +94,13 @@ public:
 
 	inline BlockType get_block(const vmath::ivec3 &xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
 	inline BlockType get_block(const vmath::ivec4 &xyz_) { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
+
+	// set blocks in map using array, efficiently
+	inline void set_blocks(BlockType* new_blocks) {
+		for (int y = 0; y < BLOCK_MAX_HEIGHT; y += MINICHUNK_HEIGHT) {
+			get_mini_with_y_level(y)->set_blocks(new_blocks + MINICHUNK_WIDTH * MINICHUNK_DEPTH * y);
+		}
+	}
 
 	// set block at these coordinates
 	// TODO: create a set_block_range that takes a min_xyz and max_xyz and efficiently set them.
