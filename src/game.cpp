@@ -139,7 +139,7 @@ void App::render(float time) {
 
 	char buf[256];
 
-	auto start_of_fn = std::chrono::high_resolution_clock::now();
+	const auto start_of_fn = std::chrono::high_resolution_clock::now();
 
 	// change in time
 	const float dt = time - last_render_time;
@@ -156,29 +156,29 @@ void App::render(float time) {
 	world->gen_nearby_chunks(char_position, min_render_distance);
 
 	// update block that player is staring at
-	auto direction = staring_direction();
-	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](ivec3 coords, ivec3 face) {
-		auto block = this->world->get_type(coords);
+	const auto direction = staring_direction();
+	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](const ivec3 &coords, const ivec3& face) {
+		const auto block = this->world->get_type(coords);
 		return block.is_solid();
 	});
 
 	/* TRANSFORMATION MATRICES */
 
 	// Create Model->World matrix
-	mat4 model_world_matrix =
+	const mat4 model_world_matrix =
 		translate(0.0f, -CAMERA_HEIGHT, 0.0f);
 
 	// Create World->View matrix
-	mat4 world_view_matrix =
+	const mat4 world_view_matrix =
 		rotate_pitch_yaw(char_pitch, char_yaw) *
 		translate(-char_position[0], -char_position[1], -char_position[2]); // move relative to you
 
 	// Combine them into Model->View matrix
-	mat4 model_view_matrix = world_view_matrix * model_world_matrix;
+	const mat4 model_view_matrix = world_view_matrix * model_world_matrix;
 
 	// Update projection matrix too, in case if width/height changed
 	// NOTE: Careful, if (nearplane/farplane) ratio is too small, things get fucky.
-	mat4 proj_matrix = perspective(
+	const mat4 proj_matrix = perspective(
 		(float)windowInfo.vfov, // virtual fov
 		(float)windowInfo.width / (float)windowInfo.height, // aspect ratio
 		(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // see blocks no matter how close they are
@@ -195,8 +195,8 @@ void App::render(float time) {
 	glClearBufferfv(GL_DEPTH, 0, one);
 
 	// check if in water
-	BlockType face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
-	GLuint in_water = face_block == BlockType::StillWater;
+	const BlockType face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
+	const GLuint in_water = face_block == BlockType::StillWater;
 
 	// Update transformation buffer with matrices
 	glNamedBufferSubData(glInfo.trans_uni_buf, 0, sizeof(model_view_matrix), model_view_matrix);
@@ -215,17 +215,10 @@ void App::render(float time) {
 		world->highlight_block(&glInfo, &windowInfo, staring_at);
 	}
 
-	auto end_of_fn = std::chrono::high_resolution_clock::now();
-	long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
-	if (result_total / 1000.0f > 50) {
-		sprintf(buf, "TOTAL GAME::RENDER TIME: %.2fms\n", result_total / 1000.0f);
-		OutputDebugString(buf);
-	}
-
 	// display debug info
 	if (show_debug_info) {
 		char buf[256];
-		ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
+		const ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
 		int y_offset = 0;
 
 		sprintf(buf, "FPS: %-4.1f (%d ms) (%d distance)", fps, (int)(dt * 1000), min_render_distance);
@@ -258,6 +251,14 @@ void App::render(float time) {
 	else {
 		// FBO: COPY TO DEFAULT FRAMEBUFFER
 		glBlitNamedFramebuffer(glInfo.fbo_out, 0, 0, 0, windowInfo.width, windowInfo.height, 0, 0, windowInfo.width, windowInfo.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	}
+
+	// make sure rendering didn't take too long
+	const auto end_of_fn = std::chrono::high_resolution_clock::now();
+	const long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
+	if (result_total / 1000.0f > 50) {
+		sprintf(buf, "TOTAL GAME::RENDER TIME: %.2fms\n", result_total / 1000.0f);
+		OutputDebugString(buf);
 	}
 }
 

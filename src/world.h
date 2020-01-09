@@ -347,7 +347,7 @@ public:
 	inline MiniChunk* get_mini(ivec3 xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
 
 	// generate chunks near player
-	inline void gen_nearby_chunks(vmath::vec4 position, int distance) {
+	inline void gen_nearby_chunks(const vmath::vec4& position, const int& distance) {
 		assert(distance >= 0 && "invalid distance");
 
 		ivec2 chunk_coords = get_chunk_coords((int)floorf(position[0]), (int)floorf(position[2]));
@@ -934,7 +934,7 @@ public:
 	* If the callback returns a true value, the traversal will be stopped.
 	*/
 	// stop_check = function that decides if we stop the raycast or not
-	inline void raycast(vec4 origin, vec4 direction, int radius, ivec3 *result_coords, ivec3 *result_face, const std::function <bool(ivec3 coords, ivec3 face)>& stop_check) {
+	inline void raycast(const vec4& origin, const vec4& direction, int radius, ivec3 *result_coords, ivec3 *result_face, const std::function <bool(ivec3 coords, ivec3 face)>& stop_check) {
 		// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
 		// by John Amanatides and Andrew Woo, 1987
 		// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
