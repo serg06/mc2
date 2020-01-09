@@ -67,7 +67,6 @@ public:
 	void render(float time);
 	void update_player_movement(const float dt);
 	vec4 prevent_collisions(const vec4 position_change);
-	std::vector<vmath::ivec4> get_intersecting_blocks(vec4 player_position);
 
 	// redirected GLFW/GL callbacks
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);

@@ -423,28 +423,6 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	return { 0 };
 }
 
-// given a player's position, what blocks does he intersect with?
-std::vector<ivec4> App::get_intersecting_blocks(vec4 player_position) {
-	// get x/y/z min/max
-	ivec3 xyzMin = { (int)floorf(player_position[0] - PLAYER_RADIUS), (int)floorf(player_position[1]), (int)floorf(player_position[2] - PLAYER_RADIUS) };
-	ivec3 xyzMax = { (int)floorf(player_position[0] + PLAYER_RADIUS), (int)floorf(player_position[1] + PLAYER_HEIGHT), (int)floorf(player_position[2] + PLAYER_RADIUS) };
-
-	// TODO: use set for duplicate-removal
-
-	// get all blocks that our player intersects with
-	std::vector<ivec4> blocks;
-	for (int x = xyzMin[0]; x <= xyzMax[0]; x++) {
-		for (int y = xyzMin[1]; y <= xyzMax[1]; y++) {
-			for (int z = xyzMin[2]; z <= xyzMax[2]; z++)
-			{
-				blocks.push_back({ x, y, z, 0 });
-			}
-		}
-	}
-
-	return blocks;
-}
-
 void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	// ignore unknown keys
