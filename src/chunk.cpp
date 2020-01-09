@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define WATER_HEIGHT 64
+constexpr int WATER_HEIGHT = 64;
 
 using namespace std;
 using namespace vmath;

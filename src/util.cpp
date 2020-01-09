@@ -9,7 +9,7 @@
 #include <tuple> 
 #include <vector>
 
-#define SEED 5370157038
+constexpr long SEED = 5370157038;
 
 using namespace std;
 using namespace vmath;

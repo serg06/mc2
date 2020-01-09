@@ -24,7 +24,7 @@
 #include <vector>
 
 // radius from center of minichunk that must be included in view frustum
-#define FRUSTUM_MINI_RADIUS_ALLOWANCE 28.0f
+constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
 
 using namespace std;
 

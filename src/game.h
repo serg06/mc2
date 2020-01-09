@@ -1,8 +1,8 @@
 #ifndef __GAME_H__
 #define __GAME_H__
 
-#define GPU_MAX_CHUNKS 256
-#define NUM_MESH_GEN_THREADS 1
+constexpr int GPU_MAX_CHUNKS = 256;
+constexpr int NUM_MESH_GEN_THREADS = 1;
 
 #include "chunk.h"
 #include "chunkdata.h"

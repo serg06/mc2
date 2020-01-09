@@ -10,9 +10,9 @@
 #include <iterator>
 
 // Chunk size
-#define BLOCK_MIN_HEIGHT 0
-#define BLOCK_MAX_HEIGHT 255
-#define MINIS_PER_CHUNK (CHUNK_HEIGHT / MINICHUNK_HEIGHT)
+constexpr int BLOCK_MIN_HEIGHT = 0;
+constexpr int BLOCK_MAX_HEIGHT = 255;
+constexpr int MINIS_PER_CHUNK = 16; // TODO: = (CHUNK_HEIGHT / MINICHUNK_HEIGHT);
 
 using namespace vmath;
 

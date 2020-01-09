@@ -6,6 +6,7 @@
 #include "cmake_pch.hxx"
 
 // player dimensions
+// NOTE: May cause extra t-junctions.
 constexpr float PLAYER_RADIUS = 0.3f;
 constexpr float PLAYER_WIDTH = PLAYER_RADIUS * 2;
 constexpr float PLAYER_DEPTH = PLAYER_RADIUS * 2;
@@ -20,7 +21,7 @@ constexpr float CAMERA_HEIGHT = 1.6f;
 #define PLAYER_WEST_0 (WEST_0 * PLAYER_WIDTH / 2.0f)
 
 #define PLAYER_UP_0 (UP_0 * PLAYER_HEIGHT)
-#define PLAYER_DOWN_0 vec4(0.0f)
+constexpr vmath::vec4 PLAYER_DOWN_0 = vmath::vec4(0.0f);
 
 namespace shapes {
 	// Cube at origin
