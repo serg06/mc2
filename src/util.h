@@ -9,37 +9,37 @@
 #include <tuple>
 #include <vector>
 
-static const vmath::vec4 NORTH_0 = vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
-static const vmath::vec4 NORTH_1 = vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+static constexpr vmath::vec4 NORTH_0 = vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+static constexpr vmath::vec4 NORTH_1 = vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f);
 
-static const vmath::vec4 SOUTH_0 = vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-static const vmath::vec4 SOUTH_1 = vmath::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+static constexpr vmath::vec4 SOUTH_0 = vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+static constexpr vmath::vec4 SOUTH_1 = vmath::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
-static const vmath::vec4 EAST_0 = vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-static const vmath::vec4 EAST_1 = vmath::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+static constexpr vmath::vec4 EAST_0 = vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+static constexpr vmath::vec4 EAST_1 = vmath::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
-static const vmath::vec4 WEST_0 = vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
-static const vmath::vec4 WEST_1 = vmath::vec4(-1.0f, 0.0f, 0.0f, 1.0f);
+static constexpr vmath::vec4 WEST_0 = vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+static constexpr vmath::vec4 WEST_1 = vmath::vec4(-1.0f, 0.0f, 0.0f, 1.0f);
 
-static const vmath::vec4 UP_0 = vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-static const vmath::vec4 UP_1 = vmath::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+static constexpr vmath::vec4 UP_0 = vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+static constexpr vmath::vec4 UP_1 = vmath::vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
-static const vmath::vec4 DOWN_0 = vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-static const vmath::vec4 DOWN_1 = vmath::vec4(0.0f, -1.0f, 0.0f, 1.0f);
+static constexpr vmath::vec4 DOWN_0 = vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+static constexpr vmath::vec4 DOWN_1 = vmath::vec4(0.0f, -1.0f, 0.0f, 1.0f);
 
-static const vmath::ivec4 INORTH_0 = vmath::ivec4(0, 0, -1, 0);
-static const vmath::ivec4 ISOUTH_0 = vmath::ivec4(0, 0, 1, 0);
-static const vmath::ivec4 IEAST_0 = vmath::ivec4(1, 0, 0, 0);
-static const vmath::ivec4 IWEST_0 = vmath::ivec4(-1, 0, 0, 0);
-static const vmath::ivec4 IUP_0 = vmath::ivec4(0, 1, 0, 0);
-static const vmath::ivec4 IDOWN_0 = vmath::ivec4(0, -1, 0, 0);
+static constexpr vmath::ivec4 INORTH_0 = vmath::ivec4(0, 0, -1, 0);
+static constexpr vmath::ivec4 ISOUTH_0 = vmath::ivec4(0, 0, 1, 0);
+static constexpr vmath::ivec4 IEAST_0 = vmath::ivec4(1, 0, 0, 0);
+static constexpr vmath::ivec4 IWEST_0 = vmath::ivec4(-1, 0, 0, 0);
+static constexpr vmath::ivec4 IUP_0 = vmath::ivec4(0, 1, 0, 0);
+static constexpr vmath::ivec4 IDOWN_0 = vmath::ivec4(0, -1, 0, 0);
 
-static const vmath::ivec3 INORTH = vmath::ivec3(0, 0, -1);
-static const vmath::ivec3 ISOUTH = vmath::ivec3(0, 0, 1);
-static const vmath::ivec3 IEAST = vmath::ivec3(1, 0, 0);
-static const vmath::ivec3 IWEST = vmath::ivec3(-1, 0, 0);
-static const vmath::ivec3 IUP = vmath::ivec3(0, 1, 0);
-static const vmath::ivec3 IDOWN = vmath::ivec3(0, -1, 0);
+static constexpr vmath::ivec3 INORTH = vmath::ivec3(0, 0, -1);
+static constexpr vmath::ivec3 ISOUTH = vmath::ivec3(0, 0, 1);
+static constexpr vmath::ivec3 IEAST = vmath::ivec3(1, 0, 0);
+static constexpr vmath::ivec3 IWEST = vmath::ivec3(-1, 0, 0);
+static constexpr vmath::ivec3 IUP = vmath::ivec3(0, 1, 0);
+static constexpr vmath::ivec3 IDOWN = vmath::ivec3(0, -1, 0);
 
 using namespace vmath;
 
