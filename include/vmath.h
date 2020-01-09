@@ -173,11 +173,10 @@ namespace vmath
 			return (*this = *this - that);
 		}
 
-		inline vecN operator*(const vecN& that) const
+		constexpr inline vecN operator*(const vecN& that) const
 		{
 			my_type result;
-			int n;
-			for (n = 0; n < len; n++)
+			for (int n = 0; n < len; n++)
 				result.data[n] = data[n] * that.data[n];
 			return result;
 		}
@@ -187,11 +186,10 @@ namespace vmath
 			return (*this = *this * that);
 		}
 
-		inline vecN operator*(const T& that) const
+		constexpr inline vecN operator*(const T& that) const
 		{
 			my_type result;
-			int n;
-			for (n = 0; n < len; n++)
+			for (int n = 0; n < len; n++)
 				result.data[n] = data[n] * that;
 			return result;
 		}
@@ -203,11 +201,10 @@ namespace vmath
 			return *this;
 		}
 
-		inline vecN operator/(const vecN& that) const
+		constexpr inline vecN operator/(const vecN& that) const
 		{
 			my_type result;
-			int n;
-			for (n = 0; n < len; n++)
+			for (int n = 0; n < len; n++)
 				result.data[n] = data[n] / that.data[n];
 			return result;
 		}
@@ -219,11 +216,10 @@ namespace vmath
 			return *this;
 		}
 
-		inline vecN operator/(const T& that) const
+		constexpr inline vecN operator/(const T& that) const
 		{
 			my_type result;
-			int n;
-			for (n = 0; n < len; n++)
+			for (int n = 0; n < len; n++)
 				result.data[n] = data[n] / that;
 			return result;
 		}
