@@ -67,8 +67,8 @@ public:
 	int chunk_cache_clock_hand = 0; // clock cache
 
 	// multi-thread-access minis who need their mesh generated
-	queue<MiniChunk*> mesh_gen_queue; // storage
-	unordered_set<MiniChunk*> mesh_gen_set; // uniqueness
+	std::deque<MiniChunk*> mesh_gen_queue; // storage
+	std::unordered_set<MiniChunk*> mesh_gen_set; // uniqueness
 
 	// thread safety
 	std::mutex mesh_gen_mutex;
@@ -84,6 +84,7 @@ public:
 	// water propagation min-priority queue
 	// maps <tick to propagate water at> to <coordinate of water>
 	// TODO: uniqueness (have hashtable which maps coords -> tick, and always keep earliest tick when adding)
+	// TODO: If I never add anything else to this queue (like fire/lava/etc), change it to a normal queue.
 	std::priority_queue<std::pair<int, vmath::ivec3>, std::vector<std::pair<int, vmath::ivec3>>, std::greater<std::pair<int, vmath::ivec3>>> water_propagation_queue;
 
 	World() {
@@ -123,7 +124,7 @@ public:
 
 	// enqueue mesh generation of this mini
 	// expects mesh lock
-	inline void enqueue_mesh_gen(MiniChunk* mini) {
+	inline void enqueue_mesh_gen(MiniChunk* mini, bool front_of_queue = false) {
 		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
 		assert(mini != nullptr && "seriously?");
 
@@ -137,7 +138,12 @@ public:
 
 		// not in set yet, add.
 		mesh_gen_set.insert(mini);
-		mesh_gen_queue.push(mini);
+		if (front_of_queue) {
+			mesh_gen_queue.push_front(mini);
+		}
+		else {
+			mesh_gen_queue.push_back(mini);
+		}
 		mesh_gen_cv.notify_one();
 	}
 
@@ -154,7 +160,7 @@ public:
 		assert(mini != nullptr && "seriously?");
 
 		// remove it from set and queue
-		mesh_gen_queue.pop();
+		mesh_gen_queue.pop_front();
 		mesh_gen_set.erase(mini);
 
 		// done
@@ -1073,17 +1079,17 @@ public:
 
 		mesh_gen_mutex.lock();
 
-		// regenerate own meshes
-		enqueue_mesh_gen(mini);
-
 		// regenerate neighbors' meshes
-		// PROBLEM: When we delete a block with z=0, we're not updating mini to the south.
 		auto neighbors = get_minis_touching_block(block[0], block[1], block[2]);
 		for (auto &neighbor : neighbors) {
 			if (neighbor != mini) {
-				enqueue_mesh_gen(neighbor);
+				enqueue_mesh_gen(neighbor, true);
 			}
 		}
+
+		// regenerate own meshes
+		// TODO: If attempting to insert and already in set/queue, move to front of queue.
+		enqueue_mesh_gen(mini, true);
 
 		mesh_gen_mutex.unlock();
 
