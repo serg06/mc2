@@ -8,7 +8,7 @@
 
 #include "cmake_pch.hxx"
 
-#include <algorithm> // howbig?
+#include <algorithm>
 #include <assert.h>
 #include <chrono>
 #include <cmath>
@@ -47,19 +47,24 @@ void ChunkGenThread() {
 	// get global app
 	App* app = App::app.get();
 
-	// run
-	while (!stop) {
-		// try to generate a mesh
-		bool success = app->world->gen_minichunk_mesh_from_queue(vec3(app->char_position[0], app->char_position[1], app->char_position[2]));
-
-		if (stop) break; // just in case stop==true once gen_minichunk_mesh_from_queue returns
-
-		// if failed, queue was empty, so wait until woken up again
-		// TODO: can be done a little better, like checking queue size right in here maybe
-		if (!success) {
+	// run thread until stopped
+	while (!stop)
+	{
+		// wait until queue is non-empty
+		while (app->world->mesh_gen_queue.size() == 0)
+		{
+			// acquire lock
 			std::unique_lock<std::mutex> mesh_lock(app->world->mesh_gen_mutex);
+			
+			// wait
 			app->world->mesh_gen_cv.wait(mesh_lock);
+
+			// if woken up to end thread, exit
+			if (stop) return;
 		}
+
+		// generate a mesh if possible
+		app->world->gen_minichunk_mesh_from_queue(vec3(app->char_position[0], app->char_position[1], app->char_position[2]));
 	}
 }
 

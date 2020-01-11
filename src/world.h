@@ -289,9 +289,9 @@ public:
 		mesh_gen_mutex.lock();
 		for (auto &mini : minis_to_mesh) {
 			enqueue_mesh_gen(mini);
+			mesh_gen_cv.notify_one();
 		}
 		mesh_gen_mutex.unlock();
-		mesh_gen_cv.notify_all();
 	}
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
@@ -1082,11 +1082,11 @@ public:
 		for (auto &neighbor : neighbors) {
 			if (neighbor != mini) {
 				enqueue_mesh_gen(neighbor);
+				mesh_gen_cv.notify_one();
 			}
 		}
 
 		mesh_gen_mutex.unlock();
-		mesh_gen_cv.notify_all();
 
 		// finally, add nearby waters to propagation queue
 		// TODO: do this smarter?
