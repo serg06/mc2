@@ -1,5 +1,5 @@
 #version 450 core
-#define TOO_MUCH_DEPTH 0.0000001
+#define MAX_DEPTH 1.0
 
 /**
  * This shader fixes tjunctions in a color/depth buffer pair by filling in tjunction holes/lines.
@@ -35,8 +35,9 @@ struct color_depth_pair {
 
 // fix color/depth of pixel depending on two other pixels
 void fix_two(inout color_depth_pair cd, const color_depth_pair side1, const color_depth_pair side2) {
-	// if depth is (much?) larger than both, fix it
-	if (cd.depth > 0.999999 && cd.depth - side1.depth > TOO_MUCH_DEPTH && cd.depth - side2.depth > TOO_MUCH_DEPTH) {
+	// if depth is max (so pixel not filled) and other two aren't max (so other two are filled)
+	if (cd.depth == MAX_DEPTH && side1.depth < MAX_DEPTH && side2.depth < MAX_DEPTH) {
+		// combine their depths/colors into ours
 		cd.color = mix(side1.color, side2.color, 0.5f);
 		cd.depth = mix(side1.depth, side2.depth, 0.5f);
 	}
