@@ -138,6 +138,7 @@ public:
 		// not in set yet, add.
 		mesh_gen_set.insert(mini);
 		mesh_gen_queue.push(mini);
+		mesh_gen_cv.notify_one();
 	}
 
 	inline MiniChunk* dequeue_mesh_gen() {
@@ -289,7 +290,6 @@ public:
 		mesh_gen_mutex.lock();
 		for (auto &mini : minis_to_mesh) {
 			enqueue_mesh_gen(mini);
-			mesh_gen_cv.notify_one();
 		}
 		mesh_gen_mutex.unlock();
 	}
@@ -1082,7 +1082,6 @@ public:
 		for (auto &neighbor : neighbors) {
 			if (neighbor != mini) {
 				enqueue_mesh_gen(neighbor);
-				mesh_gen_cv.notify_one();
 			}
 		}
 
