@@ -249,7 +249,7 @@ void App::render(float time) {
 	GLint polygon_mode;
 	glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
 
-	if (polygon_mode == GL_FILL) {
+	if (polygon_mode == GL_FILL && should_fix_tjunctions) {
 		// FBO: FIX TJUNCTIONS AND OUTPUT TO DEFAULT FRAMEBUFFER
 		fix_tjunctions(&glInfo, &windowInfo, 0, glInfo.fbo_out_color_buf, glInfo.fbo_out_depth_buf);
 	}
@@ -505,6 +505,11 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 						GLFW_DONT_CARE); // TODO: test that GLFWL_DONT_CARE means uncapped framerate (with Windows game bar)
 				}
 			}
+		}
+
+		// T = toggle t-junction fixing
+		if (key == GLFW_KEY_T) {
+			should_fix_tjunctions = !should_fix_tjunctions;
 		}
 	}
 	

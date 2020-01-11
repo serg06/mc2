@@ -57,6 +57,7 @@ public:
 	ivec3 staring_at_face; // the face you're staring at on the block you're staring at
 	int wew = 0;
 	bool show_debug_info = false;
+	bool should_fix_tjunctions = true;
 	double fps = 0;
 	BlockType held_block = BlockType::StillWater;
 
