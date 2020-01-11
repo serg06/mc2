@@ -92,7 +92,7 @@ public:
 	}
 
 	// update tick to *new_tick*
-	inline void update_tick(int new_tick) {
+	inline void update_tick(const int new_tick) {
 		// can only grow, not shrink
 		if (new_tick <= current_tick) {
 			return;
@@ -109,7 +109,7 @@ public:
 		// propagate any water we need to propagate
 		while (!water_propagation_queue.empty()) {
 			// get item from queue
-			auto &[tick, xyz] = water_propagation_queue.top();
+			const auto &[tick, xyz] = water_propagation_queue.top();
 
 			// if tick is in the future, ignore
 			if (tick > current_tick) {
@@ -177,9 +177,9 @@ public:
 	}
 
 	// add chunk to chunk coords (x, z)
-	inline void add_chunk(int x, int z, Chunk* chunk) {
-		ivec2 coords = { x, z };
-		auto search = chunk_map.find(coords);
+	inline void add_chunk(const int x, const int z, Chunk* chunk) {
+		const ivec2 coords = { x, z };
+		const auto search = chunk_map.find(coords);
 
 		// if element already exists, error
 		if (search != chunk_map.end()) {
@@ -196,13 +196,13 @@ public:
 		for (int i = 0; i < 5; i++) {
 			if (chunk_cache_ivec2[i] == coords) {
 				chunk_cache[i] = nullptr;
-				chunk_cache_ivec2[i] = ivec2(INT_MAX);
+				chunk_cache_ivec2[i] = ivec2(std::numeric_limits<int>::max());
 			}
 		}
 	}
 
 	// get multiple chunks -- much faster than get_chunk_generate_if_required when n > 1
-	inline std::unordered_set<Chunk*, chunk_hash> get_chunks_generate_if_required(vector<vmath::ivec2> chunk_coords) {
+	inline std::unordered_set<Chunk*, chunk_hash> get_chunks_generate_if_required(const vector<vmath::ivec2>& chunk_coords) {
 		// don't wanna get duplicates
 		std::unordered_set<Chunk*, chunk_hash> result;
 
@@ -218,12 +218,12 @@ public:
 	}
 
 	// generate chunks if they don't exist yet
-	inline void gen_chunks_if_required(vector<vmath::ivec2> chunk_coords) {
+	inline void gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coords) {
 		// don't wanna generate duplicates
 		std::unordered_set<ivec2, vecN_hash> to_generate;
 
 		for (auto coords : chunk_coords) {
-			auto search = chunk_map.find(coords);
+			const auto search = chunk_map.find(coords);
 
 			// if doesn't exist, need to generate it
 			if (search == chunk_map.end()) {
@@ -237,7 +237,7 @@ public:
 	}
 
 	// generate all chunks (much faster than gen_chunk)
-	inline void gen_chunks(vector<ivec2> to_generate) {
+	inline void gen_chunks(const vector<ivec2>& to_generate) {
 		std::unordered_set<ivec2, vecN_hash> set;
 		for (auto coords : to_generate) {
 			set.insert(coords);
@@ -246,7 +246,7 @@ public:
 	}
 
 	// generate all chunks (much faster than gen_chunk)
-	inline void gen_chunks(std::unordered_set<ivec2, vecN_hash> to_generate) {
+	inline void gen_chunks(const std::unordered_set<ivec2, vecN_hash>& to_generate) {
 		// get pointers ready
 		vector<Chunk*> chunks(to_generate.size());
 
@@ -310,8 +310,8 @@ public:
 	}
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
-	inline Chunk* get_chunk(int x, int z) {
-		ivec2 coords = { x, z };
+	inline Chunk* get_chunk(const int x, const int z) {
+		const ivec2 coords = { x, z };
 
 		// if in cache, return
 		for (int i = 0; i < 5; i++) {
@@ -332,11 +332,11 @@ public:
 		return result;
 	}
 
-	inline Chunk* get_chunk(ivec2 &xz) { return get_chunk(xz[0], xz[1]); }
+	inline Chunk* get_chunk(const ivec2& xz) { return get_chunk(xz[0], xz[1]); }
 
 	// get chunk or nullptr (no cache)
-	inline Chunk* get_chunk_(int x, int z) {
-		auto search = chunk_map.find({ x, z });
+	inline Chunk* get_chunk_(const int x, const int z) {
+		const auto search = chunk_map.find({ x, z });
 
 		// if doesn't exist, return null
 		if (search == chunk_map.end()) {
@@ -347,8 +347,8 @@ public:
 	}
 
 	// get mini or nullptr
-	inline MiniChunk* get_mini(int x, int y, int z) {
-		auto search = chunk_map.find({ x, z });
+	inline MiniChunk* get_mini(const int x, const int y, const int z) const {
+		const auto search = chunk_map.find({ x, z });
 
 		// if chunk doesn't exist, return null
 		if (search == chunk_map.end()) {
@@ -359,24 +359,24 @@ public:
 		return chunk->get_mini_with_y_level((y / 16) * 16);
 	}
 
-	inline MiniChunk* get_mini(ivec3 xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
+	inline MiniChunk* get_mini(const ivec3& xyz) const { return get_mini(xyz[0], xyz[1], xyz[2]); }
 
 	// generate chunks near player
 	inline void gen_nearby_chunks(const vmath::vec4& position, const int& distance) {
 		assert(distance >= 0 && "invalid distance");
 
-		ivec2 chunk_coords = get_chunk_coords((int)floorf(position[0]), (int)floorf(position[2]));
-		vector<ivec2> &coords = gen_circle(distance, chunk_coords);
+		const ivec2 chunk_coords = get_chunk_coords((int)floorf(position[0]), (int)floorf(position[2]));
+		const vector<ivec2> coords = gen_circle(distance, chunk_coords);
 		gen_chunks_if_required(coords);
 	}
 
 	// get chunk that contains block at (x, _, z)
-	inline Chunk* get_chunk_containing_block(int x, int z) {
+	inline Chunk* get_chunk_containing_block(const int x, const int z) {
 		return get_chunk((int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f));
 	}
 
 	// get minichunk that contains block at (x, y, z)
-	inline MiniChunk* get_mini_containing_block(int x, int y, int z) {
+	inline MiniChunk* get_mini_containing_block(const int x, const int y, const int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 		if (chunk == nullptr) {
 			return nullptr;
@@ -386,12 +386,12 @@ public:
 
 
 	// get minichunks that touch any face of the block at (x, y, z)
-	inline vector<MiniChunk*> get_minis_touching_block(int x, int y, int z) {
+	inline vector<MiniChunk*> get_minis_touching_block(const int x, const int y, const int z) {
 		vector<MiniChunk*> result;
 		vector<ivec3> potential_mini_coords;
 
-		ivec3 mini_coords = get_mini_coords(x, y, z);
-		ivec3 mini_relative_coords = get_mini_relative_coords(x, y, z);
+		const ivec3 mini_coords = get_mini_coords(x, y, z);
+		const ivec3 mini_relative_coords = get_mini_relative_coords(x, y, z);
 
 		potential_mini_coords.push_back(mini_coords);
 
@@ -404,31 +404,27 @@ public:
 		if (mini_relative_coords[2] == 15) potential_mini_coords.push_back(mini_coords + ISOUTH);
 
 		for (auto &coords : potential_mini_coords) {
-			auto mini = get_mini(coords);
+			const auto mini = get_mini(coords);
 			if (mini != nullptr) {
 				result.push_back(mini);
 			}
-		}
-
-		if (result.size() > 1) {
-			OutputDebugString("");
 		}
 
 		return result;
 	}
 
 	// get chunk-coordinates of chunk containing the block at (x, _, z)
-	inline ivec2 get_chunk_coords(int x, int z) {
+	inline ivec2 get_chunk_coords(const int x, const int z) {
 		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
 	}
 
 	// get minichunk-coordinates of minichunk containing the block at (x, y, z)
-	inline ivec3 get_mini_coords(int x, int y, int z) {
+	inline ivec3 get_mini_coords(const int x, const int y, const int z) {
 		return { (int)floorf((float)x / 16.0f), (y / 16) * 16, (int)floorf((float)z / 16.0f) };
 	}
 
 	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
-	inline vmath::ivec3 get_chunk_relative_coordinates(int x, int y, int z) {
+	inline vmath::ivec3 get_chunk_relative_coordinates(const int x, const int y, const int z) {
 		return vmath::ivec3(((x % CHUNK_WIDTH) + CHUNK_WIDTH) % 16, y, ((z % CHUNK_DEPTH) + CHUNK_DEPTH) % 16);
 	}
 
@@ -452,14 +448,14 @@ public:
 
 	// get a block's type
 	// inefficient when called repeatedly - if you need multiple blocks from one mini/chunk, use get_mini (or get_chunk) and mini.get_block.
-	inline BlockType get_type(int x, int y, int z) {
+	inline BlockType get_type(const int x, const int y, const int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 
 		if (!chunk) {
 			return BlockType::Air;
 		}
 
-		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
+		const vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
 		return chunk->get_block(chunk_coords);
 	}
 
@@ -468,14 +464,14 @@ public:
 
 	// set a block's type
 	// inefficient when called repeatedly
-	inline void set_type(int x, int y, int z, const BlockType &val) {
+	inline void set_type(const int x, const int y, const int z, const BlockType &val) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 
 		if (!chunk) {
 			return;
 		}
 
-		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
+		const vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
 		chunk->set_block(chunk_coords, val);
 	}
 
@@ -492,8 +488,8 @@ public:
 		for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
 			for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
 				for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
-					auto &mini_coords = mini.get_coords();
-					vmath::ivec3 coords = { mini_coords[0] * CHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * CHUNK_DEPTH + miniZ };
+					const auto &mini_coords = mini.get_coords();
+					const vmath::ivec3 coords = { mini_coords[0] * CHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * CHUNK_DEPTH + miniZ };
 
 					// if along east wall, check east
 					if (miniX == CHUNK_WIDTH - 1) {
@@ -528,7 +524,7 @@ public:
 		return true;
 	}
 
-	inline void render(OpenGLInfo* glInfo, const vmath::vec4(&planes)[6]) {
+	inline void render(const OpenGLInfo* glInfo, const vmath::vec4(&planes)[6]) {
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
 		for (auto &[coords_p, chunk] : chunk_map) {
@@ -558,7 +554,7 @@ public:
 	}
 
 	// check if a mini is visible in a frustum
-	static inline bool mini_in_frustum(MiniChunk* mini, const vmath::vec4(&planes)[6]) {
+	static inline bool mini_in_frustum(const MiniChunk* mini, const vmath::vec4(&planes)[6]) {
 		return sphere_in_frustrum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
 	}
 
@@ -604,7 +600,7 @@ public:
 	}
 
 	// generate layer by grabbing face blocks directly from the minichunk
-	static inline void gen_layer_generalized(MiniChunk* mini, MiniChunk* face_mini, int layers_idx, int layer_no, const ivec3 face, BlockType(&result)[16][16]) {
+	static inline void gen_layer_generalized(const MiniChunk* mini, const MiniChunk* face_mini, const int layers_idx, const int layer_no, const ivec3 face, BlockType(&result)[16][16]) {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -633,7 +629,7 @@ public:
 					coords[working_idx_2] = v;
 
 					// get block at these coordinates
-					BlockType block = mini->get_block(coords);
+					const BlockType block = mini->get_block(coords);
 
 					// dgaf about air blocks and about invalid minis
 					if (block == BlockType::Air || face_mini == nullptr) {
@@ -643,7 +639,7 @@ public:
 					// get face block
 					face_coords = coords + face;
 					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-					BlockType face_block = face_mini->get_block(face_coords);
+					const BlockType face_block = face_mini->get_block(face_coords);
 
 					// if block's face is visible, set it
 					if (is_face_visible(block, face_block)) {
@@ -663,7 +659,7 @@ public:
 					coords[working_idx_2] = v;
 
 					// get block at these coordinates
-					BlockType block = mini->get_block(coords);
+					const BlockType block = mini->get_block(coords);
 
 					// dgaf about air blocks and about invalid minis
 					if (block == BlockType::Air || face_mini == nullptr) {
@@ -673,7 +669,7 @@ public:
 					// get face block
 					face_coords = coords + face;
 					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-					BlockType face_block = face_mini->get_block(face_coords);
+					const BlockType face_block = face_mini->get_block(face_coords);
 
 					// if block's face is visible, set it
 					if (is_face_visible(block, face_block)) {
@@ -688,7 +684,7 @@ public:
 		return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
-	inline void gen_layer(MiniChunk* mini, int layers_idx, int layer_no, const ivec3 &face, BlockType(&result)[16][16]) {
+	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const const ivec3 &face, BlockType(&result)[16][16]) const {
 		// working indices are always gonna be xy, xz, or yz.
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -699,8 +695,11 @@ public:
 		ivec3 face_coords = coords + face;
 
 		// figure out which mini has our face layer (usually ours)
-		MiniChunk* face_mini = mini;
-		if (!in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
+		const MiniChunk* face_mini;
+		if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
+			face_mini = mini;
+		}
+		else {
 			auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
 			face_mini = (face_mini_coords[1] < 0 || face_mini_coords[1] > BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) ? nullptr : get_mini(face_mini_coords);
 		}
@@ -720,16 +719,16 @@ public:
 				// skip merged blocks
 				if (merged[i][j]) continue;
 
-				BlockType block = layer[i][j];
+				const BlockType block = layer[i][j];
 
 				// skip air
 				if (block == BlockType::Air) continue;
 
 				// get max size of this quad
-				ivec2 max_size = get_max_size(layer, merged, { i, j }, block);
+				const ivec2 max_size = get_max_size(layer, merged, { i, j }, block);
 
 				// add it to results
-				ivec2 start = { i, j };
+				const ivec2 start = { i, j };
 				Quad2D q;
 				q.block = block;
 				q.corners[0] = start;
@@ -807,11 +806,11 @@ public:
 		return max_size;
 	}
 
-	static inline float intbound(float s, float ds)
+	static inline float intbound(const float s, const float ds)
 	{
 		// Some kind of edge case, see:
 		// http://gamedev.stackexchange.com/questions/47362/cast-ray-to-select-block-in-voxel-game#comment160436_49423
-		bool sIsInteger = round(s) == s;
+		const bool sIsInteger = round(s) == s;
 		if (ds < 0 && sIsInteger) {
 			return 0;
 		}
@@ -819,14 +818,14 @@ public:
 		return (ds > 0 ? ceil(s) - s : s - floor(s)) / abs(ds);
 	}
 
-	inline void highlight_block(OpenGLInfo* glInfo, GlfwInfo* windowInfo, int x, int y, int z) {
+	inline void highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const int x, const int y, const int z) {
 		// Figure out mini-relative quads
 		Quad3D quads[6];
 
-		ivec3 mini_coords = get_mini_coords(x, y, z);
+		const ivec3 mini_coords = get_mini_coords(x, y, z);
 
-		ivec3 relative_coords = get_chunk_relative_coordinates(x, y, z);
-		ivec3 block_coords = { relative_coords[0], y % 16, relative_coords[2] };
+		const ivec3 relative_coords = get_chunk_relative_coordinates(x, y, z);
+		const ivec3 block_coords = { relative_coords[0], y % 16, relative_coords[2] };
 
 		for (int i = 0; i < 6; i++) {
 			quads[i].block = BlockType::Outline; // outline
@@ -896,15 +895,15 @@ public:
 
 		// save properties before we overwrite them
 		GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
-		GLint cull_face = glIsEnabled(GL_CULL_FACE);
-		GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
+		const GLint cull_face = glIsEnabled(GL_CULL_FACE);
+		const GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
 
 		// Update projection matrix (increase near distance a bit, to fix z-fighting)
 		mat4 proj_matrix = perspective(
-			(float)windowInfo->vfov, // virtual fov
-			(float)windowInfo->width / (float)windowInfo->height, // aspect ratio
-			(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1.001f / sqrtf(2.0f), // see blocks no matter how close they are
-			64 * CHUNK_WIDTH // only support 64 chunks for now
+			(float)windowInfo->vfov,
+			(float)windowInfo->width / (float)windowInfo->height,
+			(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1.001f / sqrtf(2.0f), // render outline a tiny bit closer than actual block, to prevent z-fighting
+			64 * CHUNK_WIDTH
 		);
 		glNamedBufferSubData(glInfo->trans_uni_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
 
@@ -921,10 +920,10 @@ public:
 		glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 
 		proj_matrix = perspective(
-			(float)windowInfo->vfov, // virtual fov
-			(float)windowInfo->width / (float)windowInfo->height, // aspect ratio
-			(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // see blocks no matter how close they are
-			64 * CHUNK_WIDTH // only support 64 chunks for now
+			(float)windowInfo->vfov,
+			(float)windowInfo->width / (float)windowInfo->height,
+			(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // back to normal
+			64 * CHUNK_WIDTH
 		);
 		glNamedBufferSubData(glInfo->trans_uni_buf, sizeof(vmath::mat4), sizeof(proj_matrix), proj_matrix); // proj matrix
 
@@ -936,7 +935,7 @@ public:
 		glDeleteBuffers(1, &mini_coords_buf);
 	}
 
-	inline void highlight_block(OpenGLInfo* glInfo, GlfwInfo* windowInfo, ivec3 xyz) { return highlight_block(glInfo, windowInfo, xyz[0], xyz[1], xyz[2]); }
+	inline void highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const ivec3& xyz) { return highlight_block(glInfo, windowInfo, xyz[0], xyz[1], xyz[2]); }
 
 	/**
 	* Call the callback with (x,y,z,value,face) of all blocks along the line
@@ -949,7 +948,7 @@ public:
 	* If the callback returns a true value, the traversal will be stopped.
 	*/
 	// stop_check = function that decides if we stop the raycast or not
-	inline void raycast(const vec4& origin, const vec4& direction, int radius, ivec3 *result_coords, ivec3 *result_face, const std::function <bool(ivec3 coords, ivec3 face)>& stop_check) {
+	const inline void raycast(const vec4& origin, const vec4& direction, int radius, ivec3 *result_coords, ivec3 *result_face, const std::function <bool(const ivec3& coords, const ivec3& face)>& stop_check) {
 		// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
 		// by John Amanatides and Andrew Woo, 1987
 		// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
@@ -1080,7 +1079,7 @@ public:
 	// mini: the mini that changed
 	// block: the mini-coordinates of the block that was added/deleted
 	// TODO: Use block.
-	void on_mini_update(MiniChunk* mini, vmath::ivec3 block) {
+	void on_mini_update(MiniChunk* mini, const vmath::ivec3& block) {
 		// for now, don't care if something was done in an unloaded mini
 		if (mini == nullptr) {
 			return;
@@ -1089,7 +1088,7 @@ public:
 		mesh_gen_mutex.lock();
 
 		// regenerate neighbors' meshes
-		auto neighbors = get_minis_touching_block(block[0], block[1], block[2]);
+		const auto neighbors = get_minis_touching_block(block[0], block[1], block[2]);
 		for (auto &neighbor : neighbors) {
 			if (neighbor != mini) {
 				enqueue_mesh_gen(neighbor, true);
@@ -1115,32 +1114,32 @@ public:
 		on_mini_update(mini, block);
 	}
 
-	void destroy_block(int x, int y, int z) {
+	void destroy_block(const int x, const int y, const int z) {
 		// update data
 		MiniChunk* mini = get_mini_containing_block(x, y, z);
-		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
+		const ivec3 mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, BlockType::Air);
 
 		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since >=3 sides of the destroyed block are facing its own mini.)
 		on_mini_update(mini, { x, y, z });
 	}
 
-	void destroy_block(ivec3 xyz) { return destroy_block(xyz[0], xyz[1], xyz[2]); };
+	void destroy_block(const ivec3& xyz) { return destroy_block(xyz[0], xyz[1], xyz[2]); };
 
-	void add_block(int x, int y, int z, BlockType block) {
+	void add_block(const int x, const int y, const int z, const BlockType& block) {
 		// update data
 		MiniChunk* mini = get_mini_containing_block(x, y, z);
-		ivec3 mini_coords = get_mini_relative_coords(x, y, z);
+		const ivec3& mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, block);
 
 		// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since the block always has at least 3 sides inside its mini.)
 		on_mini_update(mini, { x, y, z });
 	}
 
-	void add_block(ivec3 xyz, BlockType block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
+	void add_block(const ivec3& xyz, const BlockType& block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
 	// generate a minichunk mutex from queue
-	bool gen_minichunk_mesh_from_queue(vec3 player_pos) {
+	bool gen_minichunk_mesh_from_queue(const vec3& player_pos) {
 		// lock queue lock
 		mesh_gen_mutex.lock();
 
@@ -1164,7 +1163,7 @@ public:
 
 		// if visible, update mesh
 		if (!mini->invisible) {
-			MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
+			const MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
 
 			MiniChunkMesh* non_water = new MiniChunkMesh;
 			MiniChunkMesh* water = new MiniChunkMesh;
@@ -1193,14 +1192,14 @@ public:
 	}
 
 	// TODO
-	inline Metadata get_metadata(int x, int y, int z) {
+	inline Metadata get_metadata(const int x, const int y, const int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 
 		if (!chunk) {
 			return 0;
 		}
 
-		vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
+		const vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
 		return chunk->get_metadata(chunk_coords);
 	}
 
@@ -1208,7 +1207,7 @@ public:
 	inline Metadata get_metadata(const vmath::ivec4 &xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// TODO
-	inline void set_metadata(int x, int y, int z, Metadata val) {
+	inline void set_metadata(const int x, const int y, const int z, const Metadata& val) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 
 		if (!chunk) {

@@ -116,7 +116,7 @@ public:
 	}
 
 	// get MiniChunk's base coords in real coordinates
-	inline vmath::ivec3 real_coords() {
+	inline vmath::ivec3 real_coords() const {
 		return { coords[0] * 16, coords[1], coords[2] * 16 };
 	}
 
@@ -126,12 +126,12 @@ public:
 	}
 
 	// get MiniChunk's center coords in real coordinates
-	inline vmath::vec3 center_coords_v3() {
+	inline vmath::vec3 center_coords_v3() const {
 		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f };
 	}
 
 	// get MiniChunk's center coords in real coordinates
-	inline vmath::vec4 center_coords_v41() {
+	inline vmath::vec4 center_coords_v41() const {
 		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f, 1.0f };
 	}
 

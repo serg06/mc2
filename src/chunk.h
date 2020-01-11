@@ -125,12 +125,12 @@ public:
 	inline Metadata get_metadata(const vmath::ivec4 &xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// set metadata at these coordinates
-	inline void set_metadata(int x, int y, int z, Metadata &val) {
+	inline void set_metadata(const int x, const int y, const int z, const Metadata &val) {
 		get_mini_with_y_level(y)->set_metadata(x, y % MINICHUNK_HEIGHT, z, val);
 	}
 
-	inline void set_metadata(const vmath::ivec3 &xyz, Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
-	inline void set_metadata(const vmath::ivec4 &xyz_, Metadata &val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
+	inline void set_metadata(const vmath::ivec3 &xyz, const Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
+	inline void set_metadata(const vmath::ivec4 &xyz_, const Metadata &val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
 
 
 	// TODO: replace this with unique_ptr

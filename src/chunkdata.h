@@ -118,14 +118,14 @@ public:
 	}
 
 	// convert coordinates to idx
-	constexpr inline int c2idx(const int &x, const int &y, const int &z) {
+	constexpr inline int c2idx(const int &x, const int &y, const int &z) const {
 		return x + z * width + y * width * depth;
 	}
-	constexpr inline int c2idx(const vmath::ivec3 &xyz) { return c2idx(xyz[0], xyz[1], xyz[2]); }
+	constexpr inline int c2idx(const vmath::ivec3 &xyz) const { return c2idx(xyz[0], xyz[1], xyz[2]); }
 
 
 	// get block at these coordinates
-	inline BlockType get_block(const int &x, const int &y, const int &z) {
+	inline BlockType get_block(const int &x, const int &y, const int &z) const {
 		assert(0 <= x && x < width && "get_block invalid x coordinate");
 		assert(0 <= z && z < depth && "get_block invalid z coordinate");
 
@@ -137,8 +137,8 @@ public:
 		return blocks[c2idx(x, y, z)];
 	}
 
-	inline BlockType get_block(const vmath::ivec3 &xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
-	inline BlockType get_block(const vmath::ivec4 &xyz_) { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
+	inline BlockType get_block(const vmath::ivec3 &xyz) const { return get_block(xyz[0], xyz[1], xyz[2]); }
+	inline BlockType get_block(const vmath::ivec4 &xyz_) const { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// set block at these coordinates
 	inline void set_block(int x, int y, int z, const BlockType &val) {
@@ -269,7 +269,7 @@ public:
 	}
 
 	// get metadata at these coordinates
-	inline Metadata get_metadata(const int &x, const int &y, const int &z) {
+	inline Metadata get_metadata(const int &x, const int &y, const int &z) const {
 		assert(0 <= x && x < width && "get_metadata invalid x coordinate");
 		assert(0 <= z && z < depth && "get_metadata invalid z coordinate");
 
@@ -281,11 +281,11 @@ public:
 		return metadatas[c2idx(x, y, z)];
 	}
 
-	inline Metadata get_metadata(const vmath::ivec3 &xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
-	inline Metadata get_metadata(const vmath::ivec4 &xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
+	inline Metadata get_metadata(const vmath::ivec3 &xyz) const { return get_metadata(xyz[0], xyz[1], xyz[2]); }
+	inline Metadata get_metadata(const vmath::ivec4 &xyz_) const { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// set metadata at these coordinates
-	inline void set_metadata(int x, int y, int z, Metadata &val) {
+	inline void set_metadata(const int x, const int y, const int z, const Metadata &val) {
 		assert(0 <= x && x < width && "set_metadata invalid x coordinate");
 		assert(0 <= y && y < height && "set_metadata invalid y coordinate");
 		assert(0 <= z && z < depth && "set_metadata invalid z coordinate");
