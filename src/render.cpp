@@ -63,7 +63,7 @@ void setup_glfw(GlfwInfo* windowInfo, GLFWwindow** window) {
 
 	// lock mouse into screen, for camera controls
 	glfwSetInputMode(*window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetInputMode(*window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+	//glfwSetInputMode(*window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 	// finally init gl3w
 	if (gl3wInit()) {
