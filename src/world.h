@@ -124,16 +124,25 @@ public:
 
 	// enqueue mesh generation of this mini
 	// expects mesh lock
-	inline void enqueue_mesh_gen(MiniChunk* mini, bool front_of_queue = false) {
+	inline void enqueue_mesh_gen(MiniChunk* mini, const bool front_of_queue = false) {
 		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
 		assert(mini != nullptr && "seriously?");
 
 		// check if mini in set
-		auto search = mesh_gen_set.find(mini);
+		const auto search = mesh_gen_set.find(mini);
 
-		// already in set, so don't add, just quit
+		// already in set
 		if (search != mesh_gen_set.end()) {
-			return;
+			// if we want it at the front of the queue, remove it so we can re-add it at the front
+			// TODO: this is O(n), but we can speed it up by mapping mini ptr -> iterator-in-queue (pretty sure that's valid)
+			if (front_of_queue) {
+				const auto search2 = std::find(mesh_gen_queue.begin(), mesh_gen_queue.end(), mini);
+				assert(search2 != mesh_gen_queue.end() && "unable to find??");
+				mesh_gen_queue.erase(search2);
+			}
+			else {
+				return;
+			}
 		}
 
 		// not in set yet, add.
