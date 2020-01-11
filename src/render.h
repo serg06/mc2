@@ -17,6 +17,13 @@ struct GlfwInfo {
 	bool msaa = GL_FALSE;
 	int width = 800;
 	int height = 600;
+
+	// TODO: make these dimensions such that window defaults to middle of screen
+	int width_before_fullscreen = 800;
+	int height_before_fullscreen = 600;
+	int xpos_before_fullscreen = 100;
+	int ypos_before_fullscreen = 100;
+
 	float vfov = 59.0f; // vertical fov -- 59.0 vfov = 90.0 hfov
 	float mouseX_Sensitivity = 0.25f;
 	float mouseY_Sensitivity = 0.25f;

@@ -472,6 +472,35 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 		if (key == GLFW_KEY_F3) {
 			show_debug_info = !show_debug_info;
 		}
+
+		// [F11 | ALT+ENTER] = toggle fullscreen
+		if (key == GLFW_KEY_F11 || (mods == GLFW_MOD_ALT && key == GLFW_KEY_ENTER)) {
+			// if fullscreen
+			if (glfwGetWindowMonitor(window)) {
+				// remove fullscreen
+				glfwSetWindowMonitor(window, NULL,
+					windowInfo.xpos_before_fullscreen, windowInfo.ypos_before_fullscreen,
+					windowInfo.width_before_fullscreen, windowInfo.height_before_fullscreen,
+					0);
+			}
+
+			// if not fullscreen
+			else {
+				GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+				if (monitor) {
+					// save current window position/location
+					glfwGetWindowPos(window, &windowInfo.xpos_before_fullscreen, &windowInfo.ypos_before_fullscreen);
+					glfwGetWindowSize(window, &windowInfo.width_before_fullscreen, &windowInfo.height_before_fullscreen);
+
+					// enable fullscreen
+					const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+					glfwSetWindowMonitor(window, monitor,
+						0, 0,
+						mode->width, mode->height,
+						GLFW_DONT_CARE); // TODO: test that GLFWL_DONT_CARE means uncapped framerate (with Windows game bar)
+				}
+			}
+		}
 	}
 	
 	// handle optionally-repeatable key presses
