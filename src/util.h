@@ -119,14 +119,16 @@ static inline bool in_range(const vecN<T, len> &vec, const vecN<T, len> &min, co
 
 // Memory leak, delete returned result.
 template <typename T, const int len>
-static inline std::unique_ptr<char[]> vec2str(vecN<T, len> vec) {
+static inline std::unique_ptr<char[]> vec2str(vecN<T, len> vec, char* string_format_specifier = "%d") {
+	assert(string_format_specifier != nullptr);
+
 	const int bufsize = vec.size() * 16 + 4;
 	auto result = std::make_unique<char[]>(bufsize);
 	char* tmp = result.get();
 
 	tmp += sprintf(tmp, "(");
 	for (int i = 0; i < len; i++) {
-		tmp += sprintf(tmp, "%d", vec[i]);
+		tmp += sprintf(tmp, string_format_specifier, vec[i]);
 		if (i != (len - 1)) {
 			tmp += sprintf(tmp, ", ");
 		}
