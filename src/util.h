@@ -180,11 +180,13 @@ static inline void WindowsException(char *description) {
 
 // generate all points in a circle a center
 // TODO: cache
-static inline std::vector<ivec2> gen_circle(int radius, ivec2 center = { 0, 0 }) {
+static inline std::vector<ivec2> gen_circle(const int radius, const ivec2 center = { 0, 0 }) {
 	std::vector<ivec2> result;
+	result.reserve(4 * radius*radius + 4 * radius + 1); // always makes <= (2r+1)^2 = 4r^2 + 4r + 1 elements
+
 	for (int x = -radius; x <= radius; x++) {
 		for (int y = -radius; y <= radius; y++) {
-			ivec2 coords = ivec2(x, y);
+			const ivec2 coords = ivec2(x, y);
 			if (length(coords) <= radius) {
 				result.push_back(coords + center);
 			}
@@ -193,18 +195,20 @@ static inline std::vector<ivec2> gen_circle(int radius, ivec2 center = { 0, 0 })
 	return result;
 }
 
-static inline std::vector<ivec2> gen_diamond(int radius, ivec2 center = { 0, 0 }) {
-	std::vector<ivec2> result;
+static inline std::vector<ivec2> gen_diamond(const int radius, const vmath::ivec2 center = { 0, 0 }) {
+	std::vector<ivec2> result(2 * radius*radius + 2 * radius + 1); // always makes 2r^2 + 2r + 1 elements
+
+	int total_idx = 0;
 	for (int i = -radius; i <= radius; i++) {
 		for (int j = -(radius - abs(i)); j <= radius - abs(i); j++) {
-			result.push_back(center + ivec2(i, j));
+			result[total_idx++] = center + ivec2(i, j);
 		}
 	}
 	return result;
 }
 
 template <typename T>
-static inline std::vector<int> argsort(int size, const T* data) {
+static inline std::vector<int> argsort(const int size, const T* data) {
 	// initialize original indices
 	std::vector<int> indices(size);
 	std::iota(indices.begin(), indices.end(), 0);
