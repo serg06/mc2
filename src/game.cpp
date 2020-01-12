@@ -55,7 +55,7 @@ void ChunkGenThread() {
 		{
 			// acquire lock
 			std::unique_lock<std::mutex> mesh_lock(app->world->mesh_gen_mutex);
-			
+
 			// wait
 			app->world->mesh_gen_cv.wait(mesh_lock);
 
@@ -382,10 +382,12 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	}
 
 	// indices of position-change array
-	vector<int> indices = argsort(position_change.size(), &position_change[0]);
+	vector<int> indices = argsort(3, &position_change[0]);
 
 	// TODO: Instead of removing 1 or 2 separately, group them together, and remove the ones with smallest length.
 	// E.g. if velocity is (2, 2, 10), and have to either remove (2,2) or (10), remove (2,2) because sqrt(2^2+2^2) = sqrt(8) < 10.
+
+	assert(indices[0] + indices[1] + indices[2] == 3);
 
 	// try removing just one velocity
 	for (int i = 0; i < 3; i++) {
@@ -512,7 +514,7 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 			should_fix_tjunctions = !should_fix_tjunctions;
 		}
 	}
-	
+
 	// handle optionally-repeatable key presses
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
 		// + = increase render distance
