@@ -513,6 +513,12 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 		if (key == GLFW_KEY_T) {
 			should_fix_tjunctions = !should_fix_tjunctions;
 		}
+
+		// R = toggle raw input
+		if (key == GLFW_KEY_R) {
+			const bool raw_motion = glfwGetInputMode(window, GLFW_RAW_MOUSE_MOTION);
+			glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, !raw_motion);
+		}
 	}
 
 	// handle optionally-repeatable key presses
