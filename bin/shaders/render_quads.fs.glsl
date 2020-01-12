@@ -48,7 +48,7 @@ void main(void)
 	}
 
 	// if in water, make everything blue depending on depth
-	else if (bool(uni.in_water) && gs_block_type != 9) {
+	else if (bool(uni.in_water)) {
 		// get depth of current fragment
 		float depth = gl_FragCoord.z / gl_FragCoord.w;
 		
