@@ -38,7 +38,7 @@ void print_arr(const GLfloat *arr, int size, int row_size) {
 	OutputDebugString("\nDONE\n");
 }
 
-GLuint link_program(GLuint program) {
+GLuint link_program(const GLuint program) {
 	// link program w/ error-checking
 
 	glLinkProgram(program); // link together all attached shaders
@@ -50,7 +50,7 @@ GLuint link_program(GLuint program) {
 	{
 		GLint logLen;
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
-		std::vector <char> log(logLen);
+		std::vector<char> log(logLen);
 		GLsizei written;
 		glGetProgramInfoLog(program, logLen, &written, log.data());
 
@@ -63,9 +63,9 @@ GLuint link_program(GLuint program) {
 	return program;
 }
 
-GLuint compile_shaders(std::vector <std::tuple<std::string, GLenum>> shader_fnames) {
+GLuint compile_shaders(const std::vector<std::tuple<std::string, GLenum>>& shader_fnames) {
 	GLuint program;
-	std::vector <GLuint> shaders; // store compiled shaders
+	std::vector<GLuint> shaders; // store compiled shaders
 
 	// for each input shader
 	for (const auto&[fname, shadertype] : shader_fnames)
