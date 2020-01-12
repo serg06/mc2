@@ -36,6 +36,8 @@ private:
 	GLuint fbo = 0;
 
 public:
+	FBO(){}
+
 	FBO(const GLsizei width, const GLsizei height) : width(width), height(height)
 	{
 		// Create FBO

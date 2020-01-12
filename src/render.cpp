@@ -1,4 +1,5 @@
 #include "block.h"
+#include "fbo.h"
 #include "render.h"
 #include "shapes.h"
 #include "util.h"
@@ -682,65 +683,12 @@ namespace {
 		*/
 
 		// Create FBO
-		glCreateFramebuffers(1, &glInfo->fbo_out);
-
-		// Create color texture, allocate, disable mipmaps
-		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_out_color_buf);
-		glTextureStorage2D(glInfo->fbo_out_color_buf, 1, GL_RGBA32F, windowInfo->width, windowInfo->height); // TODO: remove hardcoded 800, 600
-		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTextureParameteri(glInfo->fbo_out_color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		// Create depth texture, allocate
-		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_out_depth_buf);
-		glTextureStorage2D(glInfo->fbo_out_depth_buf, 1, get_default_framebuffer_depth_attachment_type(), windowInfo->width, windowInfo->height); // TODO: remove hardcoded 800, 600
-		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTextureParameteri(glInfo->fbo_out_depth_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-
-		// Bind color / depth textures to FBO
-		glNamedFramebufferTexture(glInfo->fbo_out, GL_COLOR_ATTACHMENT0, glInfo->fbo_out_color_buf, 0);
-		glNamedFramebufferTexture(glInfo->fbo_out, GL_DEPTH_ATTACHMENT, glInfo->fbo_out_depth_buf, 0);
-
-		// Tell FBO to draw into its one color buffer
-		glNamedFramebufferDrawBuffer(glInfo->fbo_out, GL_COLOR_ATTACHMENT0);
-
-		// Make sure FBO is complete
-		assert_fbo_not_incomplete(glInfo->fbo_out);
+		glInfo->fbo_out = FBO(windowInfo->width, windowInfo->height);
 	}
 
 	void setup_tjunction_fbo(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
 		// Create FBO
-		glCreateFramebuffers(1, &glInfo->fbo_tjunc_fix);
-
-		// Create color texture, allocate, disable mipmaps
-		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_tj_color_buf);
-		glTextureStorage2D(glInfo->fbo_tj_color_buf, 1, GL_RGBA32F, windowInfo->width, windowInfo->height); // TODO: remove hardcoded 800, 600
-		glTextureParameteri(glInfo->fbo_tj_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTextureParameteri(glInfo->fbo_tj_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTextureParameteri(glInfo->fbo_tj_color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTextureParameteri(glInfo->fbo_tj_color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		// Create depth texture, allocate
-		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->fbo_tj_depth_buf);
-		glTextureStorage2D(glInfo->fbo_tj_depth_buf, 1, get_default_framebuffer_depth_attachment_type(), windowInfo->width, windowInfo->height); // TODO: remove hardcoded 800, 600
-		glTextureParameteri(glInfo->fbo_tj_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTextureParameteri(glInfo->fbo_tj_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTextureParameteri(glInfo->fbo_tj_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTextureParameteri(glInfo->fbo_tj_depth_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		// Bind color / depth textures to FBO
-		glNamedFramebufferTexture(glInfo->fbo_tjunc_fix, GL_COLOR_ATTACHMENT0, glInfo->fbo_tj_color_buf, 0);
-		glNamedFramebufferTexture(glInfo->fbo_tjunc_fix, GL_DEPTH_ATTACHMENT, glInfo->fbo_tj_depth_buf, 0);
-
-		// Tell FBO to draw into its one color buffer
-		glNamedFramebufferDrawBuffer(glInfo->fbo_tjunc_fix, GL_COLOR_ATTACHMENT0);
-
-		// Make sure FBO is complete
-		assert_fbo_not_incomplete(glInfo->fbo_tjunc_fix);
+		glInfo->fbo_tjunc_fix = FBO(windowInfo->width, windowInfo->height);
 	}
 }
 
@@ -814,7 +762,7 @@ void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, GL
 	glBindTextureUnit(glInfo->tjunc_depth_in_tunit, depth_tex);
 
 	// switch to tjunc fbo so output goes into it
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_tjunc_fix);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_tjunc_fix.get_fbo());
 
 	// clear output buffers
 	//const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -852,7 +800,7 @@ void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, GL
 	glEnable(GL_BLEND); // DEBUG
 
 	// copy output from tjunction-fix fbo to output fbo
-	glBlitNamedFramebuffer(glInfo->fbo_tjunc_fix, fbo_out, 0, 0, windowInfo->width, windowInfo->height, 0, 0, windowInfo->width, windowInfo->height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	glBlitNamedFramebuffer(glInfo->fbo_tjunc_fix.get_fbo(), fbo_out, 0, 0, windowInfo->width, windowInfo->height, 0, 0, windowInfo->width, windowInfo->height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 }
 
 // Readjust OpenGL viewports, FBOs, etc, based on the dimensions the window changed to.
@@ -861,55 +809,11 @@ void opengl_on_resize(OpenGLInfo& glInfo, int width, int height) {
 	// update viewport
 	glViewport(0, 0, width, height);
 
-	// FBO OUTPUT: Update textures.
+	// update FBOs
+	glInfo.fbo_out.set_dimensions(width, height);
+	glInfo.fbo_tjunc_fix.set_dimensions(width, height);
 
-	// delete texture
-	glDeleteTextures(1, &glInfo.fbo_out_color_buf);
-	glDeleteTextures(1, &glInfo.fbo_out_depth_buf);
-
-	// Create color texture, allocate, disable mipmaps
-	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_out_color_buf);
-	glTextureStorage2D(glInfo.fbo_out_color_buf, 1, GL_RGBA32F, width, height);
-	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTextureParameteri(glInfo.fbo_out_color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	// Create depth texture, allocate
-	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_out_depth_buf);
-	glTextureStorage2D(glInfo.fbo_out_depth_buf, 1, get_default_framebuffer_depth_attachment_type(), width, height);
-	glTextureParameteri(glInfo.fbo_out_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTextureParameteri(glInfo.fbo_out_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTextureParameteri(glInfo.fbo_out_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTextureParameteri(glInfo.fbo_out_depth_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	// Bind color / depth textures to FBO
-	glNamedFramebufferTexture(glInfo.fbo_out, GL_COLOR_ATTACHMENT0, glInfo.fbo_out_color_buf, 0);
-	glNamedFramebufferTexture(glInfo.fbo_out, GL_DEPTH_ATTACHMENT, glInfo.fbo_out_depth_buf, 0);
-
-	// FBO TJUNCTION FIX: Update textures.
-
-	// delete texture
-	glDeleteTextures(1, &glInfo.fbo_tj_color_buf);
-	glDeleteTextures(1, &glInfo.fbo_tj_depth_buf);
-
-	// Create color texture, allocate, disable mipmaps
-	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_tj_color_buf);
-	glTextureStorage2D(glInfo.fbo_tj_color_buf, 1, GL_RGBA32F, width, height);
-	glTextureParameteri(glInfo.fbo_tj_color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(glInfo.fbo_tj_color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTextureParameteri(glInfo.fbo_tj_color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTextureParameteri(glInfo.fbo_tj_color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	// Create depth texture, allocate
-	glCreateTextures(GL_TEXTURE_2D, 1, &glInfo.fbo_tj_depth_buf);
-	glTextureStorage2D(glInfo.fbo_tj_depth_buf, 1, get_default_framebuffer_depth_attachment_type(), width, height);
-	glTextureParameteri(glInfo.fbo_tj_depth_buf, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTextureParameteri(glInfo.fbo_tj_depth_buf, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTextureParameteri(glInfo.fbo_tj_depth_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTextureParameteri(glInfo.fbo_tj_depth_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	// Bind color / depth textures to FBO
-	glNamedFramebufferTexture(glInfo.fbo_tjunc_fix, GL_COLOR_ATTACHMENT0, glInfo.fbo_tj_color_buf, 0);
-	glNamedFramebufferTexture(glInfo.fbo_tjunc_fix, GL_DEPTH_ATTACHMENT, glInfo.fbo_tj_depth_buf, 0);
+	// reset textures
+	glInfo.fbo_out.reload();
+	glInfo.fbo_tjunc_fix.reload();
 }

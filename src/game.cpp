@@ -140,7 +140,7 @@ void App::startup() {
 
 void App::render(float time) {
 	// FBO: BIND
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo.fbo_out);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo.fbo_out.get_fbo());
 
 	char buf[256];
 
@@ -251,11 +251,11 @@ void App::render(float time) {
 
 	if (polygon_mode == GL_FILL && should_fix_tjunctions) {
 		// FBO: FIX TJUNCTIONS AND OUTPUT TO DEFAULT FRAMEBUFFER
-		fix_tjunctions(&glInfo, &windowInfo, 0, glInfo.fbo_out_color_buf, glInfo.fbo_out_depth_buf);
+		fix_tjunctions(&glInfo, &windowInfo, 0, glInfo.fbo_out.get_color_buf(), glInfo.fbo_out.get_depth_buf());
 	}
 	else {
 		// FBO: COPY TO DEFAULT FRAMEBUFFER
-		glBlitNamedFramebuffer(glInfo.fbo_out, 0, 0, 0, windowInfo.width, windowInfo.height, 0, 0, windowInfo.width, windowInfo.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		glBlitNamedFramebuffer(glInfo.fbo_out.get_fbo(), 0, 0, 0, windowInfo.width, windowInfo.height, 0, 0, windowInfo.width, windowInfo.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	}
 
 	// make sure rendering didn't take too long

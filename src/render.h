@@ -2,6 +2,7 @@
 #ifndef __RENDER_H__
 #define __RENDER_H__
 
+#include "fbo.h"
 #include "util.h"
 
 #include "cmake_pch.hxx"
@@ -48,14 +49,8 @@ struct OpenGLInfo {
 	GLuint vao_empty, vao_cube, vao_quad, vao_text;
 
 	// FBOs
-	GLuint fbo_out;
-	GLuint fbo_tjunc_fix;
-
-	// FBO output buffers
-	GLuint fbo_out_color_buf = 0;
-	GLuint fbo_out_depth_buf = 0;
-	GLuint fbo_tj_color_buf = 0;
-	GLuint fbo_tj_depth_buf = 0;
+	FBO fbo_out;
+	FBO fbo_tjunc_fix;
 
 	// render input buffers
 	GLuint trans_uni_buf = 0; // transformations uniform buffer - for game rendering 
@@ -116,28 +111,6 @@ struct OpenGLInfo {
 	// attribute indices for TEXT VAO
 	const GLuint text_char_code_attr_idx = 0;
 };
-
-// can only run after glfw (and maybe opengl) have been initialized
-inline GLenum get_default_framebuffer_depth_attachment_type() {
-	GLint result;
-	glGetNamedFramebufferAttachmentParameteriv(0, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &result);
-
-	switch (result) {
-	case 16:
-		return GL_DEPTH_COMPONENT16;
-	case 24:
-		return GL_DEPTH_COMPONENT24;
-	case 32:
-		return GL_DEPTH_COMPONENT32;
-	default:
-		char buf[256];
-		sprintf(buf, "Unable to retrieve default framebuffer attachment size. (Got %d.)", result);
-		WindowsException(buf);
-		exit(-1);
-	}
-
-	return result;
-}
 
 // packed so that quads match quads on GPU
 #pragma pack(push, 1)
