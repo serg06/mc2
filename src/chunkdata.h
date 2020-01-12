@@ -256,18 +256,6 @@ public:
 		blocks.clear(BlockType::Air);
 	}
 
-	inline int count_air() {
-		int num_air = 0;
-		for (auto iter = blocks.begin(); iter != blocks.end(); iter++) {
-			if (iter->first < width*depth*height && iter->second.is_translucent()) {
-				num_air++;
-			}
-		}
-		return num_air;
-		//auto blocks_end = std::next(blocks.get_interval(MINICHUNK_SIZE - 1));
-		//return std::count(blocks.begin(), blocks_end, BlockType::Air);
-	}
-
 	// get metadata at these coordinates
 	inline Metadata get_metadata(const int &x, const int &y, const int &z) const {
 		assert(0 <= x && x < width && "get_metadata invalid x coordinate");
