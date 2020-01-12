@@ -75,7 +75,7 @@ struct vecN_hash
 
 // math sign function
 template <typename T>
-constexpr int sgn(T val) {
+constexpr int sgn(const T val) {
 	return (T(0) < val) - (val < T(0));
 }
 
@@ -182,7 +182,7 @@ static inline void WindowsException(char *description) {
 // TODO: cache
 static inline std::vector<ivec2> gen_circle(const int radius, const ivec2 center = { 0, 0 }) {
 	std::vector<ivec2> result;
-	result.reserve(4 * radius*radius + 4 * radius + 1); // always makes <= (2r+1)^2 = 4r^2 + 4r + 1 elements
+	result.reserve(4 * radius * radius + 4 * radius + 1); // always makes <= (2r+1)^2 = 4r^2 + 4r + 1 elements
 
 	for (int x = -radius; x <= radius; x++) {
 		for (int y = -radius; y <= radius; y++) {
@@ -196,7 +196,7 @@ static inline std::vector<ivec2> gen_circle(const int radius, const ivec2 center
 }
 
 static inline std::vector<ivec2> gen_diamond(const int radius, const vmath::ivec2 center = { 0, 0 }) {
-	std::vector<ivec2> result(2 * radius*radius + 2 * radius + 1); // always makes 2r^2 + 2r + 1 elements
+	std::vector<ivec2> result(2 * radius * radius + 2 * radius + 1); // always makes 2r^2 + 2r + 1 elements
 
 	int total_idx = 0;
 	for (int i = -radius; i <= radius; i++) {

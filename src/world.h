@@ -291,6 +291,7 @@ public:
 
 		// figure out all minis to mesh
 		vector<MiniChunk*> minis_to_mesh;
+
 		for (auto chunk : to_generate_minis) {
 			for (auto &mini : chunk->minis) {
 				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
@@ -527,6 +528,7 @@ public:
 	inline void render(const OpenGLInfo* glInfo, const vmath::vec4(&planes)[6]) {
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
+
 		for (auto &[coords_p, chunk] : chunk_map) {
 			for (auto &mini : chunk->minis) {
 				if (!mini.invisible) {
