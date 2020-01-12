@@ -223,11 +223,6 @@ public:
 		return result;
 	}
 
-	//// set all blocks in this range
-	//inline void set_block_range(const vmath::ivec3 &min_xyz, const vmath::ivec3 &max_xyz, const BlockType &val) {
-	//	std::vector<std::pair<
-	//}
-
 	inline bool all_air() {
 		return blocks[0] == BlockType::Air && blocks.num_intervals() == 1;
 	}

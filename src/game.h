@@ -18,7 +18,6 @@ constexpr int NUM_MESH_GEN_THREADS = 1;
 #include <tuple>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 using namespace std;
 using namespace vmath;

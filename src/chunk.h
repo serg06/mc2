@@ -36,7 +36,7 @@ namespace {
 *
 */
 
-static inline std::vector<ivec2> surrounding_chunks_s(ivec2 chunk_coord) {
+static inline std::vector<ivec2> surrounding_chunks_s(const ivec2& chunk_coord) {
 	return {
 		// sides
 		chunk_coord + ivec2(1, 0),
@@ -53,7 +53,7 @@ static inline std::vector<ivec2> surrounding_chunks_s(ivec2 chunk_coord) {
 }
 
 // get surrounding chunks, but only the ones on the sides
-static inline std::vector<ivec2> surrounding_chunks_sides_s(ivec2 chunk_coord) {
+static inline std::vector<ivec2> surrounding_chunks_sides_s(const ivec2& chunk_coord) {
 	return {
 		// sides
 		chunk_coord + ivec2(1, 0),
@@ -69,7 +69,7 @@ public:
 	MiniChunk minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT];
 
 	Chunk() : Chunk({ 0, 0 }) {}
-	Chunk(vmath::ivec2 coords) : coords(coords) {};
+	Chunk(const vmath::ivec2& coords) : coords(coords) {};
 
 	// convert coordinates to idx
 	static inline int c2idx_chunk(const int &x, const int &y, const int &z) {
@@ -148,11 +148,11 @@ public:
 		}
 	}
 
-	inline std::vector<ivec2> surrounding_chunks() {
+	inline std::vector<ivec2> surrounding_chunks() const {
 		return surrounding_chunks_s(coords);
 	}
 
-	inline std::vector<ivec2> surrounding_chunks_sides() {
+	inline std::vector<ivec2> surrounding_chunks_sides() const {
 		return surrounding_chunks_sides_s(coords);
 	}
 
