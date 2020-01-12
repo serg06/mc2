@@ -243,7 +243,7 @@ public:
 	}
 
 	inline bool any_translucent() {
-		for (auto &iter = this->blocks.begin(); iter != blocks.end(); iter++) {
+		for (auto iter = this->blocks.begin(); iter != blocks.end(); iter++) {
 			if (iter->first < width*depth*height && iter->second.is_translucent()) {
 				return true;
 			}
