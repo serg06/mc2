@@ -42,14 +42,14 @@ public:
 		return data & 0xF;
 	}
 
-	inline void set_liquid_level(uint8_t water_level) {
+	inline void set_liquid_level(const uint8_t water_level) {
 		assert(water_level == (water_level & 0xF) && "water level uses more than 4 bits");
 		data = (data & 0xF0) | (water_level & 0xF);
 	}
 
 	// comparing to Metadata
-	inline bool operator==(Metadata m) const { return data == m.data; }
-	inline bool operator!=(Metadata m) const { return data != m.data; }
+	inline bool operator==(const Metadata& m) const { return data == m.data; }
+	inline bool operator!=(const Metadata& m) const { return data != m.data; }
 };
 
 // block lighting
@@ -58,27 +58,27 @@ private:
 	uint8_t data;
 
 public:
-	inline uint8_t get_sunlight() {
+	inline uint8_t get_sunlight() const {
 		return data >> 4;
 	}
 
-	inline void set_sunlight(uint8_t sunlight) {
+	inline void set_sunlight(const uint8_t sunlight) {
 		assert(sunlight == (sunlight & 0xF) && "sunlight level uses more than 4 bits");
 		data = (sunlight << 4) | (data & 0xF);
 	}
 
-	inline uint8_t get_torchlight() {
+	inline uint8_t get_torchlight() const {
 		return data & 0xF;
 	}
 
-	inline void set_torchlight(uint8_t torchlight) {
+	inline void set_torchlight(const uint8_t torchlight) {
 		assert(torchlight == (torchlight & 0xF) && "torchlight level uses more than 4 bits");
 		data = (data & 0xF0) | torchlight;
 	}
 
 	// comparing to Lighting
-	inline bool operator==(Lighting l) const { return data == l.data; }
-	inline bool operator!=(Lighting l) const { return data != l.data; }
+	inline bool operator==(const Lighting& l) const { return data == l.data; }
+	inline bool operator!=(const Lighting& l) const { return data != l.data; }
 };
 
 // Chunk Data is always stored as width wide and depth deep
@@ -89,12 +89,12 @@ public:
 	IntervalMap<short, Metadata> metadatas;
 	IntervalMap<short, Metadata> lightings;
 
-	int width = 0;
-	int height = 0;
-	int depth = 0;
+	const int width;
+	const int height;
+	const int depth;
 
 	// Memory leak, delete this when un-loading chunk from world.
-	ChunkData(int width, int height, int depth) : width(width), height(height), depth(depth) {
+	ChunkData(const int width, const int height, const int depth) : width(width), height(height), depth(depth) {
 		assert(0 < width && "invalid chunk width");
 		assert(0 < depth && "invalid chunk depth");
 		assert(0 < height && "invalid chunk height");
@@ -113,7 +113,7 @@ public:
 		lightings.clear(0);
 	}
 
-	inline int size() {
+	inline int size() const {
 		return width * height * depth;
 	}
 
@@ -141,7 +141,7 @@ public:
 	inline BlockType get_block(const vmath::ivec4 &xyz_) const { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// set block at these coordinates
-	inline void set_block(int x, int y, int z, const BlockType &val) {
+	inline void set_block(const int x, const int y, const int z, const BlockType &val) {
 		assert(0 <= x && x < width && "set_block invalid x coordinate");
 		assert(0 <= y && y < height && "set_block invalid y coordinate");
 		assert(0 <= z && z < depth && "set_block invalid z coordinate");
