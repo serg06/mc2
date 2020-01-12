@@ -516,8 +516,10 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 
 		// R = toggle raw input
 		if (key == GLFW_KEY_R) {
-			const bool raw_motion = glfwGetInputMode(window, GLFW_RAW_MOUSE_MOTION);
-			glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, !raw_motion);
+			if (glfwRawMouseMotionSupported()) {
+				const bool raw_motion = glfwGetInputMode(window, GLFW_RAW_MOUSE_MOTION);
+				glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, !raw_motion);
+			}
 		}
 	}
 
