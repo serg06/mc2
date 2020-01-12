@@ -38,7 +38,7 @@ public:
 
 	/* LIQUIDS | LAST 4 BITS | LIQUID LEVEL */
 
-	inline uint8_t get_liquid_level() {
+	inline uint8_t get_liquid_level() const {
 		return data & 0xF;
 	}
 
