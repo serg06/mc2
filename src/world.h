@@ -1455,6 +1455,51 @@ public:
 		return reachable_from_dirs;
 	}
 
+	// For a certain corner, get height of flowing water at that corner
+	inline float get_water_height(const vmath::ivec3& corner) {
+#ifdef _DEBUG
+		bool any_flowing_water = false;
+#endif
+
+		vector<float> water_height_factors;
+		water_height_factors.reserve(4);
+
+		for (int i = 0; i < 4; i++) {
+			const int dx = (i % 1 == 0) ? 0 : -1; //  0, -1,  0, -1
+			const int dz = (i / 2 == 0) ? 0 : -1; //  0,  0, -1, -1
+
+			const vmath::ivec3 block_coords = corner + vmath::ivec3(dx, 0, dz);
+			const BlockType block = get_type(block_coords);
+			const Metadata metadata = get_metadata(block_coords);
+
+			switch ((BlockType::Value)block) {
+				case BlockType::Air:
+					water_height_factors.push_back(0);
+					break;
+				case BlockType::FlowingWater:
+#ifdef _DEBUG
+					any_flowing_water = true;
+#endif
+					water_height_factors.push_back(metadata.get_liquid_level());
+					break;
+				case BlockType::StillWater:
+					water_height_factors.push_back(8);
+					break;
+				default:
+					water_height_factors.push_back(7);
+					break;
+			}
+		}
+
+#ifdef _DEBUG
+		assert(any_flowing_water && "called get_water_height for a corner without any nearby flowing water!");
+#endif
+
+		assert(!water_height_factors.empty());
+
+		return std::accumulate(water_height_factors.begin(), water_height_factors.end(), 0)/water_height_factors.size();
+	}
+
 	///**
 	// * ? Get NEGATIVE? height liquid should be draw at, given negative water level.
 	// * (I.e. fullness level goes from 0 (full) to 7 (almost empty), and we return a similar ratio.)
