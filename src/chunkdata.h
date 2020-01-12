@@ -297,11 +297,11 @@ public:
 	inline void set_metadata(const vmath::ivec4 &xyz_, Metadata &val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
 
 	// TODO: unique_ptr
-	inline char* print_y_layer(int layer) {
+	inline auto print_y_layer(const int layer) {
 		assert(layer < height && "cannot print this layer, too high");
 
-		char* result = new char[16 * 16 * 8]; // up to 8 chars per block type
-		char* tmp = result;
+		auto result = std::make_unique<char[]>(16 * 16 * 8);
+		char* tmp = result.get();
 
 		for (int x = 0; x < width; x++) {
 			tmp += sprintf(tmp, "[ ");
