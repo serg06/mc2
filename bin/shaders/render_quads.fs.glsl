@@ -1,4 +1,5 @@
 #version 450 core
+#define FLOAT_BEFORE_1 0.999999940
 
 in flat uint gs_block_type;
 in vec2 gs_tex_coords; // texture coords in [0.0, 1.0]
@@ -19,7 +20,8 @@ layout (std140, binding = 0) uniform UNI_IN
 	uint in_water;      // 4                    128             4       132
 } uni;
 
-out vec4 color;
+layout (location = 0) out vec4 color;
+layout (depth_greater) out float gl_FragDepth;
 
 // block textures
 layout (binding = 0) uniform sampler2DArray block_textures[3];
@@ -38,14 +40,15 @@ float soft_increase2(float x, float cap) {
 void main(void)
 {
 	color = texture(block_textures[1 - sign(gs_face[1])],  vec3(gs_tex_coords, gs_block_type));
-	
-	// discard stuff that we can barely see, else all it's gonna do is mess with our depth buffer
+	gl_FragDepth = gl_FragCoord.z;
+
+	// if we can't see anything, update depth buffer a tiny bit just so we know that's not a t-junction
 	if (color.a == 0) {
-		discard;
+		gl_FragDepth = FLOAT_BEFORE_1;
 	}
 
 	// if in water, make everything blue depending on depth
-	if (bool(uni.in_water) && gs_block_type != 9) {
+	else if (bool(uni.in_water) && gs_block_type != 9) {
 		// get depth of current fragment
 		float depth = gl_FragCoord.z / gl_FragCoord.w;
 		
