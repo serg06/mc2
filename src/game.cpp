@@ -193,11 +193,9 @@ void App::render(float time) {
 	/* BACKGROUND / SKYBOX */
 
 	// Clear color/depth buffers
-	const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	const GLfloat sky_blue[] = { 135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f };
-	const GLfloat one[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glClearBufferfv(GL_COLOR, 0, sky_blue);
-	glClearBufferfv(GL_DEPTH, 0, one);
+	const GLfloat one = 1.0f;
+	glClearBufferfv(GL_COLOR, 0, color_sky_blue);
+	glClearBufferfv(GL_DEPTH, 0, &one);
 
 	// check if in water
 	const BlockType face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
@@ -251,7 +249,7 @@ void App::render(float time) {
 
 	if (polygon_mode == GL_FILL && should_fix_tjunctions) {
 		// FBO: FIX TJUNCTIONS AND OUTPUT TO DEFAULT FRAMEBUFFER
-		fix_tjunctions(&glInfo, &windowInfo, 0, glInfo.fbo_out.get_color_buf(), glInfo.fbo_out.get_depth_buf());
+		fix_tjunctions(&glInfo, &windowInfo, 0, glInfo.fbo_out);
 	}
 	else {
 		// FBO: COPY TO DEFAULT FRAMEBUFFER

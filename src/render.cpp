@@ -756,20 +756,20 @@ void render_text(OpenGLInfo* glInfo, const ivec2 start_pos, const ivec2 screen_d
 // fix the tjunctions in DEPTH/COLOR0 of fbo
 // TODO: fbo_in instead of color/depth-in
 // TODO: maybe write directly to fbo_out
-void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, GLuint color_tex, GLuint depth_tex) {
+void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO fbo_in) {
 	// set color/depth as inputs to tjunction fixing program
-	glBindTextureUnit(glInfo->tjunc_color_in_tunit, color_tex);
-	glBindTextureUnit(glInfo->tjunc_depth_in_tunit, depth_tex);
+	glBindTextureUnit(glInfo->tjunc_color_in_tunit, fbo_in.get_color_buf());
+	glBindTextureUnit(glInfo->tjunc_depth_in_tunit, fbo_in.get_depth_buf());
 
 	// switch to tjunc fbo so output goes into it
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_tjunc_fix.get_fbo());
 
-	// clear output buffers
-	//const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	const GLfloat sky_blue[] = { 135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f };
-	const GLfloat one[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	// clear color buffer
 	//glClearBufferfv(GL_COLOR, 0, sky_blue);
-	glClearBufferfv(GL_DEPTH, 0, one);
+
+	// clear depth buffer
+	const GLfloat one = 1.0f;
+	glClearBufferfv(GL_DEPTH, 0, &one);
 
 	// bind program
 	glBindVertexArray(glInfo->vao_empty);
@@ -814,6 +814,6 @@ void opengl_on_resize(OpenGLInfo& glInfo, int width, int height) {
 	glInfo.fbo_tjunc_fix.set_dimensions(width, height);
 
 	// reset textures
-	glInfo.fbo_out.reload();
-	glInfo.fbo_tjunc_fix.reload();
+	glInfo.fbo_out.update_fbo();
+	glInfo.fbo_tjunc_fix.update_fbo();
 }

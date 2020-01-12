@@ -11,6 +11,9 @@ constexpr int TRANSFORM_BUFFER_COORDS_OFFSET = (2 * sizeof(vmath::mat4));
 // max chars displayed on screen horizontally
 constexpr int MAX_CHARS_HORIZONTAL = 48;
 
+constexpr GLfloat color_black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+constexpr GLfloat color_sky_blue[] = { 135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f };
+
 // all the GLFW info for our app
 struct GlfwInfo {
 	std::string title = "OpenGL";
@@ -127,7 +130,7 @@ struct Quad3D {
 void setup_glfw(GlfwInfo*, GLFWwindow**);
 void setup_opengl(GlfwInfo*, OpenGLInfo*);
 void render_text(OpenGLInfo* glInfo, const vmath::ivec2 start_pos, const vmath::ivec2 screen_dimensions, const char* text, const unsigned size);
-void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, GLuint color_tex, GLuint depth_tex);
+void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO fbo_in);
 void opengl_on_resize(OpenGLInfo& glInfo, int width, int height);
 
 #endif /* __RENDER_H__ */

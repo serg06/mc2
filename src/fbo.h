@@ -44,7 +44,7 @@ public:
 		glCreateFramebuffers(1, &fbo);
 
 		// Fill it in
-		reload();
+		update_fbo();
 
 		// Tell FBO to draw into its one color buffer
 		glNamedFramebufferDrawBuffer(fbo, GL_COLOR_ATTACHMENT0);
@@ -67,8 +67,8 @@ public:
 		return depth_buf;
 	}
 
-	// recreate actual opengl fbo to object's properties
-	void reload() {
+	// update our OpenGL FBO to match this object
+	void update_fbo() {
 		// delete textures
 		glDeleteTextures(1, &color_buf);
 		glDeleteTextures(1, &depth_buf);
