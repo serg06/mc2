@@ -201,7 +201,7 @@ void App::render(float time) {
 
 	// check if in water
 	const BlockType face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
-	const GLuint in_water = face_block == BlockType::StillWater;
+	const GLuint in_water = face_block == BlockType::StillWater || face_block == BlockType::FlowingWater;
 
 	// Update transformation buffer with matrices
 	glNamedBufferSubData(glInfo.trans_uni_buf, 0, sizeof(model_view_matrix), model_view_matrix);
