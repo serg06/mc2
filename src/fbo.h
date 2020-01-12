@@ -76,8 +76,8 @@ public:
 		// Create color texture, allocate
 		glCreateTextures(GL_TEXTURE_2D, 1, &color_buf);
 		glTextureStorage2D(color_buf, 1, GL_RGBA32F, width, height);
-		glTextureParameteri(color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTextureParameteri(color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(color_buf, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // TODO: if stuff breaks, switch to GL_NEAREST
+		glTextureParameteri(color_buf, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // TODO: if stuff breaks, switch to GL_NEAREST
 		glTextureParameteri(color_buf, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(color_buf, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
