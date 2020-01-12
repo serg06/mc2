@@ -672,7 +672,7 @@ namespace {
 		}
 	}
 
-	void setup_output_fbo(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
+	void setup_fbos(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
 		/*
 		Setup FBO:
 			- Create FBO
@@ -682,13 +682,11 @@ namespace {
 			- Tell FBO to draw into its one color buffer
 		*/
 
-		// Create FBO
-		glInfo->fbo_out = FBO(windowInfo->width, windowInfo->height);
-	}
-
-	void setup_tjunction_fbo(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
-		// Create FBO
-		glInfo->fbo_tjunc_fix = FBO(windowInfo->width, windowInfo->height);
+		// Create and initialize FBOs
+		for (auto &fbo : glInfo->get_fbos()) {
+			*fbo = FBO(windowInfo->width, windowInfo->height);
+			fbo->update_fbo();
+		}
 	}
 }
 
@@ -708,8 +706,7 @@ void setup_opengl(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
 	setup_opengl_uniforms(glInfo);
 
 	// setup FBOs
-	setup_output_fbo(windowInfo, glInfo);
-	setup_tjunction_fbo(windowInfo, glInfo);
+	setup_fbos(windowInfo, glInfo);
 
 	// setup extra [default] properties
 	setup_opengl_extra_props(glInfo);
@@ -786,7 +783,7 @@ void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FB
 	GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
 
 	// set properties
-	glDisable(GL_DEPTH_TEST); // DEBUG
+	glDisable(GL_DEPTH_TEST); // No reason to have it enabled
 	glDisable(GL_BLEND); // DEBUG
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -810,10 +807,53 @@ void opengl_on_resize(OpenGLInfo& glInfo, int width, int height) {
 	glViewport(0, 0, width, height);
 
 	// update FBOs
-	glInfo.fbo_out.set_dimensions(width, height);
-	glInfo.fbo_tjunc_fix.set_dimensions(width, height);
+	for (auto &fbo : glInfo.get_fbos()) {
+		fbo->set_dimensions(width, height);
+		fbo->update_fbo();
+	}
+}
 
-	// reset textures
-	glInfo.fbo_out.update_fbo();
-	glInfo.fbo_tjunc_fix.update_fbo();
+void merge_fbos(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO fbo_in) {
+	// set color/depth as inputs to tjunction fixing program
+	glBindTextureUnit(glInfo->merger_color_in_tunit, fbo_in.get_color_buf());
+	glBindTextureUnit(glInfo->merger_depth_in_tunit, fbo_in.get_depth_buf());
+
+	// switch to tjunc fbo so output goes into it
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_merge_fbos.get_fbo());
+
+	// clear color buffer
+	glClearBufferfv(GL_COLOR, 0, color_empty);
+
+	// replace depth buffer with input buffer's
+	auto tmp_depth_buf = glInfo->fbo_merge_fbos.get_depth_buf();
+	glInfo->fbo_merge_fbos.set_depth_buf(fbo_in.get_depth_buf());
+
+	// bind program
+	glBindVertexArray(glInfo->vao_empty);
+	glUseProgram(glInfo->fbo_merging_program);
+
+	// save properties before we overwrite them
+	GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
+	//GLint cull_face = glIsEnabled(GL_CULL_FACE);
+	GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
+
+	// set properties
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND); // DEBUG
+	glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+	glBlendColor(0, 0, 0, 0.5f); // DEBUG: 50% blend
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	// run program!
+	glDrawArrays(GL_POINTS, 0, 1);
+
+	// restore original properties
+	//if (cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+	if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
+	glEnable(GL_BLEND); // DEBUG
+	glInfo->fbo_merge_fbos.set_depth_buf(tmp_depth_buf);
+
+	// copy output to output fbo
+	glBlitNamedFramebuffer(glInfo->fbo_merge_fbos.get_fbo(), fbo_out, 0, 0, windowInfo->width, windowInfo->height, 0, 0, windowInfo->width, windowInfo->height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 }

@@ -88,7 +88,7 @@ GLuint compile_shaders(const std::vector<std::tuple<std::string, GLenum>>& shade
 		glShaderSource(shader, 1, &shader_src_ptr, NULL); // set shader source code
 		glCompileShader(shader); // compile shader
 
-	// CHECK IF COMPILATION SUCCESSFUL
+		// CHECK IF COMPILATION SUCCESSFUL
 		GLint status = GL_TRUE;
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 		if (status == GL_FALSE)

@@ -13,6 +13,7 @@ constexpr int MAX_CHARS_HORIZONTAL = 48;
 
 constexpr GLfloat color_black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 constexpr GLfloat color_sky_blue[] = { 135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f };
+constexpr GLfloat color_empty[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 // all the GLFW info for our app
 struct GlfwInfo {
@@ -54,6 +55,11 @@ struct OpenGLInfo {
 	// FBOs
 	FBO fbo_out;
 	FBO fbo_tjunc_fix;
+	FBO fbo_merge_fbos;
+
+	inline std::vector<FBO*> get_fbos() {
+		return { &fbo_out, &fbo_tjunc_fix, &fbo_merge_fbos };
+	}
 
 	// render input buffers
 	GLuint trans_uni_buf = 0; // transformations uniform buffer - for game rendering 
@@ -77,9 +83,8 @@ struct OpenGLInfo {
 	GLuint tjunc_color_in_tunit = 4;
 	GLuint tjunc_depth_in_tunit = 5;
 
-	GLuint merger_depth1_in_tunit = 6;
-	GLuint merger_color2_in_tunit = 7;
-	GLuint merger_depth2_in_tunit = 8;
+	GLuint merger_color_in_tunit = 6;
+	GLuint merger_depth_in_tunit = 7;
 
 	// QUAD VAO binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index

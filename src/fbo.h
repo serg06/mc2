@@ -63,8 +63,16 @@ public:
 		return color_buf;
 	}
 
+	inline void set_color_buf(GLuint color_buf) {
+		this->color_buf = color_buf;
+	}
+
 	inline GLuint get_depth_buf() const {
 		return depth_buf;
+	}
+
+	inline void set_depth_buf(GLuint depth_buf) {
+		this->depth_buf = depth_buf;
 	}
 
 	// update our OpenGL FBO to match this object
