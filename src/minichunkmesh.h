@@ -14,7 +14,7 @@ class MiniChunkMesh {
 public:
 	std::vector<Quad3D> quads3d;
 
-	inline int size() {
+	inline int size() const {
 		return quads3d.size();
 	}
 };
