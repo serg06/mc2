@@ -596,6 +596,9 @@ public:
 
 			// set face
 			quad3d.face = face;
+
+			// set metadata
+			quad3d.metadata = quad2d.metadata;
 		}
 
 		return result;

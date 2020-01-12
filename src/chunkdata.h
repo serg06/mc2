@@ -50,6 +50,9 @@ public:
 	// comparing to Metadata
 	inline bool operator==(const Metadata& m) const { return data == m.data; }
 	inline bool operator!=(const Metadata& m) const { return data != m.data; }
+
+	// convert to base type
+	inline operator uint8_t() const { return data; }
 };
 
 // block lighting
