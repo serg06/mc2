@@ -34,9 +34,9 @@ void setup_glfw(GlfwInfo* windowInfo, GLFWwindow** window) {
 		return;
 	}
 
-	// OpenGL 4.5
+	// OpenGL 4.6
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 
 	// using OpenGL core profile
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
