@@ -1130,7 +1130,6 @@ public:
 		}
 
 		// regenerate own meshes
-		// TODO: If attempting to insert and already in set/queue, move to front of queue.
 		enqueue_mesh_gen(mini, true);
 
 		mesh_gen_mutex.unlock();

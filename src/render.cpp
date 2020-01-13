@@ -821,41 +821,29 @@ void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in) {
 	// switch to fbo so output goes into it
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_out);
 
-	//// clear color buffer
-	//glClearBufferfv(GL_COLOR, 0, color_empty);
-	
-	//// replace depth buffer with input buffer's
-	//auto tmp_depth_buf = glInfo->fbo_merge_fbos.get_depth_buf();
-	//glInfo->fbo_merge_fbos.set_depth_buf(existing_depth_buf);
-
 	// bind program
 	glBindVertexArray(glInfo->vao_empty);
 	glUseProgram(glInfo->fbo_merging_program);
 
 	// save properties before we overwrite them
-	GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
-	//GLint cull_face = glIsEnabled(GL_CULL_FACE);
 	GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
+	GLint blend = glIsEnabled(GL_BLEND);
+	GLint src_alpha, dst_alpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, &src_alpha); glGetIntegerv(GL_BLEND_DST_ALPHA, &dst_alpha);
+	GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
 
 	// set properties
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-	glBlendColor(NULL, NULL, NULL, 0.6f); // DEBUG: 50% blend
+	glBlendColor(NULL, NULL, NULL, 0.6f); // not saved | 60% blend
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// run program!
 	glDrawArrays(GL_POINTS, 0, 1);
 
 	// restore original properties
-	//if (cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 	if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+	if (blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+	glBlendFunc(src_alpha, dst_alpha);
 	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
-	glEnable(GL_BLEND); // DEBUG
-	//glInfo->fbo_merge_fbos.set_depth_buf(existing_depth_buf);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	// copy output to output fbo
-	//glBlitNamedFramebuffer(glInfo->fbo_terrain.get_fbo(), fbo_out, 0, 0, fbo_in.get_width(), fbo_in.get_height(), 0, 0, fbo_in.get_width(), fbo_in.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 }
