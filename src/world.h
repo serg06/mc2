@@ -598,9 +598,21 @@ public:
 	}
 
 	static constexpr inline void gen_working_indices(const int &layers_idx, int &working_idx_1, int &working_idx_2) {
-		// working indices are always gonna be xy, xz, or yz.
-		working_idx_1 = layers_idx == 0 ? 1 : 0;
-		working_idx_2 = layers_idx == 2 ? 1 : 2;
+		switch (layers_idx) {
+		case 0:
+			working_idx_1 = 2; // z
+			working_idx_2 = 1; // y
+			break;
+		case 1:
+			working_idx_1 = 0; // x
+			working_idx_2 = 2; // z
+			break;
+		case 2:
+			working_idx_1 = 0; // x
+			working_idx_2 = 1; // y
+			break;
+		}
+		return;
 	}
 
 	// convert 2D quads to 3D quads
@@ -610,7 +622,7 @@ public:
 
 		// working variable
 
-		// working indices are always gonna be xy, xz, or yz.
+		// most efficient to traverse working_idx_1 then working_idx_2;
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
 
@@ -643,7 +655,7 @@ public:
 
 	// generate layer by grabbing face blocks directly from the minichunk
 	static inline void gen_layer_generalized(const MiniChunk* mini, const MiniChunk* face_mini, const int layers_idx, const int layer_no, const ivec3 face, BlockType(&result)[16][16]) {
-		// working indices are always gonna be xy, xz, or yz.
+		// most efficient to traverse working_idx_1 then working_idx_2;
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
 
@@ -655,77 +667,34 @@ public:
 		memset(result, (uint8_t)BlockType::Air, sizeof(result));
 
 		// for each coordinate
-		// if axis isn't x, the iterate on x first
-		if (face[0] == 0) {
-			// y or z
-			for (int v = 0; v < 16; v++) {
-				// x
-				for (int u = 0; u < 16; u++) {
-					coords[working_idx_1] = u;
-					coords[working_idx_2] = v;
-
-					// get block at these coordinates
-					const BlockType block = mini->get_block(coords);
-
-					// skip air blocks
-					if (block == BlockType::Air) {
-						continue;
-					}
-		
-					// no face mini => face is air
-					else if (face_mini == nullptr) {
-						result[u][v] = block;
-					}
-
-					// face mini exists
-					else {
-						// get face block
-						ivec3 face_coords = coords + face;
-						face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-						const BlockType face_block = face_mini->get_block(face_coords);
-
-						// if block's face is visible, set it
-						if (is_face_visible(block, face_block)) {
-							result[u][v] = block;
-						}
-					}
-				}
-			}
-		}
-
-		// otherwise iterate on z then y (best speed)
-		else {
-			// y
+		for (int v = 0; v < 16; v++) {
 			for (int u = 0; u < 16; u++) {
-				// z
-				for (int v = 0; v < 16; v++) {
-					coords[working_idx_1] = u;
-					coords[working_idx_2] = v;
+				coords[working_idx_1] = u;
+				coords[working_idx_2] = v;
 
-					// get block at these coordinates
-					const BlockType block = mini->get_block(coords);
+				// get block at these coordinates
+				const BlockType block = mini->get_block(coords);
 
-					// skip air blocks
-					if (block == BlockType::Air) {
-						continue;
-					}
+				// skip air blocks
+				if (block == BlockType::Air) {
+					continue;
+				}
 
-					// no face mini => face is air
-					else if (face_mini == nullptr) {
+				// no face mini => face is air
+				else if (face_mini == nullptr) {
+					result[u][v] = block;
+				}
+
+				// face mini exists
+				else {
+					// get face block
+					ivec3 face_coords = coords + face;
+					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
+					const BlockType face_block = face_mini->get_block(face_coords);
+
+					// if block's face is visible, set it
+					if (is_face_visible(block, face_block)) {
 						result[u][v] = block;
-					}
-
-					// face mini exists
-					else {
-						// get face block
-						ivec3 face_coords = coords + face;
-						face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-						const BlockType face_block = face_mini->get_block(face_coords);
-
-						// if block's face is visible, set it
-						if (is_face_visible(block, face_block)) {
-							result[u][v] = block;
-						}
 					}
 				}
 			}
@@ -737,14 +706,10 @@ public:
 	}
 
 	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const const ivec3 &face, BlockType(&result)[16][16]) const {
-		// working indices are always gonna be xy, xz, or yz.
-		int working_idx_1, working_idx_2;
-		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
-
 		// get coordinates of a random block
 		ivec3 coords = { 0, 0, 0 };
 		coords[layers_idx] = layer_no;
-		ivec3 face_coords = coords + face;
+		const ivec3 face_coords = coords + face;
 
 		// figure out which mini has our face layer (usually ours)
 		const MiniChunk* face_mini;
@@ -752,7 +717,7 @@ public:
 			face_mini = mini;
 		}
 		else {
-			auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
+			const auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
 			face_mini = (face_mini_coords[1] < 0 || face_mini_coords[1] > BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) ? nullptr : get_mini(face_mini_coords);
 		}
 

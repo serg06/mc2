@@ -290,7 +290,7 @@ MiniChunkMesh* World::gen_minichunk_mesh(MiniChunk* mini) {
 		bool backface = i < 3;
 		int layers_idx = i % 3;
 
-		// working indices are always gonna be xy, xz, or yz.
+		// most efficient to traverse working_idx_1 then working_idx_2;
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
 
