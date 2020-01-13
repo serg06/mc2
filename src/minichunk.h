@@ -28,7 +28,7 @@ private:
 	bool meshes_updated = false;
 
 	// TODO: When someone else sets invisibility, we want to delete bufs as well.
-	GLuint quad_data_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
+	GLuint quad_data_buf = 0;
 	GLuint base_coords_buf = 0;
 
 	// number of quads inside the buffer, as reading from mesh is not always reliable
