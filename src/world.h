@@ -294,9 +294,9 @@ public:
 
 		for (auto chunk : to_generate_minis) {
 			for (auto &mini : chunk->minis) {
-				mini.invisible = mini.invisible || mini.all_air() || check_if_covered(mini);
+				mini.set_invisible(mini.get_invisible() || mini.all_air() || check_if_covered(mini));
 
-				if (!mini.invisible) {
+				if (!mini.get_invisible()) {
 					minis_to_mesh.push_back(&mini);
 				}
 			}
@@ -531,7 +531,7 @@ public:
 
 		for (auto &[coords_p, chunk] : chunk_map) {
 			for (auto &mini : chunk->minis) {
-				if (!mini.invisible) {
+				if (!mini.get_invisible()) {
 					if (mini_in_frustum(&mini, planes)) {
 						minis_to_draw.push_back(&mini);
 					}
@@ -1189,10 +1189,10 @@ public:
 		mini->mesh_lock.lock();
 
 		// update invisibility
-		mini->invisible = mini->all_air() || check_if_covered(*mini);
+		mini->set_invisible(mini->all_air() || check_if_covered(*mini));
 
 		// if visible, update mesh
-		if (!mini->invisible) {
+		if (!mini->get_invisible()) {
 			const MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
 
 			MiniChunkMesh* non_water = new MiniChunkMesh;
@@ -1209,9 +1209,8 @@ public:
 
 			assert(mesh->size() == non_water->size() + water->size());
 
-			mini->mesh = non_water;
-			mini->water_mesh = water;
-			mini->meshes_updated = true;
+			mini->set_mesh(non_water);
+			mini->set_water_mesh(water);
 		}
 
 		// unlock mini

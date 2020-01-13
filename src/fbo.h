@@ -1,9 +1,9 @@
 #ifndef __FBO_H__
 #define __FBO_H__
 
-#include <utility>
-
 #include "util.h"
+
+#include <utility>
 
 // can only run after glfw (and maybe opengl) have been initialized
 // TODO: maybe cache?

@@ -9,6 +9,7 @@
 
 #include "cmake_pch.hxx"
 
+#include <assert.h>
 #include <algorithm> // std::find
 #include <memory>
 #include <mutex>
@@ -22,12 +23,10 @@ constexpr int MINICHUNK_SIZE = MINICHUNK_WIDTH * MINICHUNK_DEPTH * MINICHUNK_HEI
 class MiniChunk : public ChunkData {
 private:
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
-
-public:
-	bool invisible = false;
 	MiniChunkMesh* mesh = nullptr;
 	MiniChunkMesh* water_mesh = nullptr;
 	bool meshes_updated = false;
+
 	// TODO: When someone else sets invisibility, we want to delete bufs as well.
 	GLuint quad_data_buf = 0, quad_corner1_buf = 0, quad_corner2_buf = 0, quad_face_buf = 0;
 	GLuint base_coords_buf = 0;
@@ -39,6 +38,9 @@ public:
 	// vao
 	GLuint vao = 0;
 
+	bool invisible = false;
+
+public:
 	std::mutex mesh_lock;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
@@ -58,6 +60,41 @@ public:
 	const inline vmath::ivec3& get_coords() const {
 		return coords;
 	}
+
+	inline MiniChunkMesh* get_mesh() const {
+		return water_mesh;
+	}
+	
+	inline void set_mesh(MiniChunkMesh* mesh) {
+		if (this->mesh != mesh) {
+			this->mesh = mesh;
+			meshes_updated = true;
+		}
+	}
+
+	inline MiniChunkMesh* get_water_mesh() const {
+		return water_mesh;
+	}
+
+	inline void set_water_mesh(MiniChunkMesh* water_mesh) {
+		if (this->water_mesh != water_mesh) {
+			this->water_mesh = water_mesh;
+			meshes_updated = true;
+		}
+	}
+
+	inline bool get_invisible() const {
+		return invisible;
+	}
+
+	inline void set_invisible(const bool invisible) {
+		assert((invisible ? true : mesh != nullptr) && "set mini to visible but mesh is still nullptr!");
+
+		this->invisible = invisible;
+
+		// TODO: also mark buffers/vao for deletion?
+	}
+
 
 	// render this minichunk's texture meshes
 	inline void render_meshes(const OpenGLInfo* glInfo) {
