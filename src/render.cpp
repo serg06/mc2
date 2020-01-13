@@ -743,8 +743,17 @@ void render_text(OpenGLInfo* glInfo, const ivec2 start_pos, const ivec2 screen_d
 	glFlushMappedNamedBufferRange(glInfo->text_buf, 0, sizeof(char) * MAX_CHARS_HORIZONTAL);
 	glUnmapNamedBuffer(glInfo->text_buf);
 
+	// save properties
+	GLint blend = glIsEnabled(GL_BLEND);
+
+	// set properties
+	glEnable(GL_BLEND);
+
 	// draw!
 	glDrawArrays(GL_POINTS, 0, size);
+
+	// restore properties
+	if (blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
 
 	// unbind VAO jic
 	glBindVertexArray(0);
