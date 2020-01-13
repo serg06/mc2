@@ -179,20 +179,115 @@ static inline void WindowsException(char *description) {
 	MessageBox(NULL, description, "Thrown exception", MB_OK);
 }
 
+// TODO: do this by starting from center and going out horizontally then vertically, like in that stackoverflow post
+// TODO: maybe don't inline?
+class CircleGenerator {
+private:
+	const int radius;
+
+public:
+	// define iterator class in here which inherits from std::iterator
+	class iterator : public std::iterator<
+		std::input_iterator_tag,	// iterator_category
+		vmath::ivec2,				// value_type
+		int,						// difference_type
+		const vmath::ivec2*,		// pointer
+		vmath::ivec2				// reference
+	> {
+
+		vmath::ivec2 xy;
+		const int radius;
+
+	private:
+		inline bool is_end() const {
+			return xy[0] == -radius && xy[1] == radius + 1;
+		}
+
+		inline float distance_to_center() const {
+			const auto &x = xy[0];
+			const auto &y = xy[1];
+
+			return std::sqrt(x * x + y * y);
+		}
+
+	public:
+
+		// construct iterator
+		inline explicit iterator(const int radius, const int x, const int y) : radius(radius), xy({ x, y }) {
+			// if we start out of range, start by moving in range
+			if (distance_to_center() > radius) {
+				(*this)++;
+			}
+		}
+
+		// increment iterator
+		inline iterator& operator++() {
+			while (!is_end()) {
+				auto &x = xy[0];
+				auto &y = xy[1];
+
+				// if reach the end of row, go back to start
+				if (x == radius) {
+					x = -radius;
+					y++;
+				}
+				// continue down row
+				else {
+					x++;
+				}
+
+				if (distance_to_center() <= radius) {
+					return *this;
+				}
+			}
+
+
+			return *this;
+		}
+
+		// don't really get it but okay
+		inline iterator operator++(int) {
+			iterator retval = *this;
+			++(*this);
+			return retval;
+		}
+
+		// comparison operator
+		inline bool operator==(iterator other) const {
+			return xy == other.xy;
+		}
+
+		inline bool operator!=(iterator other) const { return !(*this == other); }
+
+		// value
+		inline reference operator*() const { return xy; }
+	};
+
+	inline CircleGenerator(const int radius) : radius(radius) {}
+
+	inline iterator begin() const {
+		// start at top-left corner
+		return iterator(radius, -radius, -radius);
+	}
+
+	inline iterator end() const {
+		// end just past bottom-left corner
+		// requires that we increment x then y
+		return iterator(radius, -radius, radius + 1);
+	}
+};
+
 // generate all points in a circle a center
 // TODO: cache
 static inline std::vector<ivec2> gen_circle(const int radius, const ivec2 center = { 0, 0 }) {
 	std::vector<ivec2> result;
 	result.reserve(4 * radius * radius + 4 * radius + 1); // always makes <= (2r+1)^2 = 4r^2 + 4r + 1 elements
 
-	for (int x = -radius; x <= radius; x++) {
-		for (int y = -radius; y <= radius; y++) {
-			const ivec2 coords = ivec2(x, y);
-			if (length(coords) <= radius) {
-				result.push_back(coords + center);
-			}
-		}
+	CircleGenerator cg(radius);
+	for (auto iter = cg.begin(); iter != cg.end(); iter++) {
+		result.push_back(*iter);
 	}
+
 	return result;
 }
 
@@ -366,5 +461,8 @@ public:
 		return get_interval(end) - get_interval(start);
 	}
 };
+
+
+
 
 #endif // __UTIL_H__
