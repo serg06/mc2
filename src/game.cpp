@@ -211,12 +211,7 @@ void App::render(float time) {
 	extract_planes_from_projmat(proj_matrix, model_view_matrix, planes);
 
 	// Draw ALL our chunks!
-	world->render(&glInfo, planes);
-
-	// highlight block we're staring at, if it's valid
-	if (staring_at[1] >= 0) {
-		world->highlight_block(&glInfo, &windowInfo, staring_at);
-	}
+	world->render(&glInfo, &windowInfo, planes, staring_at);
 
 	// display debug info
 	if (show_debug_info) {

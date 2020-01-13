@@ -813,20 +813,20 @@ void opengl_on_resize(OpenGLInfo& glInfo, int width, int height) {
 	}
 }
 
-void merge_fbos(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in) {
-	// set color/depth as inputs to tjunction fixing program
+void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in) {
+	// set inputs
 	glBindTextureUnit(glInfo->merger_color_in_tunit, fbo_in.get_color_buf());
 	glBindTextureUnit(glInfo->merger_depth_in_tunit, fbo_in.get_depth_buf());
 
-	// switch to tjunc fbo so output goes into it
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_merge_fbos.get_fbo());
+	// switch to fbo so output goes into it
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_out);
 
-	// clear color buffer
-	glClearBufferfv(GL_COLOR, 0, color_empty);
-
-	// replace depth buffer with input buffer's
-	auto tmp_depth_buf = glInfo->fbo_merge_fbos.get_depth_buf();
-	glInfo->fbo_merge_fbos.set_depth_buf(fbo_in.get_depth_buf());
+	//// clear color buffer
+	//glClearBufferfv(GL_COLOR, 0, color_empty);
+	
+	//// replace depth buffer with input buffer's
+	//auto tmp_depth_buf = glInfo->fbo_merge_fbos.get_depth_buf();
+	//glInfo->fbo_merge_fbos.set_depth_buf(existing_depth_buf);
 
 	// bind program
 	glBindVertexArray(glInfo->vao_empty);
@@ -839,9 +839,9 @@ void merge_fbos(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& f
 
 	// set properties
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND); // DEBUG
+	glEnable(GL_BLEND);
 	glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-	glBlendColor(0, 0, 0, 0.5f); // DEBUG: 50% blend
+	glBlendColor(NULL, NULL, NULL, 0.6f); // DEBUG: 50% blend
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// run program!
@@ -852,8 +852,10 @@ void merge_fbos(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& f
 	if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 	glEnable(GL_BLEND); // DEBUG
-	glInfo->fbo_merge_fbos.set_depth_buf(tmp_depth_buf);
+	//glInfo->fbo_merge_fbos.set_depth_buf(existing_depth_buf);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// copy output to output fbo
-	glBlitNamedFramebuffer(glInfo->fbo_merge_fbos.get_fbo(), fbo_out, 0, 0, windowInfo->width, windowInfo->height, 0, 0, windowInfo->width, windowInfo->height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	//glBlitNamedFramebuffer(glInfo->fbo_terrain.get_fbo(), fbo_out, 0, 0, fbo_in.get_width(), fbo_in.get_height(), 0, 0, fbo_in.get_width(), fbo_in.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 }

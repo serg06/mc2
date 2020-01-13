@@ -525,7 +525,7 @@ public:
 		return true;
 	}
 
-	inline void render(const OpenGLInfo* glInfo, const vmath::vec4(&planes)[6]) {
+	inline void render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at) {
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
 
@@ -543,14 +543,42 @@ public:
 
 		// draw them
 		glUseProgram(glInfo->game_rendering_program);
+		
+		//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_out.get_fbo());
+
+		// Bind and clear terrain buffer
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_terrain.get_fbo());
+		const GLfloat one = 1.0f;
+		glClearBufferfv(GL_COLOR, 0, color_sky_blue);
+		glClearBufferfv(GL_DEPTH, 0, &one);
+		glDisable(GL_BLEND);
 
 		for (auto &mini : minis_to_draw) {
 			mini->render_meshes(glInfo);
 		}
 
+		if (staring_at[1] >= 0) {
+			highlight_block(glInfo, windowInfo, staring_at);
+		}
+
+		// Bind and clear water buffer
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_water.get_fbo());
+		glClearBufferfv(GL_COLOR, 0, color_sky_blue);
+		glClearBufferfv(GL_DEPTH, 0, &one);
+		glDisable(GL_BLEND); // DEBUG
+
 		for (auto &mini : minis_to_draw) {
 			mini->render_water_meshes(glInfo);
 		}
+
+		//glBlitNamedFramebuffer(glInfo->fbo_out.get_fbo(), glInfo->fbo_terrain.get_fbo(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		//glBlitNamedFramebuffer(glInfo->fbo_terrain.get_fbo(), glInfo->fbo_out.get_fbo(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+		merge_fbos(glInfo, glInfo->fbo_terrain.get_fbo(), glInfo->fbo_water);
+
+		glBlitNamedFramebuffer(glInfo->fbo_terrain.get_fbo(), glInfo->fbo_out.get_fbo(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_out.get_fbo());
 
 		rendered++;
 	}
@@ -915,6 +943,7 @@ public:
 		// DRAW!
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 		glDrawArrays(GL_POINTS, 0, 6);

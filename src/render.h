@@ -138,7 +138,7 @@ void setup_glfw(GlfwInfo*, GLFWwindow**);
 void setup_opengl(GlfwInfo*, OpenGLInfo*);
 void render_text(OpenGLInfo* glInfo, const vmath::ivec2 start_pos, const vmath::ivec2 screen_dimensions, const char* text, const unsigned size);
 void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in);
-void merge_fbos(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in);
+void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in);
 void opengl_on_resize(OpenGLInfo& glInfo, int width, int height);
 
 #endif /* __RENDER_H__ */
