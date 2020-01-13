@@ -50,6 +50,38 @@ public:
 		glNamedFramebufferDrawBuffer(fbo, GL_COLOR_ATTACHMENT0);
 	}
 
+	~FBO()
+	{
+		// delete textures
+		glDeleteTextures(1, &color_buf);
+		glDeleteTextures(1, &depth_buf);
+
+		// delete fbo
+		glDeleteFramebuffers(1, &fbo);
+	}
+
+	// copy assignment operator
+	// disallow copying FBO, as we'd have to recreate FBOs and textures and copy everything over, way inefficient
+	FBO& operator=(const FBO& rhs) = delete;
+
+	// move assignment operator
+	FBO& operator=(FBO&& rhs) noexcept {
+		// move everything over
+		width = std::move(rhs.width);
+		height = std::move(rhs.height);
+
+		color_buf = std::move(rhs.color_buf);
+		depth_buf = std::move(rhs.depth_buf);
+		fbo = std::move(rhs.fbo);
+
+		// invalidate their bufs just in case
+		rhs.color_buf = 0;
+		rhs.depth_buf = 0;
+		rhs.fbo = 0;
+
+		return *this;
+	}
+
 	inline void set_dimensions(const GLsizei width, const GLsizei height) {
 		this->width = width;
 		this->height = height;

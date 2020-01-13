@@ -54,11 +54,13 @@ struct OpenGLInfo {
 
 	// FBOs
 	FBO fbo_out;
+	FBO fbo_terrain;
+	FBO fbo_water;
 	FBO fbo_tjunc_fix;
 	FBO fbo_merge_fbos;
 
 	inline std::vector<FBO*> get_fbos() {
-		return { &fbo_out, &fbo_tjunc_fix, &fbo_merge_fbos };
+		return { &fbo_out, &fbo_terrain, &fbo_water, &fbo_tjunc_fix, &fbo_merge_fbos };
 	}
 
 	// render input buffers
@@ -71,7 +73,7 @@ struct OpenGLInfo {
 	GLuint side_textures;
 	GLuint bottom_textures;
 	GLuint font_textures;
-	
+
 	// texture units to bind to (like binding points but for textures)
 	// TODO: make sure I stay within limits - maybe re-use old binding points
 	GLuint top_textures_tunit = 0;
@@ -135,7 +137,8 @@ struct Quad3D {
 void setup_glfw(GlfwInfo*, GLFWwindow**);
 void setup_opengl(GlfwInfo*, OpenGLInfo*);
 void render_text(OpenGLInfo* glInfo, const vmath::ivec2 start_pos, const vmath::ivec2 screen_dimensions, const char* text, const unsigned size);
-void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO fbo_in);
+void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in);
+void merge_fbos(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in);
 void opengl_on_resize(OpenGLInfo& glInfo, int width, int height);
 
 #endif /* __RENDER_H__ */

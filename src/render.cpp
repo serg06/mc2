@@ -753,7 +753,7 @@ void render_text(OpenGLInfo* glInfo, const ivec2 start_pos, const ivec2 screen_d
 // fix the tjunctions in DEPTH/COLOR0 of fbo
 // TODO: fbo_in instead of color/depth-in
 // TODO: maybe write directly to fbo_out
-void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO fbo_in) {
+void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in) {
 	// set color/depth as inputs to tjunction fixing program
 	glBindTextureUnit(glInfo->tjunc_color_in_tunit, fbo_in.get_color_buf());
 	glBindTextureUnit(glInfo->tjunc_depth_in_tunit, fbo_in.get_depth_buf());
@@ -813,7 +813,7 @@ void opengl_on_resize(OpenGLInfo& glInfo, int width, int height) {
 	}
 }
 
-void merge_fbos(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO fbo_in) {
+void merge_fbos(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in) {
 	// set color/depth as inputs to tjunction fixing program
 	glBindTextureUnit(glInfo->merger_color_in_tunit, fbo_in.get_color_buf());
 	glBindTextureUnit(glInfo->merger_depth_in_tunit, fbo_in.get_depth_buf());
