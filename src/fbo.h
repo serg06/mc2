@@ -1,6 +1,8 @@
 #ifndef __FBO_H__
 #define __FBO_H__
 
+#include <utility>
+
 #include "util.h"
 
 // can only run after glfw (and maybe opengl) have been initialized
@@ -66,18 +68,13 @@ public:
 
 	// move assignment operator
 	FBO& operator=(FBO&& rhs) noexcept {
-		// move everything over
-		width = std::move(rhs.width);
-		height = std::move(rhs.height);
+		// swap everything so that we own their textures/fbos and they clean up our textures/fbos
+		std::swap(width, rhs.width);
+		std::swap(height, rhs.height);
 
-		color_buf = std::move(rhs.color_buf);
-		depth_buf = std::move(rhs.depth_buf);
-		fbo = std::move(rhs.fbo);
-
-		// invalidate their bufs just in case
-		rhs.color_buf = 0;
-		rhs.depth_buf = 0;
-		rhs.fbo = 0;
+		std::swap(color_buf, rhs.color_buf);
+		std::swap(depth_buf, rhs.depth_buf);
+		std::swap(fbo, rhs.fbo);
 
 		return *this;
 	}
