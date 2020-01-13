@@ -88,13 +88,13 @@ public:
 		}
 	}
 
-	inline MiniChunk* get_mini_with_y_level(int y) {
-		return &minis[y/16];
+	inline MiniChunk* get_mini_with_y_level(const int y) {
+		return 0 <= y && y <= 255 ? &minis[y / 16] : nullptr;
 	}
 
 	// get block at these coordinates
 	inline BlockType get_block(const int &x, const int &y, const int &z) {
-		return get_mini_with_y_level(y)->get_block(x, y % MINICHUNK_HEIGHT, z);
+		return get_mini_with_y_level(y) == nullptr ? BlockType::Air : get_mini_with_y_level(y)->get_block(x, y % MINICHUNK_HEIGHT, z);
 	}
 
 	inline BlockType get_block(const vmath::ivec3 &xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
