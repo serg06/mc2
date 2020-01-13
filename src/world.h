@@ -647,22 +647,16 @@ public:
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
 
-		// get coordinates of a random block
+		// coordinates of current block
 		ivec3 coords = { 0, 0, 0 };
 		coords[layers_idx] = layer_no;
-		ivec3 face_coords = coords + face;
-		face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-
-		// make sure face not out of bounds
-		assert(in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15)) && "Face outside minichunk.");
 
 		// reset all to air
 		memset(result, (uint8_t)BlockType::Air, sizeof(result));
 
 		// for each coordinate
-		// if face is y, iterate on x then z (best speed)
-		// if face is z, iterate on x then y (best speed)
-		if (face[1] != 0 || face[2] != 0) {
+		// if axis isn't x, the iterate on x first
+		if (face[0] == 0) {
 			// y or z
 			for (int v = 0; v < 16; v++) {
 				// x
@@ -673,26 +667,34 @@ public:
 					// get block at these coordinates
 					const BlockType block = mini->get_block(coords);
 
-					// dgaf about air blocks and about invalid minis
-					if (block == BlockType::Air || face_mini == nullptr) {
+					// skip air blocks
+					if (block == BlockType::Air) {
 						continue;
 					}
-
-					// get face block
-					face_coords = coords + face;
-					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-					const BlockType face_block = face_mini->get_block(face_coords);
-
-					// if block's face is visible, set it
-					if (is_face_visible(block, face_block)) {
+		
+					// no face mini => face is air
+					else if (face_mini == nullptr) {
 						result[u][v] = block;
+					}
+
+					// face mini exists
+					else {
+						// get face block
+						ivec3 face_coords = coords + face;
+						face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
+						const BlockType face_block = face_mini->get_block(face_coords);
+
+						// if block's face is visible, set it
+						if (is_face_visible(block, face_block)) {
+							result[u][v] = block;
+						}
 					}
 				}
 			}
 		}
 
-		// if face is x, iterate on z then y (best speed)
-		else if (face[0] != 0) {
+		// otherwise iterate on z then y (best speed)
+		else {
 			// y
 			for (int u = 0; u < 16; u++) {
 				// z
@@ -703,19 +705,27 @@ public:
 					// get block at these coordinates
 					const BlockType block = mini->get_block(coords);
 
-					// dgaf about air blocks and about invalid minis
-					if (block == BlockType::Air || face_mini == nullptr) {
+					// skip air blocks
+					if (block == BlockType::Air) {
 						continue;
 					}
 
-					// get face block
-					face_coords = coords + face;
-					face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
-					const BlockType face_block = face_mini->get_block(face_coords);
-
-					// if block's face is visible, set it
-					if (is_face_visible(block, face_block)) {
+					// no face mini => face is air
+					else if (face_mini == nullptr) {
 						result[u][v] = block;
+					}
+
+					// face mini exists
+					else {
+						// get face block
+						ivec3 face_coords = coords + face;
+						face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
+						const BlockType face_block = face_mini->get_block(face_coords);
+
+						// if block's face is visible, set it
+						if (is_face_visible(block, face_block)) {
+							result[u][v] = block;
+						}
 					}
 				}
 			}
@@ -751,7 +761,7 @@ public:
 	}
 
 	// given 2D array of block numbers, generate optimal quads
-	static inline vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], bool(&merged)[16][16]) {
+	static inline vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
 		memset(merged, false, sizeof(merged));
 
 		vector<Quad2D> result;
@@ -775,6 +785,9 @@ public:
 				q.block = block;
 				q.corners[0] = start;
 				q.corners[1] = start + max_size;
+				//if (block == BlockType::FlowingWater) {
+				//	q.metadata = metadata_layer[i][j];
+				//}
 
 				// mark all as merged
 				mark_as_merged(merged, start, max_size);
@@ -804,6 +817,11 @@ public:
 
 		// max width and height
 		ivec2 max_size = { 1, 1 };
+
+		// no meshing of flowing water -- TODO: allow meshing if max height? (I.e. if it's flowing straight down.)
+		if (block_type == BlockType::FlowingWater) {
+			return max_size;
+		}
 
 		// maximize height first, because it's better memory-wise
 		for (int j = start_point[1] + 1, i = start_point[0]; j < 16; j++) {
