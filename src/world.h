@@ -798,10 +798,10 @@ public:
 		// TODO: Search width with find() instead of a for loop.
 
 		// "max width and height"
-		ivec2 max_size = { 0, 0 };
+		ivec2 max_size = { 1, 1 };
 
 		// maximize width
-		for (int i = start_point[0], j = start_point[1]; i < 16; i++) {
+		for (int i = start_point[0] + 1, j = start_point[1]; i < 16; i++) {
 			// if extended by 1, add 1 to max width
 			if (layer[i][j] == block_type && !merged[i][j]) {
 				max_size[0]++;
@@ -819,7 +819,7 @@ public:
 
 		// for each height
 		bool stop = false;
-		for (int j = start_point[1]; j < 16; j++) {
+		for (int j = start_point[1] + 1; j < 16; j++) {
 			// check if entire width is correct
 			for (int i = start_point[0]; i < start_point[0] + max_size[0]; i++) {
 				// if wrong block type, give up on extending height
