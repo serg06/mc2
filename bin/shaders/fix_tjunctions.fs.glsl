@@ -21,12 +21,11 @@ layout (binding = 5) uniform sampler2D tjunc_depth_in;
 layout (location = 0) out vec4 color_out;
 layout (depth_less) out float gl_FragDepth;
 
-// global vars -- x and y are in [0.0, 1.0] now.
-float x = gl_FragCoord.x / width;
-float y = gl_FragCoord.y / height;
-
-// TODO: compare generating x/y like that ^ with passing texture coordinate
 in vec2 gs_tex_coord;
+
+// global vars -- x and y are in [0.0, 1.0] now.
+float x = gs_tex_coord[0];
+float y = gs_tex_coord[1];
 
 struct color_depth_pair {
 	vec4 color;
