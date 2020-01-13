@@ -69,7 +69,7 @@ public:
 	MiniChunk minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT];
 
 	Chunk() : Chunk({ 0, 0 }) {}
-	Chunk(const vmath::ivec2& coords) : coords(coords) {};
+	Chunk(const vmath::ivec2& coords) : coords(coords) {}
 
 	// convert coordinates to idx
 	static inline int c2idx_chunk(const int &x, const int &y, const int &z) {
