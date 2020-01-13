@@ -56,10 +56,14 @@ public:
 	{
 		// delete textures
 		glDeleteTextures(1, &color_buf);
+		color_buf = 0;
+
 		glDeleteTextures(1, &depth_buf);
+		depth_buf = 0;
 
 		// delete fbo
 		glDeleteFramebuffers(1, &fbo);
+		fbo = 0;
 	}
 
 	// copy assignment operator
@@ -79,13 +83,17 @@ public:
 		return *this;
 	}
 
+	inline auto get_width() const {
+		return width;
+	}
+
+	inline auto get_height() const {
+		return height;
+	}
+
 	inline void set_dimensions(const GLsizei width, const GLsizei height) {
 		this->width = width;
 		this->height = height;
-	}
-
-	inline GLuint get_fbo() const {
-		return fbo;
 	}
 
 	inline GLuint get_color_buf() const {
@@ -102,6 +110,10 @@ public:
 
 	inline void set_depth_buf(GLuint depth_buf) {
 		this->depth_buf = depth_buf;
+	}
+
+	inline GLuint get_fbo() const {
+		return fbo;
 	}
 
 	// update our OpenGL FBO to match this object

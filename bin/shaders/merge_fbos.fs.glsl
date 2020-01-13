@@ -5,8 +5,8 @@
  */
 
 // texture arrays
-layout (binding = 6) uniform sampler2D depth_in;
-layout (binding = 7) uniform sampler2D color_in;
+layout (binding = 6) uniform sampler2D color_in;
+layout (binding = 7) uniform sampler2D depth_in;
 
 // outputs
 layout (location = 0) out vec4 color_out;
