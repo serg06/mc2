@@ -270,6 +270,12 @@ namespace vmath
 		return true;
 	}
 
+	// teach vecN how to compare
+	template <typename T, const int len>
+	inline bool operator!=(const vecN<T, len> &lhs, const vecN<T, len> &rhs) {
+		return !(lhs == rhs);
+	}
+
 	template <typename T>
 	class Tvec2 : public vecN<T, 2>
 	{
