@@ -415,14 +415,16 @@ public:
 	}
 
 	// get chunk-coordinates of chunk containing the block at (x, _, z)
-	inline ivec2 get_chunk_coords(const int x, const int z) {
+	inline ivec2 get_chunk_coords(const int x, const int z) const {
 		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
 	}
 
 	// get minichunk-coordinates of minichunk containing the block at (x, y, z)
-	inline ivec3 get_mini_coords(const int x, const int y, const int z) {
+	inline ivec3 get_mini_coords(const int x, const int y, const int z) const {
 		return { (int)floorf((float)x / 16.0f), (y / 16) * 16, (int)floorf((float)z / 16.0f) };
 	}
+
+	inline ivec3 get_mini_coords(const vmath::ivec3& xyz) const { return get_mini_coords(xyz[0], xyz[1], xyz[2]); }
 
 	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
 	inline vmath::ivec3 get_chunk_relative_coordinates(const int x, const int y, const int z) {
@@ -529,10 +531,14 @@ public:
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
 
-		for (auto &[coords_p, chunk] : chunk_map) {
-			for (auto &mini : chunk->minis) {
-				if (!mini.get_invisible()) {
-					if (mini_in_frustum(&mini, planes)) {
+		for (auto &[coords_p, chunk] : chunk_map)
+		{
+			for (auto &mini : chunk->minis)
+			{
+				if (!mini.get_invisible())
+				{
+					if (mini_in_frustum(&mini, planes))
+					{
 						minis_to_draw.push_back(&mini);
 					}
 				}
@@ -543,7 +549,7 @@ public:
 
 		// draw them
 		glUseProgram(glInfo->game_rendering_program);
-		
+
 		//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_out.get_fbo());
 
 		// Bind and clear terrain buffer
@@ -745,7 +751,7 @@ public:
 	}
 
 	// given 2D array of block numbers, generate optimal quads
-	static inline vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], bool (&merged)[16][16]) {
+	static inline vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], bool(&merged)[16][16]) {
 		memset(merged, false, sizeof(merged));
 
 		vector<Quad2D> result;
@@ -1480,7 +1486,7 @@ public:
 				reachable_from_dirs.insert(ISOUTH);
 			}
 		}
-		
+
 		return reachable_from_dirs;
 	}
 
@@ -1502,21 +1508,21 @@ public:
 			const Metadata metadata = get_metadata(block_coords);
 
 			switch ((BlockType::Value)block) {
-				case BlockType::Air:
-					water_height_factors.push_back(0);
-					break;
-				case BlockType::FlowingWater:
+			case BlockType::Air:
+				water_height_factors.push_back(0);
+				break;
+			case BlockType::FlowingWater:
 #ifdef _DEBUG
-					any_flowing_water = true;
+				any_flowing_water = true;
 #endif
-					water_height_factors.push_back(metadata.get_liquid_level());
-					break;
-				case BlockType::StillWater:
-					water_height_factors.push_back(8);
-					break;
-				default:
-					water_height_factors.push_back(7);
-					break;
+				water_height_factors.push_back(metadata.get_liquid_level());
+				break;
+			case BlockType::StillWater:
+				water_height_factors.push_back(8);
+				break;
+			default:
+				water_height_factors.push_back(7);
+				break;
 			}
 		}
 
@@ -1526,7 +1532,7 @@ public:
 
 		assert(!water_height_factors.empty());
 
-		return std::accumulate(water_height_factors.begin(), water_height_factors.end(), 0)/water_height_factors.size();
+		return std::accumulate(water_height_factors.begin(), water_height_factors.end(), 0) / water_height_factors.size();
 	}
 
 	///**

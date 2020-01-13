@@ -59,6 +59,8 @@ public:
 	bool should_fix_tjunctions = true;
 	double fps = 0;
 	BlockType held_block = BlockType::StillWater;
+	ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
+	bool should_check_for_nearby_chunks = true;
 
 	App() {}
 	void run();
@@ -90,6 +92,24 @@ public:
 	// get direction straight right from player
 	inline auto right_direction() {
 		return rotate_pitch_yaw(char_pitch, char_yaw) * EAST_0;
+	}
+
+	inline void set_min_render_distance(int min_render_distance) {
+		if (min_render_distance > this->min_render_distance) {
+			should_check_for_nearby_chunks = true;
+		}
+		this->min_render_distance = min_render_distance;
+	}
+
+	const inline auto& get_last_chunk_coords() const {
+		return last_chunk_coords;
+	}
+
+	inline void set_last_chunk_coords(const ivec2& last_chunk_coords) {
+		if (last_chunk_coords != this->last_chunk_coords) {
+			this->last_chunk_coords = last_chunk_coords;
+			should_check_for_nearby_chunks = true;
+		}
 	}
 };
 std::unique_ptr<App> App::app;

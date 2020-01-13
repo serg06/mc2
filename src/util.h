@@ -90,9 +90,10 @@ inline mat4 rotate_pitch_yaw(float pitch, float yaw) {
 		rotate(yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw   around Y
 }
 
-inline vmath::ivec4 vec2ivec(vmath::vec4 v) {
-	vmath::ivec4 result;
-	for (int i = 0; i < v.size(); i++) {
+template <const int len>
+inline vmath::vecN<int, len> vec2ivec(vmath::vecN<float, len> v) {
+	vmath::vecN<int, len> result;
+	for (int i = 0; i < len; i++) {
 		result[i] = (int)floorf(v[i]);
 	}
 	return result;

@@ -157,8 +157,17 @@ void App::render(float time) {
 	// update player movement
 	update_player_movement(dt);
 
-	// generate nearby chunks
-	world->gen_nearby_chunks(char_position, min_render_distance);
+	// update last chunk coords
+	const auto chunk_coords = world->get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
+	if (chunk_coords != get_last_chunk_coords()) {
+		set_last_chunk_coords(chunk_coords);
+	}
+	
+	// generate nearby chunks if required
+	if (should_check_for_nearby_chunks) {
+		world->gen_nearby_chunks(char_position, min_render_distance);
+		should_check_for_nearby_chunks = false;
+	}
 
 	// update block that player is staring at
 	const auto direction = staring_direction();
@@ -521,6 +530,7 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 		// + = increase render distance
 		if (key == GLFW_KEY_KP_ADD || key == GLFW_KEY_EQUAL) {
 			min_render_distance++;
+			should_check_for_nearby_chunks = true;
 		}
 
 		// - = decrease render distance

@@ -88,11 +88,9 @@ public:
 	}
 
 	inline void set_invisible(const bool invisible) {
-		assert((invisible ? true : mesh != nullptr) && "set mini to visible but mesh is still nullptr!");
-
 		this->invisible = invisible;
 
-		// TODO: also mark buffers/vao for deletion?
+		// TODO: if set to invisible, also mark buffers/vao for deletion?
 	}
 
 
