@@ -553,10 +553,12 @@ public:
 		glClearBufferfv(GL_DEPTH, 0, &one);
 		glEnable(GL_BLEND);
 
+		// draw terrain
 		for (auto &mini : minis_to_draw) {
 			mini->render_meshes(glInfo);
 		}
 
+		// highlight block
 		if (staring_at[1] >= 0) {
 			highlight_block(glInfo, windowInfo, staring_at);
 		}
@@ -567,14 +569,18 @@ public:
 		glClearBufferfv(GL_DEPTH, 0, &one);
 		glDisable(GL_BLEND); // DEBUG
 
+		// draw water onto water fbo
 		for (auto &mini : minis_to_draw) {
 			mini->render_water_meshes(glInfo);
 		}
 
+		// merge water fbo onto terrain fbo
 		merge_fbos(glInfo, glInfo->fbo_terrain.get_fbo(), glInfo->fbo_water);
 
+		// send it all to output fbo
 		glBlitNamedFramebuffer(glInfo->fbo_terrain.get_fbo(), glInfo->fbo_out.get_fbo(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
+		// re-bind output fbo
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo->fbo_out.get_fbo());
 
 		rendered++;
