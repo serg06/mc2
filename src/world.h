@@ -551,7 +551,7 @@ public:
 		const GLfloat one = 1.0f;
 		glClearBufferfv(GL_COLOR, 0, color_sky_blue);
 		glClearBufferfv(GL_DEPTH, 0, &one);
-		glDisable(GL_BLEND);
+		glEnable(GL_BLEND);
 
 		for (auto &mini : minis_to_draw) {
 			mini->render_meshes(glInfo);
@@ -570,9 +570,6 @@ public:
 		for (auto &mini : minis_to_draw) {
 			mini->render_water_meshes(glInfo);
 		}
-
-		//glBlitNamedFramebuffer(glInfo->fbo_out.get_fbo(), glInfo->fbo_terrain.get_fbo(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-		//glBlitNamedFramebuffer(glInfo->fbo_terrain.get_fbo(), glInfo->fbo_out.get_fbo(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), 0, 0, glInfo->fbo_out.get_width(), glInfo->fbo_out.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
 		merge_fbos(glInfo, glInfo->fbo_terrain.get_fbo(), glInfo->fbo_water);
 

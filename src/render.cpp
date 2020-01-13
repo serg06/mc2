@@ -822,6 +822,7 @@ void opengl_on_resize(OpenGLInfo& glInfo, int width, int height) {
 	}
 }
 
+// blend fbo_out and fbo_in by drawing fbo_in on fbo_out
 void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in) {
 	// set inputs
 	glBindTextureUnit(glInfo->merger_color_in_tunit, fbo_in.get_color_buf());
