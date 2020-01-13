@@ -794,17 +794,16 @@ public:
 		assert(block_type != BlockType::Air);
 		assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
-		// TODO: Start max size at {1,1}, and for loops at +1.
-		// TODO: Search width with find() instead of a for loop.
+		// TODO: Search width with find() instead of a for loop?
 
-		// "max width and height"
+		// max width and height
 		ivec2 max_size = { 1, 1 };
 
-		// maximize width
-		for (int i = start_point[0] + 1, j = start_point[1]; i < 16; i++) {
-			// if extended by 1, add 1 to max width
+		// maximize height first, because it's better memory-wise
+		for (int j = start_point[1] + 1, i = start_point[0]; j < 16; j++) {
+			// if extended by 1, add 1 to max height
 			if (layer[i][j] == block_type && !merged[i][j]) {
-				max_size[0]++;
+				max_size[1]++;
 			}
 			// else give up
 			else {
@@ -812,17 +811,14 @@ public:
 			}
 		}
 
-		assert(max_size[0] > 0 && "WTF? Max width is 0? Doesn't make sense.");
+		// maximize width now that we've maximized height
 
-		// now that we've maximized width, need to
-		// maximize height
-
-		// for each height
+		// for each width
 		bool stop = false;
-		for (int j = start_point[1] + 1; j < 16; j++) {
-			// check if entire width is correct
-			for (int i = start_point[0]; i < start_point[0] + max_size[0]; i++) {
-				// if wrong block type, give up on extending height
+		for (int i = start_point[0] + 1; i < 16; i++) {
+			// check if entire height is correct
+			for (int j = start_point[1]; j < start_point[1] + max_size[1]; j++) {
+				// if wrong block type, give up on extending width
 				if (layer[i][j] != block_type || merged[i][j]) {
 					stop = true;
 					break;
@@ -833,11 +829,9 @@ public:
 				break;
 			}
 
-			// yep, entire width is correct! Extend max height and keep going
-			max_size[1]++;
+			// yep, entire height is correct! Extend max width and keep going
+			max_size[0]++;
 		}
-
-		assert(max_size[1] > 0 && "WTF? Max height is 0? Doesn't make sense.");
 
 		return max_size;
 	}
