@@ -281,9 +281,9 @@ namespace WorldTests {
 
 }
 
-MiniChunkMesh* World::gen_minichunk_mesh(MiniChunk* mini) {
+std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(MiniChunk* mini) {
 	// got our mesh
-	MiniChunkMesh* mesh = new MiniChunkMesh();
+	std::unique_ptr<MiniChunkMesh> mesh = std::make_unique<MiniChunkMesh>();
 
 	// for all 6 sides
 	for (int i = 0; i < 6; i++) {

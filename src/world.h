@@ -1174,10 +1174,10 @@ public:
 
 		// if visible, update mesh
 		if (!mini->get_invisible()) {
-			const MiniChunkMesh* mesh = gen_minichunk_mesh(mini);
+			const std::unique_ptr<MiniChunkMesh> mesh = gen_minichunk_mesh(mini);
 
-			MiniChunkMesh* non_water = new MiniChunkMesh;
-			MiniChunkMesh* water = new MiniChunkMesh;
+			std::unique_ptr<MiniChunkMesh> non_water = std::make_unique<MiniChunkMesh>();
+			std::unique_ptr<MiniChunkMesh> water = std::make_unique<MiniChunkMesh>();
 
 			for (auto &quad : mesh->get_quads()) {
 				if ((BlockType)quad.block == BlockType::StillWater || (BlockType)quad.block == BlockType::FlowingWater) {
@@ -1190,8 +1190,8 @@ public:
 
 			assert(mesh->size() == non_water->size() + water->size());
 
-			mini->set_mesh(non_water);
-			mini->set_water_mesh(water);
+			mini->set_mesh(std::move(non_water));
+			mini->set_water_mesh(std::move(water));
 		}
 
 		// unlock mini
@@ -1573,7 +1573,7 @@ public:
 	//	return 1.0F - heightSum / (float)sumDivisor;
 	//}
 
-	MiniChunkMesh* gen_minichunk_mesh(MiniChunk* mini);
+	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(MiniChunk* mini);
 };
 
 #endif /* __WORLD_H__ */

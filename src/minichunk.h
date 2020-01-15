@@ -23,8 +23,8 @@ constexpr int MINICHUNK_SIZE = MINICHUNK_WIDTH * MINICHUNK_DEPTH * MINICHUNK_HEI
 class MiniChunk : public ChunkData {
 private:
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
-	MiniChunkMesh* mesh = nullptr;
-	MiniChunkMesh* water_mesh = nullptr;
+	std::unique_ptr<MiniChunkMesh> mesh = nullptr;
+	std::unique_ptr<MiniChunkMesh> water_mesh = nullptr;
 	bool meshes_updated = false;
 
 	// TODO: When someone else sets invisibility, we want to delete bufs as well.
@@ -61,24 +61,18 @@ public:
 		return coords;
 	}
 
-	inline MiniChunkMesh* get_mesh() const {
-		return water_mesh;
-	}
-	
-	inline void set_mesh(MiniChunkMesh* mesh) {
-		if (this->mesh != mesh) {
-			this->mesh = mesh;
+	// assumes lock
+	inline void set_mesh(std::unique_ptr<MiniChunkMesh> mesh) {
+		if (this->mesh.get() != mesh.get()) {
+			this->mesh = std::move(mesh);
 			meshes_updated = true;
 		}
 	}
 
-	inline MiniChunkMesh* get_water_mesh() const {
-		return water_mesh;
-	}
-
-	inline void set_water_mesh(MiniChunkMesh* water_mesh) {
+	// assumes lock
+	inline void set_water_mesh(std::unique_ptr<MiniChunkMesh> water_mesh) {
 		if (this->water_mesh != water_mesh) {
-			this->water_mesh = water_mesh;
+			this->water_mesh = std::move(water_mesh);
 			meshes_updated = true;
 		}
 	}
