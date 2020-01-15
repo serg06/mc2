@@ -63,18 +63,14 @@ public:
 
 	// assumes lock
 	inline void set_mesh(std::unique_ptr<MiniChunkMesh> mesh) {
-		if (this->mesh.get() != mesh.get()) {
-			this->mesh = std::move(mesh);
-			meshes_updated = true;
-		}
+		this->mesh = std::move(mesh);
+		meshes_updated = true;
 	}
 
 	// assumes lock
 	inline void set_water_mesh(std::unique_ptr<MiniChunkMesh> water_mesh) {
-		if (this->water_mesh != water_mesh) {
-			this->water_mesh = std::move(water_mesh);
-			meshes_updated = true;
-		}
+		this->water_mesh = std::move(water_mesh);
+		meshes_updated = true;
 	}
 
 	inline bool get_invisible() const {
