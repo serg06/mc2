@@ -1,5 +1,6 @@
 #version 450 core
-#define FLOAT_BEFORE_1 0.999999940
+#define FLOAT_BEFORE_1 0.999999940f
+#define SIDE_DARK_FACTOR 0.1f
 
 in flat uint gs_block_type;
 in vec2 gs_tex_coords; // texture coords in [0.0, 1.0]
@@ -34,7 +35,7 @@ float soft_increase(float x) {
 }
 
 float soft_increase2(float x, float cap) {
-	return min(sqrt(x/cap), 1.0);
+	return min(sqrt(x/cap), 1.0f);
 }
 
 void main(void)
@@ -42,7 +43,11 @@ void main(void)
 	color = texture(block_textures[1 - sign(gs_face[1])],  vec3(gs_tex_coords, gs_block_type));
 	gl_FragDepth = gl_FragCoord.z;
 
-	// if we can't see anything, update depth buffer a tiny bit just so we know that's not a t-junction
+	// make sides a little darker so it looks a little better - that's whiat Minecraft does!
+	int face_idx = abs(gs_face[1] * 1 + gs_face[2] * 2);
+	color = vec4(color.xyz * (1.0f - ((face_idx + 2) % 3) * SIDE_DARK_FACTOR), color.a);
+
+	// if fragment is transparent, update depth buffer a tiny bit just so we know that's not a t-junction
 	if (color.a == 0) {
 		gl_FragDepth = FLOAT_BEFORE_1;
 	}
@@ -55,7 +60,7 @@ void main(void)
 		float strength = soft_increase(depth/5.0f);
 
 		// tint fragment blue
-		vec4 ocean_blue = vec4(0.0, 0.0, 0.5, 1.0);
+		vec4 ocean_blue = vec4(0.0f, 0.0f, 0.5f, 1.0f);
 		color = mix(color, ocean_blue, strength);
 	}
 }
