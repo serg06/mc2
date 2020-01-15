@@ -433,25 +433,12 @@ public:
 
 	// given a block's real-world coordinates, return that block's coordinates relative to its chunk
 	inline vmath::ivec3 get_chunk_relative_coordinates(const int x, const int y, const int z) {
-		return vmath::ivec3(((x % CHUNK_WIDTH) + CHUNK_WIDTH) % 16, y, ((z % CHUNK_DEPTH) + CHUNK_DEPTH) % 16);
+		return vmath::ivec3(posmod(x, CHUNK_WIDTH), y, posmod(z, CHUNK_DEPTH));
 	}
 
 	// given a block's real-world coordinates, return that block's coordinates relative to its mini
-	inline vmath::ivec3 get_mini_relative_coords(int x, int y, int z) {
-		// adjust x and y
-		x = x % MINICHUNK_WIDTH;
-		y = y % MINICHUNK_HEIGHT;
-		z = z % MINICHUNK_DEPTH;
-
-		// make sure modulo didn't leave them negative
-		if (x < 0) {
-			x += CHUNK_WIDTH;
-		}
-		if (z < 0) {
-			z += CHUNK_WIDTH;
-		}
-
-		return vmath::ivec3(x, y, z);
+	inline vmath::ivec3 get_mini_relative_coords(const int x, const int y, const int z) {
+		return vmath::ivec3(posmod(x, MINICHUNK_WIDTH), y % MINICHUNK_HEIGHT, posmod(z, MINICHUNK_DEPTH));
 	}
 
 	// get a block's type
