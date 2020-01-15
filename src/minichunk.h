@@ -47,8 +47,7 @@ public:
 
 	}
 
-	inline void set_coords(vmath::ivec3 &&coords) { set_coords(coords); }
-	inline void set_coords(vmath::ivec3 &coords) {
+	inline void set_coords(const vmath::ivec3& coords) {
 		this->coords = coords;
 
 		// update coords buf
