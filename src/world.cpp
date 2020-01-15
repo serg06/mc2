@@ -336,7 +336,7 @@ MiniChunkMesh* World::gen_minichunk_mesh(MiniChunk* mini) {
 
 			// append quads
 			for (auto quad : quads) {
-				mesh->quads3d.push_back(quad);
+				mesh->add_quad(quad);
 			}
 		}
 	}

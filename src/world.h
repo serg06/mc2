@@ -1179,12 +1179,12 @@ public:
 			MiniChunkMesh* non_water = new MiniChunkMesh;
 			MiniChunkMesh* water = new MiniChunkMesh;
 
-			for (auto &quad : mesh->quads3d) {
+			for (auto &quad : mesh->get_quads()) {
 				if ((BlockType)quad.block == BlockType::StillWater || (BlockType)quad.block == BlockType::FlowingWater) {
-					water->quads3d.push_back(quad);
+					water->add_quad(quad);
 				}
 				else {
-					non_water->quads3d.push_back(quad);
+					non_water->add_quad(quad);
 				}
 			}
 

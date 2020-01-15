@@ -198,8 +198,8 @@ public:
 			throw "bad";
 		}
 
-		auto &quads = mesh->quads3d;
-		auto &water_quads = water_mesh->quads3d;
+		auto &quads = mesh->get_quads();
+		auto &water_quads = water_mesh->get_quads();
 
 		// if no quads, we done
 		if (quads.size() + water_quads.size() == 0) {
