@@ -366,7 +366,7 @@ public:
 	inline void gen_nearby_chunks(const vmath::vec4& position, const int& distance) {
 		assert(distance >= 0 && "invalid distance");
 
-		const ivec2 chunk_coords = get_chunk_coords((int)floorf(position[0]), (int)floorf(position[2]));
+		const ivec2 chunk_coords = get_chunk_coords(position[0], position[2]);
 		const vector<ivec2> coords = gen_circle(distance, chunk_coords);
 		gen_chunks_if_required(coords);
 	}
@@ -417,6 +417,11 @@ public:
 	// get chunk-coordinates of chunk containing the block at (x, _, z)
 	inline ivec2 get_chunk_coords(const int x, const int z) const {
 		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
+	}
+
+	// get chunk-coordinates of chunk containing the block at (x, _, z)
+	inline ivec2 get_chunk_coords(const float x, const float z) const {
+		return { (int)floorf(x / 16.0f), (int)floorf(z / 16.0f) };
 	}
 
 	// get minichunk-coordinates of minichunk containing the block at (x, y, z)

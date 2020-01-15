@@ -285,7 +285,7 @@ static inline std::vector<ivec2> gen_circle(const int radius, const ivec2 center
 
 	CircleGenerator cg(radius);
 	for (auto iter = cg.begin(); iter != cg.end(); iter++) {
-		result.push_back(*iter);
+		result.push_back(*iter + center);
 	}
 
 	return result;
