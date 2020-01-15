@@ -416,7 +416,7 @@ public:
 
 	// get chunk-coordinates of chunk containing the block at (x, _, z)
 	inline ivec2 get_chunk_coords(const int x, const int z) const {
-		return { (int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f) };
+		return get_chunk_coords((float)x, (float)z);
 	}
 
 	// get chunk-coordinates of chunk containing the block at (x, _, z)
