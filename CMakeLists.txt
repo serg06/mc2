@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.2)
+cmake_minimum_required(VERSION 3.17.0)
 
 if ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "x64")
 	set(BUILDING_64_BIT TRUE)
@@ -58,7 +58,10 @@ endif()
 # specify include directories
 include_directories(include)
 include_directories(extern/glfw-3.3/include)
-include_directories(build/CMakeFiles/mc2.dir)  # for pre-compiled header
+
+# hack precompile header into include - will fix after reading cmake book
+list(GET CMAKE_CONFIGURATION_TYPES 0 FIRST_CONFIG)
+include_directories("build/CMakeFiles/mc2.dir/${FIRST_CONFIG}")
 
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
@@ -71,7 +74,6 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
 # precompile header
 target_precompile_headers(${PROJECT_NAME}
-	PRIVATE include/kenp_noise.h
 	PRIVATE include/FastNoise/FastNoise.h
 	PRIVATE include/GL/gl3w.h
 	PRIVATE include/GL/glcorearb.h

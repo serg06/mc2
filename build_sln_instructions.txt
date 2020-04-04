@@ -1,7 +1,7 @@
 # Software requirements
 - Windows
-- CMake (version >= 3.14.7)
-- Visual Studio 2017 (VS 15)
+- CMake (version >= 3.17.0)
+- Visual Studio 2019 (VS 16)
 	- Requires Workload: "Desktop development with C++"
 
 
@@ -9,7 +9,7 @@
 - info: extern/glfw-3.3 is the source code for glfw 3.3, unedited, straight from their website
 - create `lib` directory
 - `cd extern/glfw-3.3`
-- `cmake -G "Visual Studio 15" .`
+- `cmake -G "Visual Studio 16" .`
 - open `GLFW.sln` in Visual Studio
 - build Debug and RelWithDebInfo configurations for `glfw` project
   - in Solution Explorer, right click "Solution 'GLFW'" and click Build
@@ -22,17 +22,20 @@
   - go back to base directory and run `git clean -fd` to remove all the Visual Studio bs. (Don't worry, the lib/ folder is ignored!)
 
 
-# How to create Visual Studio solution
+# Create Visual Studio solution
 - create `build` directory
 - `cd build`
-- `cmake -G "Visual Studio 15" ..`
+- `cmake -G "Visual Studio 16" ..`
 
 
-# How to create a 64-bit Visual Studio solution
+# If you want to switch to 64-bit:
 - recompile all the libraries as 64-bit
 	- delete all the library CMake builds: `git clean -fd`
-	- recreate the solutions using `cmake -G "Visual Studio 15" -A x64 .`
+	- recreate the solutions using `cmake -G "Visual Studio 16" -A x64 .`
 	- rebuild the and copy over the libraries, but this ending them with `_x64.lib` and `_x64_d.lib` respectively
 - delete and recreate the `build` folder
 - navigate into it: `cd build`
-- create for x64: `cmake -G "Visual Studio 15" -A x64 ..`
+- create for x64: `cmake -G "Visual Studio 16" -A x64 ..`
+
+# If you want to switch back to 32-bit:
+- Same thing but `-A Win32` instead of `-A x64`

@@ -15,14 +15,6 @@ constexpr int WATER_HEIGHT = 64;
 using namespace std;
 using namespace vmath;
 
-static inline double noise22(float vec[2]) {
-	double result = noise2(vec);
-	result = (result + 1.0f) / 2.0f;
-	assert(result >= 0);
-	assert(result <= 1);
-	return result;
-}
-
 static inline float softmax(float v, float minv, float maxv) {
 	assert(maxv > minv);
 	assert(minv <= v && v <= maxv);

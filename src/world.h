@@ -697,7 +697,7 @@ public:
 		return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
-	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const const ivec3 &face, BlockType(&result)[16][16]) const {
+	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const ivec3 &face, BlockType(&result)[16][16]) const {
 		// get coordinates of a random block
 		ivec3 coords = { 0, 0, 0 };
 		coords[layers_idx] = layer_no;

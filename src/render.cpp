@@ -10,7 +10,7 @@
 //#define STB_IMAGE_WRITE_IMPLEMENTATION
 //#include "stb_image_write.h"
 
-#include <experimental/filesystem>
+#include <filesystem>
 #include <numeric>
 #include <string>
 #include <sys/stat.h>
@@ -23,7 +23,7 @@ constexpr int TEXTURE_COMPONENTS = 4;
 constexpr int MAX_CHARS = 256;
 constexpr int BLOCKS_NUM_MIPMAPS = 3;
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 using namespace vmath;
 
 // setup glfw window

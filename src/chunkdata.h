@@ -236,6 +236,8 @@ public:
 				return true;
 			}
 		}
+		return false;
+
 		//auto blocks_end = std::next(blocks.get_interval(MINICHUNK_SIZE - 1));
 		//return std::find(blocks.begin(), blocks_end, BlockType::Air) != blocks_end;
 	}
@@ -246,6 +248,8 @@ public:
 				return true;
 			}
 		}
+		return false;
+
 		//auto blocks_end = std::next(blocks.get_interval(MINICHUNK_SIZE - 1));
 		//return std::find_if(blocks.begin(), blocks_end, [](BlockType b) { return b.is_translucent(); }) != blocks_end;
 	}
