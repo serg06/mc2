@@ -18,8 +18,10 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS src/*.cpp src/*.h)
 file(GLOB_RECURSE shaders CONFIGURE_DEPENDS bin/shaders/*.glsl)
 file(GLOB_RECURSE tests CONFIGURE_DEPENDS test/*.cpp test/*.h)
 
-# set the project name
-project(${SOLUTION_NAME})
+# set the project info
+project(${SOLUTION_NAME}
+	DESCRIPTION "Minecraft V2"
+	LANGUAGES C CXX)
 
 # set libraries dir
 link_directories( ${CMAKE_SOURCE_DIR}/lib )
