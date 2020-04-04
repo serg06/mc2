@@ -21,7 +21,7 @@ file(GLOB_RECURSE tests CONFIGURE_DEPENDS test/*.cpp test/*.h)
 # set the project info
 project(${SOLUTION_NAME}
 	DESCRIPTION "Minecraft V2"
-	LANGUAGES C CXX)
+	LANGUAGES C CXX)  # Need C for GLFW?
 
 # set libraries dir
 link_directories( ${CMAKE_SOURCE_DIR}/lib )
@@ -63,7 +63,7 @@ include_directories(extern/glfw-3.3/include)
 
 # hack precompile header into include - will fix after reading cmake book
 list(GET CMAKE_CONFIGURATION_TYPES 0 FIRST_CONFIG)
-include_directories("build/CMakeFiles/mc2.dir/${FIRST_CONFIG}")
+include_directories("build/CMakeFiles/${SOLUTION_NAME}.dir/${FIRST_CONFIG}")
 
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
