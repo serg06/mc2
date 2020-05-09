@@ -8,9 +8,9 @@ Progress **video** (January 6, 2020):
 
 ## Wanna try it out?
 
-Make sure you have [Visual C++ Runtime 2017 32-bit](https://go.microsoft.com/fwlink/?LinkId=746571).
-
 Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 10, OpenGL 4.6+.)
+
+Or [compile it yourself](INSTALLATION.md).
 
 ## Current features:
 
