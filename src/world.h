@@ -58,7 +58,8 @@ namespace WorldTests {
 class World {
 public:
 	// map of (chunk coordinate) -> chunk
-	unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
+   std::recursive_mutex chunk_map_mut;
+   unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
 
 	// get_chunk cache
 	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
@@ -177,7 +178,9 @@ public:
 
 	// add chunk to chunk coords (x, z)
 	inline void add_chunk(const int x, const int z, Chunk* chunk) {
-		const ivec2 coords = { x, z };
+      std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
+
+      const ivec2 coords = { x, z };
 		const auto search = chunk_map.find(coords);
 
 		// if element already exists, error
@@ -209,7 +212,8 @@ public:
 		gen_chunks_if_required(chunk_coords);
 
 		// fetch
-		for (auto coords : chunk_coords) {
+      std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
+      for (auto coords : chunk_coords) {
 			result.insert(chunk_map[coords]);
 		}
 
@@ -221,14 +225,18 @@ public:
 		// don't wanna generate duplicates
 		std::unordered_set<ivec2, vecN_hash> to_generate;
 
-		for (auto coords : chunk_coords) {
-			const auto search = chunk_map.find(coords);
+      std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
 
-			// if doesn't exist, need to generate it
-			if (search == chunk_map.end()) {
-				to_generate.insert(coords);
-			}
-		}
+      for (auto coords : chunk_coords) {
+         const auto search = chunk_map.find(coords);
+
+         // if doesn't exist, need to generate it
+         if (search == chunk_map.end()) {
+            to_generate.insert(coords);
+         }
+      }
+
+      lock.unlock();
 
 		if (to_generate.size() > 0) {
 			gen_chunks(to_generate);
@@ -311,6 +319,8 @@ public:
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
 	inline Chunk* get_chunk(const int x, const int z) {
+      std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
+
 		const ivec2 coords = { x, z };
 
 		// if in cache, return
@@ -336,6 +346,8 @@ public:
 
 	// get chunk or nullptr (no cache)
 	inline Chunk* get_chunk_(const int x, const int z) {
+      std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
+
 		const auto search = chunk_map.find({ x, z });
 
 		// if doesn't exist, return null
@@ -347,7 +359,9 @@ public:
 	}
 
 	// get mini or nullptr
-	inline MiniChunk* get_mini(const int x, const int y, const int z) const {
+	inline MiniChunk* get_mini(const int x, const int y, const int z) {
+      std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
+
 		const auto search = chunk_map.find({ x, z });
 
 		// if chunk doesn't exist, return null
@@ -356,10 +370,11 @@ public:
 		}
 
 		Chunk* chunk = (*search).second;
-		return chunk->get_mini_with_y_level((y / 16) * 16);
+      lock.unlock();
+		return chunk->get_mini_with_y_level((y / 16) * 16); // TODO: Just y % 16?
 	}
 
-	inline MiniChunk* get_mini(const ivec3& xyz) const { return get_mini(xyz[0], xyz[1], xyz[2]); }
+	inline MiniChunk* get_mini(const ivec3& xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
 
 	// generate chunks near player
 	inline void gen_nearby_chunks(const vmath::vec4& position, const int& distance) {
@@ -450,6 +465,7 @@ public:
 		}
 
 		const vmath::ivec3 chunk_coords = get_chunk_relative_coordinates(x, y, z);
+
 		return chunk->get_block(chunk_coords);
 	}
 
@@ -485,7 +501,7 @@ public:
 					const auto &mini_coords = mini.get_coords();
 					const vmath::ivec3 coords = { mini_coords[0] * CHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * CHUNK_DEPTH + miniZ };
 
-					// if along east wall, check east
+               // if along east wall, check east
 					if (miniX == CHUNK_WIDTH - 1) {
 						if (get_type(clamp_coords_to_world(coords + IEAST)).is_translucent()) return false;
 					}
@@ -522,19 +538,23 @@ public:
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
 
-		for (auto &[coords_p, chunk] : chunk_map)
-		{
-			for (auto &mini : chunk->minis)
-			{
-				if (!mini.get_invisible())
-				{
-					if (mini_in_frustum(&mini, planes))
-					{
-						minis_to_draw.push_back(&mini);
-					}
-				}
-			}
-		}
+      std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
+
+      for (auto& [coords_p, chunk] : chunk_map)
+      {
+         for (auto& mini : chunk->minis)
+         {
+            if (!mini.get_invisible())
+            {
+               if (mini_in_frustum(&mini, planes))
+               {
+                  minis_to_draw.push_back(&mini);
+               }
+            }
+         }
+      }
+
+      lock.unlock();
 
 		if (minis_to_draw.size() == 0) return;
 
@@ -696,7 +716,7 @@ public:
 		return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
-	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const ivec3 &face, BlockType(&result)[16][16]) const {
+	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const ivec3 &face, BlockType(&result)[16][16]) {
 		// get coordinates of a random block
 		ivec3 coords = { 0, 0, 0 };
 		coords[layers_idx] = layer_no;
