@@ -10,7 +10,7 @@ Progress **video** (January 6, 2020):
 
 Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 10, OpenGL 4.6+.)
 
-Or [compile it yourself](INSTALLATION.md).
+Or [compile it yourself](INSTRUCTIONS.md).
 
 ## Current features:
 
