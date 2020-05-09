@@ -2,6 +2,9 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
+#include "GL/gl3w.h"
+#include "vmath.h"
+
 #include <limits>
 #include <map>
 #include <memory>

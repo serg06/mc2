@@ -8,8 +8,6 @@
 #include "render.h"
 #include "util.h"
 
-#include "cmake_pch.hxx"
-
 #include <assert.h>
 #include <cstdint>
 #include <memory>

@@ -1,12 +1,12 @@
 #include "game.h"
 
+
+
 #include "chunk.h"
 #include "chunkdata.h"
 #include "render.h"
 #include "shapes.h"
 #include "util.h"
-
-#include "cmake_pch.hxx"
 
 #include <algorithm>
 #include <assert.h>

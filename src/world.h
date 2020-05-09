@@ -7,8 +7,7 @@
 #include "render.h"
 #include "shapes.h"
 #include "util.h"
-
-#include "cmake_pch.hxx"
+#include "vmath.h"
 
 #include <assert.h>
 #include <chrono>

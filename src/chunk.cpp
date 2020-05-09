@@ -1,8 +1,7 @@
 #include "chunk.h"
 #include "chunkdata.h"
+#include "FastNoise/FastNoise.h"
 #include "util.h"
-
-#include "cmake_pch.hxx"
 
 #include <assert.h>
 #include <cstdlib>

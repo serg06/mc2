@@ -68,11 +68,6 @@ target_link_libraries(${PROJECT_NAME} gl3w fastnoise glfw)
 include_directories(include)
 include_directories(extern/glfw-3.3/include)
 
-# hack precompile header into include
-# TODO: Get this outta here!
-list(GET CMAKE_CONFIGURATION_TYPES 0 FIRST_CONFIG)
-include_directories("build/CMakeFiles/${SOLUTION_NAME}.dir/${FIRST_CONFIG}")
-
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
@@ -82,20 +77,3 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CM
 # set to C++ 17 (we doin this hardcore)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-# precompile header
-target_precompile_headers(${PROJECT_NAME}
-	PRIVATE include/FastNoise/FastNoise.h
-	PRIVATE include/GL/gl3w.h
-	PRIVATE include/GL/glcorearb.h
-	PRIVATE include/KHR/khrplatform.h
-	PRIVATE include/stb_image.h
-	PRIVATE include/vmath.h
-	PRIVATE extern/glfw-3.3/include/GLFW/glfw3.h
-)
-
-if (WIN32)
-	target_precompile_headers(${PROJECT_NAME}
-		PRIVATE <windows.h>
-	)	
-endif (WIN32)

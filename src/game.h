@@ -6,11 +6,12 @@ constexpr int NUM_MESH_GEN_THREADS = 1;
 
 #include "chunk.h"
 #include "chunkdata.h"
+#include "GL/gl3w.h"
+#include "GLFW/glfw3.h"
 #include "render.h"
 #include "util.h"
+#include "vmath.h"
 #include "world.h"
-
-#include "cmake_pch.hxx"
 
 #include <assert.h>
 #include <memory>

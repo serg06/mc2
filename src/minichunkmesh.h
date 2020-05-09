@@ -4,8 +4,7 @@
 #include "block.h"
 #include "render.h"
 #include "util.h"
-
-#include "cmake_pch.hxx"
+#include "vmath.h"
 
 #include <vector>
 

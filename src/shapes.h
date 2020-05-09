@@ -2,8 +2,7 @@
 #define __SHAPES_H__
 
 #include "util.h"
-
-#include "cmake_pch.hxx"
+#include "vmath.h"
 
 // player dimensions
 // NOTE: May cause extra t-junctions.

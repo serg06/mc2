@@ -1,7 +1,5 @@
 #include "util.h"
 
-#include "cmake_pch.hxx"
-
 #include <assert.h>
 #include <fstream>
 #include <functional>

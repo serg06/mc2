@@ -1,6 +1,7 @@
 #ifndef __FBO_H__
 #define __FBO_H__
 
+#include "GL/gl3w.h"
 #include "util.h"
 
 #include <utility>

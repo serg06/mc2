@@ -6,8 +6,7 @@
 #include "minichunkmesh.h"
 #include "render.h"
 #include "util.h"
-
-#include "cmake_pch.hxx"
+#include "vmath.h"
 
 #include <assert.h>
 #include <algorithm> // std::find

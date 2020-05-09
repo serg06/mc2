@@ -1,8 +1,6 @@
 #ifndef __BLOCK_H__
 #define __BLOCK_H__
 
-#include "cmake_pch.hxx"
-
 #include <assert.h>
 #include <string>
 #include <unordered_map>
