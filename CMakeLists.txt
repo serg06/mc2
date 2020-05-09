@@ -40,11 +40,11 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 # Add GLFW
-set(GLFW_BUILD_EXAMPLES OFF)
-set(GLFW_BUILD_TESTS OFF)
-set(GLFW_BUILD_DOCS OFF)
-set(GLFW_INSTALL OFF)
-set(GLFW_USE_HYBRID_HPG ON) # Prefer dedicated graphics
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "GLFW examples" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW tests" FORCE)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW docs" FORCE)
+set(GLFW_INSTALL OFF CACHE BOOL "GLFW installation project" FORCE)
+set(GLFW_USE_HYBRID_HPG ON CACHE BOOL "GLFW prefer dedicated graphics card" FORCE)
 add_subdirectory("extern/glfw-3.3")
 
 # include gl3w in compilation

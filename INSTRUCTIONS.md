@@ -1,4 +1,5 @@
 # Software requirements:
+
 - Windows
 - CMake (version >= 3.17.0)
 - Visual Studio 2019 (VS 16)
@@ -25,6 +26,5 @@
 # Other tips
 
 ## To switch from 32-bit to 64-bit or vice-versa:
-- delete `build` folder or run `git clean -fdx`
-- follow above instructions
-
+- `git clean -fdx`
+- recreate project with above instructions
