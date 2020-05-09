@@ -25,5 +25,6 @@
 # Other tips
 
 ## To switch from 32-bit to 64-bit or vice-versa:
-- delete `build` folder
+- delete `build` folder or run `git clean -fdx`
 - follow above instructions
+
