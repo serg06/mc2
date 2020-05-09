@@ -3,39 +3,23 @@
 - CMake (version >= 3.17.0)
 - Visual Studio 2019 (VS 16)
 	- Requires Workload: "Desktop development with C++"
+- If you get a .dll error, you also need to install Visual C++ Runtime 2019
 
-
-# Compile GLFW
-- info: extern/glfw-3.3 is the source code for glfw 3.3, unedited, straight from their website
-- create `lib` directory
-- `cd extern/glfw-3.3`
-- `cmake -G "Visual Studio 16" .`
-- open `GLFW.sln` in Visual Studio
-- build Debug and RelWithDebInfo configurations for `glfw` project
-  - in Solution Explorer, right click "Solution 'GLFW'" and click Build
-  - go to "Build" menu -> "Configuration Manager", and change "Active solution configuration" to "RelWithDebInfo".
-  - in Solution Explorer, right click "Solution 'GLFW'" and click Build
-- copy `glfw-3.3/src/Debug/glfw3.lib`   into `lib/` and rename it to `glfw3_d.lib`
-- copy `glfw-3.3/src/RelWithDebInfo/glfw3.lib` into `lib/`
-- cleanup
-  - close solution in Visual Studio
-  - go back to base directory and run `git clean -fd` to remove all the Visual Studio bs. (Don't worry, the lib/ folder is ignored!)
-
-
-# Create Visual Studio solution
+# Create a project (Visual Studio 2019, Windows 10)
 - create `build` directory
 - `cd build`
-- `cmake -G "Visual Studio 16" ..`
+- 32-bit:
+  - `cmake -A Win32 -G "Visual Studio 16" ..`
+- 64-bit:
+  - `cmake -A x64 -G "Visual Studio 16" ..`
 
+# To open the project in Visual Studio
+- double-click build/mc2.sln
 
-# If you want to switch to 64-bit:
-- recompile all the libraries as 64-bit
-	- delete all the library CMake builds: `git clean -fd`
-	- recreate the solutions using `cmake -G "Visual Studio 16" -A x64 .`
-	- rebuild the and copy over the libraries, but this ending them with `_x64.lib` and `_x64_d.lib` respectively
-- delete and recreate the `build` folder
-- navigate into it: `cd build`
-- create for x64: `cmake -G "Visual Studio 16" -A x64 ..`
+# To build mc2 from the command line
+- `cd build`
+- cmake --build . --config Release
 
-# If you want to switch back to 32-bit:
-- Same thing but `-A Win32` instead of `-A x64`
+# To switch from 32-bit to 64-bit or vice-versa
+- delete `build` folder
+- follow above instructions
