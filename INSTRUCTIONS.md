@@ -2,7 +2,7 @@
 - Windows
 - CMake (version >= 3.17.0)
 - Visual Studio 2019 (VS 16)
-	- Requires Workload: "Desktop development with C++"
+	- In Visual Studio Installer, make sure you select the workload: "Desktop development with C++"
 - If you get a .dll error, you also need to install Visual C++ Runtime 2019
 
 # Create a project (Visual Studio 2019, Windows 10)
