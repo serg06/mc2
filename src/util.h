@@ -5,10 +5,12 @@
 #include "GL/gl3w.h"
 #include "vmath.h"
 
+#include <cmath>
 #include <limits>
 #include <map>
 #include <memory>
 #include <numeric>
+#include <string>
 #include <tuple>
 #include <vector>
 
