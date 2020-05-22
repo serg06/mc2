@@ -53,7 +53,8 @@ add_library(gl3w src/gl3w.c)
 
 # include fastnoise in compilation
 # TODO: Create my own CMakeLists.txt for this, move to extern, do add_subdirectory
-add_library(fastnoise include/FastNoise/FastNoise.cpp)
+# TODO: And make sure .h file is inside of fastnoise folder, and fastnoise project exports the .h file as a public include!
+add_library(fastnoise src/FastNoise.cpp)
 
 # add source files (so they compile) and data (so we see it in IDE)
 source_group(Shaders FILES ${shaders})
