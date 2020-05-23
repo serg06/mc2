@@ -1,18 +1,16 @@
 cmake_minimum_required(VERSION 3.17.0)
 
 # vars
-set(SOLUTION_NAME stb)
-set(PROJECT_NAME stb)
-
+set(LIB_NAME stb)
 set(headers include/stb_image.h)
 
 # set the project info
-project(${SOLUTION_NAME}
-	DESCRIPTION "stb"
+project(${LIB_NAME}
+	DESCRIPTION "${LIB_NAME}"
 	LANGUAGES C CXX)
 
 # add source files (so they compile) and data (so we see it in IDE)
-add_library(${PROJECT_NAME} INTERFACE)
+add_library(${LIB_NAME} INTERFACE)
 
 # specify include directories
-target_include_directories(${PROJECT_NAME} INTERFACE include)
+target_include_directories(${LIB_NAME} INTERFACE include)
