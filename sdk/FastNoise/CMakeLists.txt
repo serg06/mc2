@@ -13,8 +13,6 @@ project(${SOLUTION_NAME}
 	LANGUAGES C CXX)
 
 # add source files (so they compile) and data (so we see it in IDE)
-message(sources: ${sources})
-message(headers: ${headers})
 add_library(${PROJECT_NAME} STATIC ${sources} ${headers})
 
 # specify include directories
