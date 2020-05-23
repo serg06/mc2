@@ -49,6 +49,6 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT $
 # set VS working directory to same place as binary files, so that relative file reading/writing has the same effects in debug mode
 set_property(TARGET ${TARGET_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
-# set to C++ 17 (we doin this hardcore)
+# set to C++20 (we doin this hardcore)
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
