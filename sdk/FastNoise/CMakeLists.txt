@@ -18,7 +18,6 @@ add_library(${PROJECT_NAME} STATIC ${sources} ${headers})
 # specify include directories
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 
-# set to C++ 17 (we doin this hardcore)
-# TODO: Or not, if not required
+# set C++17 (Note: Might work with earlier versions, not sure)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
