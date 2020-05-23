@@ -1,13 +1,5 @@
 cmake_minimum_required(VERSION 3.17.0)
 
-if ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "x64")
-	set(BUILDING_64_BIT TRUE)
-	message("Building 64-bit")
-else()
-	set(BUILDING_64_BIT FALSE)
-	message("Building 32-bit")
-endif()
-
 # vars
 set(SOLUTION_NAME mc2)
 set(PROJECT_NAME game)
