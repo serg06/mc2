@@ -44,10 +44,6 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
 # link executable to libraries
 target_link_libraries(${PROJECT_NAME} gl3w FastNoise glfw vmath stb)
 
-# specify include directories
-# TODO: Remove it since I don't include anything anymore!
-target_include_directories(${PROJECT_NAME} PRIVATE include)
-
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
