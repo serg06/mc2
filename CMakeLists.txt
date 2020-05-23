@@ -3,11 +3,9 @@ cmake_minimum_required(VERSION 3.17.0)
 # vars
 set(SOLUTION_NAME mc2)
 set(PROJECT_NAME game)
-set(TEST_PROJECT_NAME test)
 
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS src/*.cpp src/*.h)
 file(GLOB_RECURSE shaders CONFIGURE_DEPENDS bin/shaders/*.glsl)
-file(GLOB_RECURSE tests CONFIGURE_DEPENDS test/*.cpp test/*.h)
 
 # set the project info
 project(${SOLUTION_NAME}
