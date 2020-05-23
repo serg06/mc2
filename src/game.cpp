@@ -1,7 +1,4 @@
 #include "game.h"
-
-
-
 #include "chunk.h"
 #include "chunkdata.h"
 #include "render.h"

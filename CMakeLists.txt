@@ -8,7 +8,6 @@ else()
 	message("Building 32-bit")
 endif()
 
-
 # vars
 set(SOLUTION_NAME mc2)
 set(PROJECT_NAME game)
@@ -24,7 +23,7 @@ project(${SOLUTION_NAME}
 	LANGUAGES C CXX)  # Need C for GLFW?
 
 # set libraries dir
-link_directories( ${CMAKE_SOURCE_DIR}/lib )
+link_directories(${CMAKE_SOURCE_DIR}/lib)
 
 # set CMake's build directories (archive dir = CMake artifacts dir?)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -39,35 +38,23 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
     set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_SOURCE_DIR}/bin )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
-# Add GLFW
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "GLFW examples" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW tests" FORCE)
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW docs" FORCE)
-set(GLFW_INSTALL OFF CACHE BOOL "GLFW installation project" FORCE)
-set(GLFW_USE_HYBRID_HPG ON CACHE BOOL "GLFW prefer dedicated graphics card" FORCE)
-add_subdirectory("extern/glfw-3.3")
-
-# include gl3w in compilation
-# TODO: Create my own CMakeLists.txt for this, move to extern, do add_subdirectory
-add_library(gl3w src/gl3w.c)
-
-# include fastnoise in compilation
-# TODO: Create my own CMakeLists.txt for this, move to extern, do add_subdirectory
-# TODO: And make sure .h file is inside of fastnoise folder, and fastnoise project exports the .h file as a public include!
-add_library(fastnoise src/FastNoise.cpp)
+# add libraries
+add_subdirectory(sdk)
 
 # add source files (so they compile) and data (so we see it in IDE)
+# TODO: Add it as resources instead
 source_group(Shaders FILES ${shaders})
 add_executable(${PROJECT_NAME} WIN32 ${sources} ${shaders})
 
+# TODO: Try without this
 set_property(TARGET ${PROJECT_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
 
 # link executable to libraries
-target_link_libraries(${PROJECT_NAME} gl3w fastnoise glfw)
+target_link_libraries(${PROJECT_NAME} gl3w FastNoise glfw vmath stb)
 
 # specify include directories
-include_directories(include)
-include_directories(extern/glfw-3.3/include)
+# TODO: Remove it since I don't include anything anymore!
+target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})

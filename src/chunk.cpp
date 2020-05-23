@@ -1,6 +1,6 @@
 #include "chunk.h"
 #include "chunkdata.h"
-#include "FastNoise/FastNoise.h"
+#include "FastNoise.h"
 #include "util.h"
 
 #include <assert.h>
