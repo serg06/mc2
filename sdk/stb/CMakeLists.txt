@@ -12,5 +12,8 @@ project(${LIB_NAME}
 # add source files (so they compile) and data (so we see it in IDE)
 add_library(${LIB_NAME} INTERFACE)
 
+# hack to show header-only project in VS
+add_custom_target(${LIB_NAME}_ SOURCES ${headers})
+
 # specify include directories
 target_include_directories(${LIB_NAME} INTERFACE include)
