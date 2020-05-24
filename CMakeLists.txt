@@ -29,8 +29,12 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
     set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_SOURCE_DIR}/bin )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
-# add libraries
+# add libraries into an `sdk` solution folder
 add_subdirectory(sdk)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+foreach (project IN ITEMS gl3w FastNoise glfw vmath_ stb_)
+	set_target_properties(${project} PROPERTIES FOLDER sdk)
+endforeach(project)
 
 # add source files (so they compile) and data (so we see it in IDE)
 # TODO: Add it as resources instead
