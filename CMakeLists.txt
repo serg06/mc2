@@ -4,13 +4,28 @@ cmake_minimum_required(VERSION 3.17.0)
 set(SOLUTION_NAME mc2)
 set(TARGET_NAME ${SOLUTION_NAME})
 
+set(HEADER_ONLY_LIBS vmath stb)
+set(OTHER_LIBS gl3w FastNoise glfw)
+
+# create ALL_LIBS list
+set(ALL_LIBS ${HEADER_ONLY_LIBS} ${OTHER_LIBS})
+
+# create LIB_TARGETS list
+set(LIB_TARGETS ${HEADER_ONLY_LIBS})
+list(TRANSFORM LIB_TARGETS APPEND _)
+list(APPEND LIB_TARGETS ${OTHER_LIBS})
+
+# create ALL_TARGETS
+set(ALL_TARGETS ${TARGET_NAME} ${LIB_TARGETS})
+
+# Boom
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS src/*.cpp src/*.h)
 file(GLOB_RECURSE shaders CONFIGURE_DEPENDS bin/shaders/*.glsl)
 
 # set the project info
 project(${SOLUTION_NAME}
 	DESCRIPTION "Minecraft V2"
-	LANGUAGES C CXX)  # Need C for GLFW?
+	LANGUAGES C CXX)
 
 # set libraries dir
 link_directories(${CMAKE_SOURCE_DIR}/lib)
@@ -32,9 +47,9 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 # add libraries into an `sdk` solution folder
 add_subdirectory(sdk)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-foreach (project IN ITEMS gl3w FastNoise glfw vmath_ stb_)
-	set_target_properties(${project} PROPERTIES FOLDER sdk)
-endforeach(project)
+foreach (TARGET IN LISTS LIB_TARGETS)
+	set_target_properties(${TARGET} PROPERTIES FOLDER sdk)
+endforeach(TARGET)
 
 # add source files (so they compile) and data (so we see it in IDE)
 # TODO: Add it as resources instead
@@ -43,12 +58,12 @@ add_executable(${TARGET_NAME} WIN32 ${sources} ${shaders})
 
 # TODO: Try without this
 set_property(TARGET ${TARGET_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
-foreach (project IN ITEMS gl3w FastNoise glfw vmath_ stb_)
-	set_property(TARGET ${project} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
-endforeach(project)
+foreach (TARGET IN LISTS LIB_TARGETS)
+	set_property(TARGET ${TARGET} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
+endforeach(TARGET)
 
 # link executable to libraries
-target_link_libraries(${TARGET_NAME} gl3w FastNoise glfw vmath stb)
+target_link_libraries(${TARGET_NAME} ${ALL_LIBS})
 
 # set VS startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${TARGET_NAME})
