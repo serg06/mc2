@@ -54,6 +54,40 @@ namespace WorldTests {
 	void test_gen_layer();
 }
 
+struct MeshGenResult
+{
+	MeshGenResult(const vmath::ivec3& coords_, const std::unique_ptr<MiniChunkMesh>& mesh_, const std::unique_ptr<MiniChunkMesh>& water_mesh_) = delete;
+	MeshGenResult(const vmath::ivec3& coords_, std::unique_ptr<MiniChunkMesh>&& mesh_, std::unique_ptr<MiniChunkMesh>&& water_mesh_)
+		: coords(coords_), mesh(std::move(mesh_)), water_mesh(std::move(water_mesh_))
+	{
+	}
+	MeshGenResult(const MeshGenResult& other) = delete;
+	MeshGenResult(MeshGenResult&& other)
+	{
+		if (this != &other)
+		{
+			coords = other.coords;
+			mesh = std::move(other.mesh);
+			water_mesh = std::move(other.water_mesh);
+		}
+	}
+
+	MeshGenResult& operator=(const MeshGenResult&& other) = delete;
+	MeshGenResult& operator=(MeshGenResult&& other) {
+		if (this != &other)
+		{
+			coords = other.coords;
+			mesh = std::move(other.mesh);
+			water_mesh = std::move(other.water_mesh);
+		}
+		return *this;
+	}
+
+	vmath::ivec3 coords;
+	std::unique_ptr<MiniChunkMesh> mesh;
+	std::unique_ptr<MiniChunkMesh> water_mesh;
+};
+
 // represents an in-game world
 class World {
 public:
@@ -70,9 +104,13 @@ public:
 	std::deque<MiniChunk*> mesh_gen_queue; // storage
 	std::unordered_set<MiniChunk*> mesh_gen_set; // uniqueness
 
+	// mesh_gen_results
+	std::deque<MeshGenResult> mesh_gen_result_queue;
+
 	// thread safety
 	std::mutex mesh_gen_mutex;
 	std::condition_variable mesh_gen_cv;
+	std::mutex mesh_gen_result_mut;
 
 	// count how many times render() has been called
 	int rendered = 0;
@@ -533,6 +571,27 @@ public:
 
 		return true;
 	}
+
+	inline void update_meshes()
+	{
+		// Before rendering, check if there's any completed meshes and update them
+		mesh_gen_result_mut.lock();
+
+		while (mesh_gen_result_queue.size() > 0)
+		{
+			MeshGenResult result = std::move(mesh_gen_result_queue.front());
+			mesh_gen_result_queue.pop_front();
+
+			MiniChunk* mini = get_mini(result.coords);
+			mini->mesh_lock.lock();
+			mini->set_mesh(std::move(result.mesh));
+			mini->set_water_mesh(std::move(result.water_mesh));
+			mini->mesh_lock.unlock();
+		}
+
+		mesh_gen_result_mut.unlock();
+	}
+
 
 	inline void render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at) {
 		// collect all the minis we're gonna draw
@@ -1192,11 +1251,13 @@ public:
 		mini->set_invisible(mini->all_air() || check_if_covered(*mini));
 
 		// if visible, update mesh
+		std::unique_ptr<MiniChunkMesh> non_water;
+		std::unique_ptr<MiniChunkMesh> water;
 		if (!mini->get_invisible()) {
 			const std::unique_ptr<MiniChunkMesh> mesh = gen_minichunk_mesh(mini);
 
-			std::unique_ptr<MiniChunkMesh> non_water = std::make_unique<MiniChunkMesh>();
-			std::unique_ptr<MiniChunkMesh> water = std::make_unique<MiniChunkMesh>();
+			non_water = std::make_unique<MiniChunkMesh>();
+			water = std::make_unique<MiniChunkMesh>();
 
 			for (auto &quad : mesh->get_quads()) {
 				if ((BlockType)quad.block == BlockType::StillWater || (BlockType)quad.block == BlockType::FlowingWater) {
@@ -1209,12 +1270,23 @@ public:
 
 			assert(mesh->size() == non_water->size() + water->size());
 
-			mini->set_mesh(std::move(non_water));
-			mini->set_water_mesh(std::move(water));
+			//mini->set_mesh(std::move(non_water));
+			//mini->set_water_mesh(std::move(water));
 		}
 
 		// unlock mini
 		mini->mesh_lock.unlock();
+
+		// post result
+		if (non_water || water)
+		{
+			mesh_gen_result_mut.lock();
+
+			MeshGenResult result(mini->get_coords(), std::move(non_water), std::move(water));
+			mesh_gen_result_queue.push_back(std::move(result));
+
+			mesh_gen_result_mut.unlock();
+		}
 
 		// generated mini
 		return true;

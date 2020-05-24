@@ -217,6 +217,7 @@ void App::render(float time) {
 	extract_planes_from_projmat(proj_matrix, model_view_matrix, planes);
 
 	// Draw ALL our chunks!
+	world->update_meshes();
 	world->render(&glInfo, &windowInfo, planes, staring_at);
 
 	// display debug info

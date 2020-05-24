@@ -42,7 +42,6 @@ public:
 	std::mutex mesh_lock;
 
 	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
-
 	}
 
 	inline void set_coords(const vmath::ivec3& coords) {
