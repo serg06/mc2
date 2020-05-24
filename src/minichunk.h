@@ -39,10 +39,34 @@ private:
 	bool invisible = false;
 
 public:
-	std::mutex mesh_lock;
-
-	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH) {
+	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH)
+	{
 	}
+	
+	// Hack for now, will prob remove
+	MiniChunk(const MiniChunk& other) : ChunkData(other)
+	{
+		coords = other.coords;
+		if (other.mesh)
+		{
+			mesh = std::make_unique<MiniChunkMesh>(*other.mesh);
+		}
+		if (other.water_mesh)
+		{
+			water_mesh = std::make_unique<MiniChunkMesh>(*other.water_mesh);
+		}
+		meshes_updated = other.meshes_updated;
+		meshes_updated = false;
+		quad_data_buf = other.quad_data_buf;
+		base_coords_buf = other.base_coords_buf;
+		num_nonwater_quads = other.num_nonwater_quads;
+		num_water_quads = other.num_water_quads;
+		vao = other.vao;
+		invisible = other.invisible;
+
+	}
+	
+	MiniChunk(MiniChunk&& other) = delete;
 
 	inline void set_coords(const vmath::ivec3& coords) {
 		this->coords = coords;
@@ -89,12 +113,8 @@ public:
 
 		// update quads if needed
 		if (meshes_updated) {
-			mesh_lock.lock();
-			if (meshes_updated) {
-				meshes_updated = false;
-				update_quads_buf(glInfo);
-			}
-			mesh_lock.unlock();
+			meshes_updated = false;
+			update_quads_buf(glInfo);
 		}
 
 		if (num_nonwater_quads == 0) {
@@ -117,12 +137,8 @@ public:
 
 		// update quads if needed
 		if (meshes_updated) {
-			mesh_lock.lock();
-			if (meshes_updated) {
-				meshes_updated = false;
-				update_quads_buf(glInfo);
-			}
-			mesh_lock.unlock();
+			meshes_updated = false;
+			update_quads_buf(glInfo);
 		}
 
 		if (num_water_quads == 0) {

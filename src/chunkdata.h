@@ -100,6 +100,13 @@ public:
 		assert(0 < height && "invalid chunk height");
 	}
 
+	// Copy
+	ChunkData(const ChunkData& other)
+		: blocks(other.blocks), metadatas(other.metadatas), lightings(other.lightings),
+		width(other.width), height(other.height), depth(other.depth)
+	{
+	}
+
 	inline void allocate() {
 		blocks.clear(BlockType::Air);
 		metadatas.clear(0);

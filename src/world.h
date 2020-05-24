@@ -22,6 +22,9 @@
 #include <utility>
 #include <vector>
 
+#include <sstream>
+#include <string>
+
 // radius from center of minichunk that must be included in view frustum
 constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
 
@@ -56,27 +59,30 @@ namespace WorldTests {
 
 struct MeshGenResult
 {
-	MeshGenResult(const vmath::ivec3& coords_, const std::unique_ptr<MiniChunkMesh>& mesh_, const std::unique_ptr<MiniChunkMesh>& water_mesh_) = delete;
-	MeshGenResult(const vmath::ivec3& coords_, std::unique_ptr<MiniChunkMesh>&& mesh_, std::unique_ptr<MiniChunkMesh>&& water_mesh_)
-		: coords(coords_), mesh(std::move(mesh_)), water_mesh(std::move(water_mesh_))
+	MeshGenResult(const vmath::ivec3& coords_, bool invisible_, const std::unique_ptr<MiniChunkMesh>& mesh_, const std::unique_ptr<MiniChunkMesh>& water_mesh_) = delete;
+	MeshGenResult(const vmath::ivec3& coords_, bool invisible_, std::unique_ptr<MiniChunkMesh>&& mesh_, std::unique_ptr<MiniChunkMesh>&& water_mesh_)
+		: coords(coords_), invisible(invisible_), mesh(std::move(mesh_)), water_mesh(std::move(water_mesh_))
 	{
 	}
 	MeshGenResult(const MeshGenResult& other) = delete;
-	MeshGenResult(MeshGenResult&& other)
+	MeshGenResult(MeshGenResult&& other) noexcept
 	{
 		if (this != &other)
 		{
 			coords = other.coords;
+			invisible = other.invisible;
 			mesh = std::move(other.mesh);
 			water_mesh = std::move(other.water_mesh);
 		}
 	}
 
 	MeshGenResult& operator=(const MeshGenResult&& other) = delete;
-	MeshGenResult& operator=(MeshGenResult&& other) {
+	MeshGenResult& operator=(MeshGenResult&& other) 
+	{
 		if (this != &other)
 		{
 			coords = other.coords;
+			invisible = other.invisible;
 			mesh = std::move(other.mesh);
 			water_mesh = std::move(other.water_mesh);
 		}
@@ -84,15 +90,38 @@ struct MeshGenResult
 	}
 
 	vmath::ivec3 coords;
+	bool invisible;
 	std::unique_ptr<MiniChunkMesh> mesh;
 	std::unique_ptr<MiniChunkMesh> water_mesh;
 };
+
+struct MeshGenRequestData
+{
+	std::shared_ptr<MiniChunk> self;
+	std::shared_ptr<MiniChunk> north;
+	std::shared_ptr<MiniChunk> south;
+	std::shared_ptr<MiniChunk> east;
+	std::shared_ptr<MiniChunk> west;
+	std::shared_ptr<MiniChunk> up;
+	std::shared_ptr<MiniChunk> down;
+};
+
+struct MeshGenRequest
+{
+	vmath::ivec3 coords;
+	std::shared_ptr<MeshGenRequestData> data;
+};
+
+// TODO: Replace
+inline bool operator==(const std::shared_ptr<MeshGenRequest>& lhs, const std::shared_ptr<MeshGenRequest>& rhs)
+{
+	return lhs->coords == rhs->coords;
+}
 
 // represents an in-game world
 class World {
 public:
 	// map of (chunk coordinate) -> chunk
-	std::recursive_mutex chunk_map_mut;
 	contiguous_hashmap<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
 
 	// get_chunk cache
@@ -101,8 +130,8 @@ public:
 	int chunk_cache_clock_hand = 0; // clock cache
 
 	// multi-thread-access minis who need their mesh generated
-	std::deque<MiniChunk*> mesh_gen_queue; // storage
-	std::unordered_set<MiniChunk*> mesh_gen_set; // uniqueness
+	std::deque<std::shared_ptr<MeshGenRequest>> mesh_gen_queue; // storage
+	std::unordered_set<std::shared_ptr<MeshGenRequest>> mesh_gen_set; // uniqueness
 
 	// mesh_gen_results
 	std::deque<MeshGenResult> mesh_gen_result_queue;
@@ -138,11 +167,11 @@ public:
 
 		current_tick = new_tick;
 
-#ifdef _DEBUG
-		char buf[256];
-		sprintf(buf, "Update tick to %d\n", new_tick);
-		OutputDebugString(buf);
-#endif
+//#ifdef _DEBUG
+//		char buf[256];
+//		sprintf(buf, "Update tick to %d\n", new_tick);
+//		OutputDebugString(buf);
+//#endif
 
 		// propagate any water we need to propagate
 		while (!water_propagation_queue.empty()) {
@@ -166,15 +195,44 @@ public:
 		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
 		assert(mini != nullptr && "seriously?");
 
+#ifdef _DEBUG
+		std::stringstream out;
+		out << "Enqueue coords " << vec2str(mini->get_coords()) << "\n";
+		OutputDebugString(out.str().c_str());
+#endif //_DEBUG
+
 		// check if mini in set
-		const auto search = mesh_gen_set.find(mini);
+		std::shared_ptr<MeshGenRequest> req = std::make_shared<MeshGenRequest>();
+		req->coords = mini->get_coords();
+		req->data = std::make_shared<MeshGenRequestData>();
+		req->data->self = std::make_shared<MiniChunk>(*mini);
+
+#define ADD(ATTR, DIRECTION)\
+		{\
+			MiniChunk* minip_ = get_mini(mini->get_coords() + DIRECTION);\
+			if (minip_)\
+			{\
+				req->data->ATTR = std::make_shared<MiniChunk>(*minip_);\
+			}\
+		}
+
+		ADD(up, IUP);
+		ADD(down, IDOWN);
+		ADD(east, IEAST);
+		ADD(west, IWEST);
+		ADD(north, INORTH);
+		ADD(south, ISOUTH);
+#undef ADD
+
+		// TODO: Search smartly, only have on version of request in here, keep latest updated time, etc.
+		const auto search = mesh_gen_set.find(req);
 
 		// already in set
 		if (search != mesh_gen_set.end()) {
 			// if we want it at the front of the queue, remove it so we can re-add it at the front
 			// TODO: this is O(n), but we can speed it up by mapping mini ptr -> iterator-in-queue (pretty sure that's valid)
 			if (front_of_queue) {
-				const auto search2 = std::find(mesh_gen_queue.begin(), mesh_gen_queue.end(), mini);
+				const auto search2 = std::find(mesh_gen_queue.begin(), mesh_gen_queue.end(), req);
 				assert(search2 != mesh_gen_queue.end() && "unable to find??");
 				mesh_gen_queue.erase(search2);
 			}
@@ -184,17 +242,17 @@ public:
 		}
 
 		// not in set yet, add.
-		mesh_gen_set.insert(mini);
+		mesh_gen_set.insert(req);
 		if (front_of_queue) {
-			mesh_gen_queue.push_front(mini);
+			mesh_gen_queue.push_front(req);
 		}
 		else {
-			mesh_gen_queue.push_back(mini);
+			mesh_gen_queue.push_back(req);
 		}
 		mesh_gen_cv.notify_one();
 	}
 
-	inline MiniChunk* dequeue_mesh_gen() {
+	inline std::shared_ptr<MeshGenRequest> dequeue_mesh_gen() {
 		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
 
 		// no meshes to generate!
@@ -203,21 +261,25 @@ public:
 		}
 
 		// get mini
-		MiniChunk* mini = mesh_gen_queue.front();
-		assert(mini != nullptr && "seriously?");
+		std::shared_ptr<MeshGenRequest> req = mesh_gen_queue.front();
+		assert(req != nullptr && "seriously?");
+
+#ifdef _DEBUG
+		std::stringstream out;
+		out << "Dequeue coords " << vec2str(req->coords) << "\n";
+		OutputDebugString(out.str().c_str());
+#endif //_DEBUG
 
 		// remove it from set and queue
 		mesh_gen_queue.pop_front();
-		mesh_gen_set.erase(mini);
+		mesh_gen_set.erase(req);
 
 		// done
-		return mini;
+		return req;
 	}
 
 	// add chunk to chunk coords (x, z)
 	inline void add_chunk(const int x, const int z, Chunk* chunk) {
-		std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
-
 		const ivec2 coords = { x, z };
 		const auto search = chunk_map.find(coords);
 
@@ -250,7 +312,6 @@ public:
 		gen_chunks_if_required(chunk_coords);
 
 		// fetch
-		std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
 		for (auto coords : chunk_coords) {
 			result.insert(chunk_map[coords]);
 		}
@@ -263,8 +324,6 @@ public:
 		// don't wanna generate duplicates
 		std::unordered_set<ivec2, vecN_hash> to_generate;
 
-		std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
-
 		for (auto coords : chunk_coords) {
 			const auto search = chunk_map.find(coords);
 
@@ -273,8 +332,6 @@ public:
 				to_generate.insert(coords);
 			}
 		}
-
-		lock.unlock();
 
 		if (to_generate.size() > 0) {
 			gen_chunks(to_generate);
@@ -357,8 +414,6 @@ public:
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
 	inline Chunk* get_chunk(const int x, const int z) {
-		std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
-
 		const ivec2 coords = { x, z };
 
 		// if in cache, return
@@ -384,8 +439,6 @@ public:
 
 	// get chunk or nullptr (no cache)
 	inline Chunk* get_chunk_(const int x, const int z) {
-		std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
-
 		const auto search = chunk_map.find({ x, z });
 
 		// if doesn't exist, return null
@@ -398,8 +451,6 @@ public:
 
 	// get mini or nullptr
 	inline MiniChunk* get_mini(const int x, const int y, const int z) {
-		std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
-
 		const auto search = chunk_map.find({ x, z });
 
 		// if chunk doesn't exist, return null
@@ -408,7 +459,6 @@ public:
 		}
 
 		Chunk* chunk = *search;
-		lock.unlock();
 		return chunk->get_mini_with_y_level((y / 16) * 16); // TODO: Just y % 16?
 	}
 
@@ -493,6 +543,8 @@ public:
 		return vmath::ivec3(posmod(x, MINICHUNK_WIDTH), y % MINICHUNK_HEIGHT, posmod(z, MINICHUNK_DEPTH));
 	}
 
+	inline vmath::ivec3 get_mini_relative_coords(const vmath::ivec3& xyz) { return get_mini_relative_coords(xyz[0], xyz[1], xyz[2]); }
+
 	// get a block's type
 	// inefficient when called repeatedly - if you need multiple blocks from one mini/chunk, use get_mini (or get_chunk) and mini.get_block.
 	inline BlockType get_type(const int x, const int y, const int z) {
@@ -528,6 +580,7 @@ public:
 
 	inline bool check_if_covered(MiniChunk& mini) {
 		// if contains any translucent blocks, don't know how to handle that yet
+		// TODO?
 		if (mini.any_translucent()) {
 			return false;
 		}
@@ -572,6 +625,53 @@ public:
 		return true;
 	}
 
+	inline bool check_if_covered(std::shared_ptr<MeshGenRequest> req) {
+		// if contains any translucent blocks, don't know how to handle that yet
+		// TODO?
+		if (req->data->self->any_translucent()) {
+			return false;
+		}
+
+		// none are air, so only check outside blocks
+		for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
+			for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
+				for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
+					const auto& mini_coords = req->data->self->get_coords();
+					const vmath::ivec3 coords = { mini_coords[0] * CHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * CHUNK_DEPTH + miniZ };
+
+					// if along east wall, check east
+					if (miniX == CHUNK_WIDTH - 1) {
+						if (req->data->east && req->data->east->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
+					}
+					// if along west wall, check west
+					if (miniX == 0) {
+						if (req->data->west && req->data->west->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
+					}
+
+					// if along north wall, check north
+					if (miniZ == 0) {
+						if (req->data->north && req->data->north->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
+					}
+					// if along south wall, check south
+					if (miniZ == CHUNK_DEPTH - 1) {
+						if (req->data->south && req->data->south->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
+					}
+
+					// if along bottom wall, check bottom
+					if (miniY == 0) {
+						if (req->data->down && req->data->down->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
+					}
+					// if along top wall, check top
+					if (miniY == MINICHUNK_HEIGHT - 1) {
+						if (req->data->up && req->data->up->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
 	inline void update_meshes()
 	{
 		// Before rendering, check if there's any completed meshes and update them
@@ -583,10 +683,8 @@ public:
 			mesh_gen_result_queue.pop_front();
 
 			MiniChunk* mini = get_mini(result.coords);
-			mini->mesh_lock.lock();
 			mini->set_mesh(std::move(result.mesh));
 			mini->set_water_mesh(std::move(result.water_mesh));
-			mini->mesh_lock.unlock();
 		}
 
 		mesh_gen_result_mut.unlock();
@@ -596,8 +694,6 @@ public:
 	inline void render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at) {
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
-
-		std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
 
 		for (auto& chunk : chunk_map)
 		{
@@ -612,8 +708,6 @@ public:
 				}
 			}
 		}
-
-		lock.unlock();
 
 		if (minis_to_draw.size() == 0) return;
 
@@ -735,6 +829,11 @@ public:
 
 		// reset all to air
 		memset(result, (uint8_t)BlockType::Air, sizeof(result));
+		if (!mini)
+		{
+			OutputDebugString("Uh oh 3501\n");
+			return;
+		}
 
 		// for each coordinate
 		for (int v = 0; v < 16; v++) {
@@ -789,6 +888,41 @@ public:
 		else {
 			const auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
 			face_mini = (face_mini_coords[1] < 0 || face_mini_coords[1] > BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) ? nullptr : get_mini(face_mini_coords);
+		}
+
+		// generate layer
+		gen_layer_generalized(mini, face_mini, layers_idx, layer_no, face, result);
+	}
+
+
+	inline void gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const ivec3& face, BlockType(&result)[16][16]) {
+		// get coordinates of a random block
+		ivec3 coords = { 0, 0, 0 };
+		coords[layers_idx] = layer_no;
+		const ivec3 face_coords = coords + face;
+
+		// figure out which mini has our face layer (usually ours)
+		MiniChunk* mini = req->data->self.get();
+		MiniChunk* face_mini = nullptr;
+		if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
+			face_mini = mini;
+		}
+		else {
+			const auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
+
+#define SET_COORDS(ATTR)\
+			if (face_mini == nullptr && req->data->ATTR && req->data->ATTR->get_coords() == face_mini_coords)\
+			{\
+				face_mini = req->data->ATTR.get();\
+			}
+
+			SET_COORDS(up);
+			SET_COORDS(down);
+			SET_COORDS(north);
+			SET_COORDS(south);
+			SET_COORDS(east);
+			SET_COORDS(west);
+#undef SET_COORDS
 		}
 
 		// generate layer
@@ -1239,22 +1373,19 @@ public:
 		}
 
 		// get mini
-		MiniChunk* mini = dequeue_mesh_gen();
+		std::shared_ptr<MeshGenRequest> req = dequeue_mesh_gen();
 
 		// no longer need queue
 		mesh_gen_mutex.unlock();
 
-		// lock mini
-		mini->mesh_lock.lock();
-
 		// update invisibility
-		mini->set_invisible(mini->all_air() || check_if_covered(*mini));
-
+		bool invisible = req->data->self->all_air() || check_if_covered(req);
+		
 		// if visible, update mesh
 		std::unique_ptr<MiniChunkMesh> non_water;
 		std::unique_ptr<MiniChunkMesh> water;
-		if (!mini->get_invisible()) {
-			const std::unique_ptr<MiniChunkMesh> mesh = gen_minichunk_mesh(mini);
+		if (!invisible) {
+			const std::unique_ptr<MiniChunkMesh> mesh = gen_minichunk_mesh(req);
 
 			non_water = std::make_unique<MiniChunkMesh>();
 			water = std::make_unique<MiniChunkMesh>();
@@ -1271,15 +1402,12 @@ public:
 			assert(mesh->size() == non_water->size() + water->size());
 		}
 
-		// unlock mini
-		mini->mesh_lock.unlock();
-
 		// post result
 		if (non_water || water)
 		{
 			mesh_gen_result_mut.lock();
 
-			MeshGenResult result(mini->get_coords(), std::move(non_water), std::move(water));
+			MeshGenResult result(req->data->self->get_coords(), invisible, std::move(non_water), std::move(water));
 			mesh_gen_result_queue.push_back(std::move(result));
 
 			mesh_gen_result_mut.unlock();
@@ -1662,4 +1790,5 @@ public:
 	//}
 
 	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(MiniChunk* mini);
+	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req);
 };
