@@ -9,7 +9,7 @@
 
 
 namespace WorldTests {
-	void run_all_tests(OpenGLInfo *glInfo) {
+	void run_all_tests(OpenGLInfo* glInfo) {
 		test_gen_quads();
 		test_mark_as_merged();
 		test_get_max_size();
@@ -311,7 +311,7 @@ std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(MiniChunk* mini) {
 
 			// if -x, -y, or +z, flip triangles around so that we're not drawing them backwards
 			if (face[0] < 0 || face[1] < 0 || face[2] > 0) {
-				for (auto &quad2d : quads2d) {
+				for (auto& quad2d : quads2d) {
 					ivec2 diffs = quad2d.corners[1] - quad2d.corners[0];
 					quad2d.corners[0][0] += diffs[0];
 					quad2d.corners[1][0] -= diffs[0];
@@ -326,7 +326,7 @@ std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(MiniChunk* mini) {
 
 			// if not backface (i.e. not facing (0,0,0)), move 1 forwards
 			if (face[0] > 0 || face[1] > 0 || face[2] > 0) {
-				for (auto &quad : quads) {
+				for (auto& quad : quads) {
 					quad.corner1 += face;
 					quad.corner2 += face;
 				}

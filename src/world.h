@@ -35,11 +35,11 @@ struct Quad2D {
 };
 
 inline bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
-	auto &lc1 = lhs.corners[0];
-	auto &lc2 = lhs.corners[1];
+	auto& lc1 = lhs.corners[0];
+	auto& lc2 = lhs.corners[1];
 
-	auto &rc1 = rhs.corners[0];
-	auto &rc2 = rhs.corners[1];
+	auto& rc1 = rhs.corners[0];
+	auto& rc2 = rhs.corners[1];
 
 	return
 		(lhs.block == rhs.block) &&
@@ -92,8 +92,8 @@ struct MeshGenResult
 class World {
 public:
 	// map of (chunk coordinate) -> chunk
-   std::recursive_mutex chunk_map_mut;
-   contiguous_hashmap<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
+	std::recursive_mutex chunk_map_mut;
+	contiguous_hashmap<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
 
 	// get_chunk cache
 	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
@@ -147,7 +147,7 @@ public:
 		// propagate any water we need to propagate
 		while (!water_propagation_queue.empty()) {
 			// get item from queue
-			const auto &[tick, xyz] = water_propagation_queue.top();
+			const auto& [tick, xyz] = water_propagation_queue.top();
 
 			// if tick is in the future, ignore
 			if (tick > current_tick) {
@@ -216,9 +216,9 @@ public:
 
 	// add chunk to chunk coords (x, z)
 	inline void add_chunk(const int x, const int z, Chunk* chunk) {
-      std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
+		std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
 
-      const ivec2 coords = { x, z };
+		const ivec2 coords = { x, z };
 		const auto search = chunk_map.find(coords);
 
 		// if element already exists, error
@@ -250,8 +250,8 @@ public:
 		gen_chunks_if_required(chunk_coords);
 
 		// fetch
-      std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
-      for (auto coords : chunk_coords) {
+		std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
+		for (auto coords : chunk_coords) {
 			result.insert(chunk_map[coords]);
 		}
 
@@ -263,18 +263,18 @@ public:
 		// don't wanna generate duplicates
 		std::unordered_set<ivec2, vecN_hash> to_generate;
 
-      std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
+		std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
 
-      for (auto coords : chunk_coords) {
-         const auto search = chunk_map.find(coords);
+		for (auto coords : chunk_coords) {
+			const auto search = chunk_map.find(coords);
 
-         // if doesn't exist, need to generate it
-         if (search == chunk_map.end()) {
-            to_generate.insert(coords);
-         }
-      }
+			// if doesn't exist, need to generate it
+			if (search == chunk_map.end()) {
+				to_generate.insert(coords);
+			}
+		}
 
-      lock.unlock();
+		lock.unlock();
 
 		if (to_generate.size() > 0) {
 			gen_chunks(to_generate);
@@ -338,7 +338,7 @@ public:
 		vector<MiniChunk*> minis_to_mesh;
 
 		for (auto chunk : to_generate_minis) {
-			for (auto &mini : chunk->minis) {
+			for (auto& mini : chunk->minis) {
 				mini.set_invisible(mini.get_invisible() || mini.all_air() || check_if_covered(mini));
 
 				if (!mini.get_invisible()) {
@@ -349,7 +349,7 @@ public:
 
 		// add them all to queue
 		mesh_gen_mutex.lock();
-		for (auto &mini : minis_to_mesh) {
+		for (auto& mini : minis_to_mesh) {
 			enqueue_mesh_gen(mini);
 		}
 		mesh_gen_mutex.unlock();
@@ -357,7 +357,7 @@ public:
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
 	inline Chunk* get_chunk(const int x, const int z) {
-      std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
+		std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
 
 		const ivec2 coords = { x, z };
 
@@ -384,7 +384,7 @@ public:
 
 	// get chunk or nullptr (no cache)
 	inline Chunk* get_chunk_(const int x, const int z) {
-      std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
+		std::lock_guard<std::recursive_mutex> lock(chunk_map_mut);
 
 		const auto search = chunk_map.find({ x, z });
 
@@ -398,7 +398,7 @@ public:
 
 	// get mini or nullptr
 	inline MiniChunk* get_mini(const int x, const int y, const int z) {
-      std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
+		std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
 
 		const auto search = chunk_map.find({ x, z });
 
@@ -408,7 +408,7 @@ public:
 		}
 
 		Chunk* chunk = *search;
-      lock.unlock();
+		lock.unlock();
 		return chunk->get_mini_with_y_level((y / 16) * 16); // TODO: Just y % 16?
 	}
 
@@ -456,7 +456,7 @@ public:
 		if (mini_relative_coords[2] == 0) potential_mini_coords.push_back(mini_coords + INORTH);
 		if (mini_relative_coords[2] == 15) potential_mini_coords.push_back(mini_coords + ISOUTH);
 
-		for (auto &coords : potential_mini_coords) {
+		for (auto& coords : potential_mini_coords) {
 			const auto mini = get_mini(coords);
 			if (mini != nullptr) {
 				result.push_back(mini);
@@ -507,12 +507,12 @@ public:
 		return chunk->get_block(chunk_coords);
 	}
 
-	inline BlockType get_type(const vmath::ivec3 &xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
-	inline BlockType get_type(const vmath::ivec4 &xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
+	inline BlockType get_type(const vmath::ivec3& xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
+	inline BlockType get_type(const vmath::ivec4& xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// set a block's type
 	// inefficient when called repeatedly
-	inline void set_type(const int x, const int y, const int z, const BlockType &val) {
+	inline void set_type(const int x, const int y, const int z, const BlockType& val) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 
 		if (!chunk) {
@@ -523,10 +523,10 @@ public:
 		chunk->set_block(chunk_coords, val);
 	}
 
-	inline void set_type(const vmath::ivec3 &xyz, const BlockType &val) { return set_type(xyz[0], xyz[1], xyz[2], val); }
-	inline void set_type(const vmath::ivec4 &xyz_, const BlockType &val) { return set_type(xyz_[0], xyz_[1], xyz_[2], val); }
+	inline void set_type(const vmath::ivec3& xyz, const BlockType& val) { return set_type(xyz[0], xyz[1], xyz[2], val); }
+	inline void set_type(const vmath::ivec4& xyz_, const BlockType& val) { return set_type(xyz_[0], xyz_[1], xyz_[2], val); }
 
-	inline bool check_if_covered(MiniChunk &mini) {
+	inline bool check_if_covered(MiniChunk& mini) {
 		// if contains any translucent blocks, don't know how to handle that yet
 		if (mini.any_translucent()) {
 			return false;
@@ -536,10 +536,10 @@ public:
 		for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
 			for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
 				for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
-					const auto &mini_coords = mini.get_coords();
+					const auto& mini_coords = mini.get_coords();
 					const vmath::ivec3 coords = { mini_coords[0] * CHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * CHUNK_DEPTH + miniZ };
 
-               // if along east wall, check east
+					// if along east wall, check east
 					if (miniX == CHUNK_WIDTH - 1) {
 						if (get_type(clamp_coords_to_world(coords + IEAST)).is_translucent()) return false;
 					}
@@ -597,23 +597,23 @@ public:
 		// collect all the minis we're gonna draw
 		vector<MiniChunk*> minis_to_draw;
 
-      std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
+		std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
 
-      for (auto& chunk : chunk_map)
-      {
-         for (auto& mini : chunk->minis)
-         {
-            if (!mini.get_invisible())
-            {
-               if (mini_in_frustum(&mini, planes))
-               {
-                  minis_to_draw.push_back(&mini);
-               }
-            }
-         }
-      }
+		for (auto& chunk : chunk_map)
+		{
+			for (auto& mini : chunk->minis)
+			{
+				if (!mini.get_invisible())
+				{
+					if (mini_in_frustum(&mini, planes))
+					{
+						minis_to_draw.push_back(&mini);
+					}
+				}
+			}
+		}
 
-      lock.unlock();
+		lock.unlock();
 
 		if (minis_to_draw.size() == 0) return;
 
@@ -630,7 +630,7 @@ public:
 		glEnable(GL_BLEND);
 
 		// draw terrain
-		for (auto &mini : minis_to_draw) {
+		for (auto& mini : minis_to_draw) {
 			mini->render_meshes(glInfo);
 		}
 
@@ -646,7 +646,7 @@ public:
 		glDisable(GL_BLEND); // DEBUG
 
 		// draw water onto water fbo
-		for (auto &mini : minis_to_draw) {
+		for (auto& mini : minis_to_draw) {
 			mini->render_water_meshes(glInfo);
 		}
 
@@ -667,7 +667,7 @@ public:
 		return sphere_in_frustrum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
 	}
 
-	static constexpr inline void gen_working_indices(const int &layers_idx, int &working_idx_1, int &working_idx_2) {
+	static constexpr inline void gen_working_indices(const int& layers_idx, int& working_idx_1, int& working_idx_2) {
 		switch (layers_idx) {
 		case 0:
 			working_idx_1 = 2; // z
@@ -687,7 +687,7 @@ public:
 
 	// convert 2D quads to 3D quads
 	// face: for offset
-	static inline vector<Quad3D> quads_2d_3d(const vector<Quad2D> &quads2d, const int layers_idx, const int layer_no, const ivec3 &face) {
+	static inline vector<Quad3D> quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const ivec3& face) {
 		vector<Quad3D> result(quads2d.size());
 
 		// working variable
@@ -698,8 +698,8 @@ public:
 
 		// for each quad
 		for (int i = 0; i < quads2d.size(); i++) {
-			auto &quad3d = result[i];
-			auto &quad2d = quads2d[i];
+			auto& quad3d = result[i];
+			auto& quad2d = quads2d[i];
 
 			// set block
 			quad3d.block = (uint8_t)quad2d.block;
@@ -771,11 +771,11 @@ public:
 		}
 	}
 
-	static inline bool is_face_visible(const BlockType &block, const BlockType &face_block) {
+	static inline bool is_face_visible(const BlockType& block, const BlockType& face_block) {
 		return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
-	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const ivec3 &face, BlockType(&result)[16][16]) {
+	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const ivec3& face, BlockType(&result)[16][16]) {
 		// get coordinates of a random block
 		ivec3 coords = { 0, 0, 0 };
 		coords[layers_idx] = layer_no;
@@ -835,7 +835,7 @@ public:
 		return result;
 	}
 
-	static inline void mark_as_merged(bool(&merged)[16][16], const ivec2 &start, const ivec2 &max_size) {
+	static inline void mark_as_merged(bool(&merged)[16][16], const ivec2& start, const ivec2& max_size) {
 		for (int i = start[0]; i < start[0] + max_size[0]; i++) {
 			for (int j = start[1]; j < start[1] + max_size[1]; j++) {
 				merged[i][j] = true;
@@ -844,7 +844,7 @@ public:
 	}
 
 	// given a layer and start point, find its best dimensions
-	static inline ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const ivec2 &start_point, const BlockType &block_type) {
+	static inline ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const ivec2& start_point, const BlockType& block_type) {
 		assert(block_type != BlockType::Air);
 		assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
@@ -1038,7 +1038,7 @@ public:
 	* If the callback returns a true value, the traversal will be stopped.
 	*/
 	// stop_check = function that decides if we stop the raycast or not
-	const inline void raycast(const vec4& origin, const vec4& direction, int radius, ivec3 *result_coords, ivec3 *result_face, const std::function <bool(const ivec3& coords, const ivec3& face)>& stop_check) {
+	const inline void raycast(const vec4& origin, const vec4& direction, int radius, ivec3* result_coords, ivec3* result_face, const std::function <bool(const ivec3& coords, const ivec3& face)>& stop_check) {
 		// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
 		// by John Amanatides and Andrew Woo, 1987
 		// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
@@ -1090,7 +1090,7 @@ public:
 		// Rescale from units of 1 cube-edge to units of 'direction' so we can
 		// compare with 't'.
 
-		radius /= sqrt(dx*dx + dy * dy + dz * dz);
+		radius /= sqrt(dx * dx + dy * dy + dz * dz);
 
 		//while (/* ray has not gone past bounds of world */
 		//	(stepX > 0 ? x < wx : x >= 0) &&
@@ -1179,7 +1179,7 @@ public:
 
 		// regenerate neighbors' meshes
 		const auto neighbors = get_minis_touching_block(block[0], block[1], block[2]);
-		for (auto &neighbor : neighbors) {
+		for (auto& neighbor : neighbors) {
 			if (neighbor != mini) {
 				enqueue_mesh_gen(neighbor, true);
 			}
@@ -1197,7 +1197,7 @@ public:
 	}
 
 	// update meshes
-	void on_block_update(const vmath::ivec3 &block) {
+	void on_block_update(const vmath::ivec3& block) {
 		MiniChunk* mini = get_mini_containing_block(block[0], block[1], block[2]);
 		ivec3 mini_coords = get_mini_relative_coords(block[0], block[1], block[2]);
 		on_mini_update(mini, block);
@@ -1239,7 +1239,7 @@ public:
 		}
 
 		// get mini
-		MiniChunk *mini = dequeue_mesh_gen();
+		MiniChunk* mini = dequeue_mesh_gen();
 
 		// no longer need queue
 		mesh_gen_mutex.unlock();
@@ -1259,7 +1259,7 @@ public:
 			non_water = std::make_unique<MiniChunkMesh>();
 			water = std::make_unique<MiniChunkMesh>();
 
-			for (auto &quad : mesh->get_quads()) {
+			for (auto& quad : mesh->get_quads()) {
 				if ((BlockType)quad.block == BlockType::StillWater || (BlockType)quad.block == BlockType::FlowingWater) {
 					water->add_quad(quad);
 				}
@@ -1269,9 +1269,6 @@ public:
 			}
 
 			assert(mesh->size() == non_water->size() + water->size());
-
-			//mini->set_mesh(std::move(non_water));
-			//mini->set_water_mesh(std::move(water));
 		}
 
 		// unlock mini
@@ -1304,8 +1301,8 @@ public:
 		return chunk->get_metadata(chunk_coords);
 	}
 
-	inline Metadata get_metadata(const vmath::ivec3 &xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
-	inline Metadata get_metadata(const vmath::ivec4 &xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
+	inline Metadata get_metadata(const vmath::ivec3& xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
+	inline Metadata get_metadata(const vmath::ivec4& xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
 
 	// TODO
 	inline void set_metadata(const int x, const int y, const int z, const Metadata& val) {
@@ -1320,18 +1317,18 @@ public:
 		chunk->set_metadata(chunk_coords, val);
 	}
 
-	inline void set_metadata(const vmath::ivec3 &xyz, const Metadata &val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
-	inline void set_metadata(const vmath::ivec4 &xyz_, const Metadata &val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
+	inline void set_metadata(const vmath::ivec3& xyz, const Metadata& val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
+	inline void set_metadata(const vmath::ivec4& xyz_, const Metadata& val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
 
 	// TODO
-	inline void schedule_water_propagation(const ivec3 &xyz) {
+	inline void schedule_water_propagation(const ivec3& xyz) {
 		// push to water propagation priority queue
 		water_propagation_queue.push({ current_tick + 5, xyz });
 	}
 
-	inline void schedule_water_propagation_neighbors(const ivec3 &xyz) {
+	inline void schedule_water_propagation_neighbors(const ivec3& xyz) {
 		auto directions = { INORTH, ISOUTH, IEAST, IWEST, IDOWN };
-		for (const auto &ddir : directions) {
+		for (const auto& ddir : directions) {
 			schedule_water_propagation(xyz + ddir);
 		}
 	}
@@ -1377,7 +1374,7 @@ public:
 			// record highest water level in side blocks, out of side blocks that are ON a block
 			uint8_t highest_side_water = 0;
 			auto directions = { INORTH, ISOUTH, IEAST, IWEST };
-			for (auto &ddir : directions) {
+			for (auto& ddir : directions) {
 				// BEAUTIFUL - don't inherit height from nearby water UNLESS it's ON A SOLID BLOCK!
 				BlockType under_side_block = get_type(coords + ddir + IDOWN);
 				if (under_side_block.is_nonsolid()) {
@@ -1493,7 +1490,7 @@ public:
 		// insert items around center into queue
 		// TODO: do clever single for loop instead of creating std::vector?
 		std::vector<std::pair<int, int>> nearby = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
-		for (auto &[dx, dy] : nearby) {
+		for (auto& [dx, dy] : nearby) {
 			bfs_queue.push({ dx, dy });
 		}
 
@@ -1506,7 +1503,7 @@ public:
 			// get first item in bfs
 			const auto item_coords = bfs_queue.front();
 			bfs_queue.pop();
-			auto &item = search_items[item_coords[0] + radius][item_coords[1] + radius];
+			auto& item = search_items[item_coords[0] + radius][item_coords[1] + radius];
 			const auto block_type = extracted[item_coords[0] + radius][item_coords[1] + radius];
 
 			// if invalid location, yeet out
@@ -1527,7 +1524,7 @@ public:
 			}
 			// otherwise, add its neighbors
 			else {
-				for (auto &[dx, dy] : nearby) {
+				for (auto& [dx, dy] : nearby) {
 					// if item_coords + [dx, dy] in range
 					if (abs(item_coords[0] + dx) <= radius && abs(item_coords[1] + dy) <= radius) {
 						// add it
@@ -1538,7 +1535,7 @@ public:
 		}
 
 		std::unordered_set<vmath::ivec3, vecN_hash> reachable_from_dirs;
-		for (auto &result : found) {
+		for (auto& result : found) {
 			if (result->reachable_from_east) {
 				reachable_from_dirs.insert(IEAST);
 			}
