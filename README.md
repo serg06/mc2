@@ -8,7 +8,7 @@ Progress **video** (January 6, 2020):
 
 ## Wanna try it out?
 
-Download the latest [release](https://github.com/serg06/mc2/releases) (Windows 10, OpenGL 4.6+.)
+Download the latest [release](https://github.com/serg06/mc2/releases) (Requires Windows 10, OpenGL 4.6+, and [VC++ 2019 Runtime](https://support.microsoft.com/en-ca/help/2977003/the-latest-supported-visual-c-downloads))
 
 Or [compile it yourself](INSTRUCTIONS.md).
 
