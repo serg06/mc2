@@ -43,6 +43,9 @@ add_executable(${TARGET_NAME} WIN32 ${sources} ${shaders})
 
 # TODO: Try without this
 set_property(TARGET ${TARGET_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
+foreach (project IN ITEMS gl3w FastNoise glfw vmath_ stb_)
+	set_property(TARGET ${project} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
+endforeach(project)
 
 # link executable to libraries
 target_link_libraries(${TARGET_NAME} gl3w FastNoise glfw vmath stb)
