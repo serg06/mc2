@@ -279,7 +279,7 @@ namespace WorldTests {
 
 }
 
-std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(MiniChunk* mini) {
+std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MiniChunk> mini) {
 	// got our mesh
 	std::unique_ptr<MiniChunkMesh> mesh = std::make_unique<MiniChunkMesh>();
 

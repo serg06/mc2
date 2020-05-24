@@ -191,7 +191,7 @@ public:
 
 	// enqueue mesh generation of this mini
 	// expects mesh lock
-	inline void enqueue_mesh_gen(MiniChunk* mini, const bool front_of_queue = false) {
+	inline void enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool front_of_queue = false) {
 		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
 		assert(mini != nullptr && "seriously?");
 
@@ -209,7 +209,7 @@ public:
 
 #define ADD(ATTR, DIRECTION)\
 		{\
-			MiniChunk* minip_ = get_mini(mini->get_coords() + DIRECTION);\
+			std::shared_ptr<MiniChunk> minip_ = get_mini(mini->get_coords() + DIRECTION);\
 			if (minip_)\
 			{\
 				req->data->ATTR = std::make_shared<MiniChunk>(*minip_);\
@@ -392,14 +392,15 @@ public:
 		}
 
 		// figure out all minis to mesh
-		vector<MiniChunk*> minis_to_mesh;
+		vector<std::shared_ptr<MiniChunk>> minis_to_mesh;
 
 		for (auto chunk : to_generate_minis) {
-			for (auto& mini : chunk->minis) {
+			for (auto& mini_ : chunk->minis) {
+				auto& mini = *mini_;
 				mini.set_invisible(mini.get_invisible() || mini.all_air() || check_if_covered(mini));
 
 				if (!mini.get_invisible()) {
-					minis_to_mesh.push_back(&mini);
+					minis_to_mesh.push_back(mini_);
 				}
 			}
 		}
@@ -450,7 +451,7 @@ public:
 	}
 
 	// get mini or nullptr
-	inline MiniChunk* get_mini(const int x, const int y, const int z) {
+	inline std::shared_ptr<MiniChunk> get_mini(const int x, const int y, const int z) {
 		const auto search = chunk_map.find({ x, z });
 
 		// if chunk doesn't exist, return null
@@ -462,7 +463,7 @@ public:
 		return chunk->get_mini_with_y_level((y / 16) * 16); // TODO: Just y % 16?
 	}
 
-	inline MiniChunk* get_mini(const ivec3& xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
+	inline std::shared_ptr<MiniChunk> get_mini(const ivec3& xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
 
 	// generate chunks near player
 	inline void gen_nearby_chunks(const vmath::vec4& position, const int& distance) {
@@ -479,7 +480,7 @@ public:
 	}
 
 	// get minichunk that contains block at (x, y, z)
-	inline MiniChunk* get_mini_containing_block(const int x, const int y, const int z) {
+	inline std::shared_ptr<MiniChunk> get_mini_containing_block(const int x, const int y, const int z) {
 		Chunk* chunk = get_chunk_containing_block(x, z);
 		if (chunk == nullptr) {
 			return nullptr;
@@ -489,8 +490,8 @@ public:
 
 
 	// get minichunks that touch any face of the block at (x, y, z)
-	inline vector<MiniChunk*> get_minis_touching_block(const int x, const int y, const int z) {
-		vector<MiniChunk*> result;
+	inline vector<std::shared_ptr<MiniChunk>> get_minis_touching_block(const int x, const int y, const int z) {
+		vector<std::shared_ptr<MiniChunk>> result;
 		vector<ivec3> potential_mini_coords;
 
 		const ivec3 mini_coords = get_mini_coords(x, y, z);
@@ -682,7 +683,7 @@ public:
 			MeshGenResult result = std::move(mesh_gen_result_queue.front());
 			mesh_gen_result_queue.pop_front();
 
-			MiniChunk* mini = get_mini(result.coords);
+			std::shared_ptr<MiniChunk> mini = get_mini(result.coords);
 			mini->set_mesh(std::move(result.mesh));
 			mini->set_water_mesh(std::move(result.water_mesh));
 		}
@@ -697,8 +698,9 @@ public:
 
 		for (auto& chunk : chunk_map)
 		{
-			for (auto& mini : chunk->minis)
+			for (auto& mini_ : chunk->minis)
 			{
+				auto& mini = *mini_;
 				if (!mini.get_invisible())
 				{
 					if (mini_in_frustum(&mini, planes))
@@ -818,7 +820,7 @@ public:
 	}
 
 	// generate layer by grabbing face blocks directly from the minichunk
-	static inline void gen_layer_generalized(const MiniChunk* mini, const MiniChunk* face_mini, const int layers_idx, const int layer_no, const ivec3 face, BlockType(&result)[16][16]) {
+	static inline void gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const ivec3 face, BlockType(&result)[16][16]) {
 		// most efficient to traverse working_idx_1 then working_idx_2;
 		int working_idx_1, working_idx_2;
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -874,14 +876,14 @@ public:
 		return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
 
-	inline void gen_layer(const MiniChunk* mini, const int layers_idx, const int layer_no, const ivec3& face, BlockType(&result)[16][16]) {
+	inline void gen_layer(const std::shared_ptr<MiniChunk> mini, const int layers_idx, const int layer_no, const ivec3& face, BlockType(&result)[16][16]) {
 		// get coordinates of a random block
 		ivec3 coords = { 0, 0, 0 };
 		coords[layers_idx] = layer_no;
 		const ivec3 face_coords = coords + face;
 
 		// figure out which mini has our face layer (usually ours)
-		const MiniChunk* face_mini;
+		std::shared_ptr<MiniChunk> face_mini;
 		if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
 			face_mini = mini;
 		}
@@ -902,8 +904,8 @@ public:
 		const ivec3 face_coords = coords + face;
 
 		// figure out which mini has our face layer (usually ours)
-		MiniChunk* mini = req->data->self.get();
-		MiniChunk* face_mini = nullptr;
+		std::shared_ptr<MiniChunk> mini = req->data->self;
+		std::shared_ptr<MiniChunk> face_mini = nullptr;
 		if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
 			face_mini = mini;
 		}
@@ -913,7 +915,7 @@ public:
 #define SET_COORDS(ATTR)\
 			if (face_mini == nullptr && req->data->ATTR && req->data->ATTR->get_coords() == face_mini_coords)\
 			{\
-				face_mini = req->data->ATTR.get();\
+				face_mini = req->data->ATTR;\
 			}
 
 			SET_COORDS(up);
@@ -1303,7 +1305,7 @@ public:
 	// mini: the mini that changed
 	// block: the mini-coordinates of the block that was added/deleted
 	// TODO: Use block.
-	void on_mini_update(MiniChunk* mini, const vmath::ivec3& block) {
+	void on_mini_update(std::shared_ptr<MiniChunk> mini, const vmath::ivec3& block) {
 		// for now, don't care if something was done in an unloaded mini
 		if (mini == nullptr) {
 			return;
@@ -1332,14 +1334,14 @@ public:
 
 	// update meshes
 	void on_block_update(const vmath::ivec3& block) {
-		MiniChunk* mini = get_mini_containing_block(block[0], block[1], block[2]);
+		std::shared_ptr<MiniChunk> mini = get_mini_containing_block(block[0], block[1], block[2]);
 		ivec3 mini_coords = get_mini_relative_coords(block[0], block[1], block[2]);
 		on_mini_update(mini, block);
 	}
 
 	void destroy_block(const int x, const int y, const int z) {
 		// update data
-		MiniChunk* mini = get_mini_containing_block(x, y, z);
+		std::shared_ptr<MiniChunk> mini = get_mini_containing_block(x, y, z);
 		const ivec3 mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, BlockType::Air);
 
@@ -1351,7 +1353,7 @@ public:
 
 	void add_block(const int x, const int y, const int z, const BlockType& block) {
 		// update data
-		MiniChunk* mini = get_mini_containing_block(x, y, z);
+		std::shared_ptr<MiniChunk> mini = get_mini_containing_block(x, y, z);
 		const ivec3& mini_coords = get_mini_relative_coords(x, y, z);
 		mini->set_block(mini_coords, block);
 
@@ -1789,6 +1791,6 @@ public:
 	//	return 1.0F - heightSum / (float)sumDivisor;
 	//}
 
-	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(MiniChunk* mini);
+	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MiniChunk> mini);
 	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req);
 };

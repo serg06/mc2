@@ -62,7 +62,7 @@ static inline std::vector<ivec2> surrounding_chunks_sides_s(const ivec2& chunk_c
 class Chunk {
 public:
 	vmath::ivec2 coords; // coordinates in chunk format
-	MiniChunk minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT];
+	std::shared_ptr<MiniChunk> minis[CHUNK_HEIGHT / MINICHUNK_HEIGHT];
 
 	Chunk() : Chunk({ 0, 0 }) {}
 	Chunk(const vmath::ivec2& coords) : coords(coords) {}
@@ -78,14 +78,15 @@ public:
 	inline void init_minichunks() {
 		for (int i = 0; i < MINIS_PER_CHUNK; i++) {
 			// create mini and populate it
-			minis[i].set_coords({ coords[0], i*MINICHUNK_HEIGHT, coords[1] });
-			minis[i].allocate();
-			minis[i].set_all_air();
+			minis[i] = std::make_shared<MiniChunk>();
+			minis[i]->set_coords({ coords[0], i*MINICHUNK_HEIGHT, coords[1] });
+			minis[i]->allocate();
+			minis[i]->set_all_air();
 		}
 	}
 
-	inline MiniChunk* get_mini_with_y_level(const int y) {
-		return 0 <= y && y <= 255 ? &minis[y / 16] : nullptr;
+	inline std::shared_ptr<MiniChunk> get_mini_with_y_level(const int y) {
+		return 0 <= y && y <= 255 ? minis[y / 16] : nullptr;
 	}
 
 	// get block at these coordinates
@@ -132,7 +133,7 @@ public:
 	// TODO: replace this with unique_ptr
 	inline void free() {
 		for (auto &mini : minis) {
-			mini.free();
+			mini.reset();
 		}
 	}
 
@@ -140,7 +141,7 @@ public:
 	// render this chunk
 	inline void render(OpenGLInfo* glInfo) {
 		for (auto &mini : minis) {
-			mini.render_meshes(glInfo);
+			mini->render_meshes(glInfo);
 		}
 	}
 
