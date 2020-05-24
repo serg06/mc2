@@ -1,6 +1,7 @@
 #ifndef __WORLD_H__
 #define __WORLD_H__
 
+#include "contiguous_hashmap.h"
 #include "chunk.h"
 #include "chunkdata.h"
 #include "minichunkmesh.h"
@@ -59,7 +60,7 @@ class World {
 public:
 	// map of (chunk coordinate) -> chunk
    std::recursive_mutex chunk_map_mut;
-   unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
+   contiguous_hashmap<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
 
 	// get_chunk cache
 	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
@@ -355,7 +356,7 @@ public:
 			return nullptr;
 		}
 
-		return (*search).second;
+		return *search;
 	}
 
 	// get mini or nullptr
@@ -369,7 +370,7 @@ public:
 			return nullptr;
 		}
 
-		Chunk* chunk = (*search).second;
+		Chunk* chunk = *search;
       lock.unlock();
 		return chunk->get_mini_with_y_level((y / 16) * 16); // TODO: Just y % 16?
 	}
@@ -540,7 +541,7 @@ public:
 
       std::unique_lock<std::recursive_mutex> lock(chunk_map_mut);
 
-      for (auto& [coords_p, chunk] : chunk_map)
+      for (auto& chunk : chunk_map)
       {
          for (auto& mini : chunk->minis)
          {
