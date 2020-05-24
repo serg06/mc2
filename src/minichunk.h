@@ -18,58 +18,54 @@ constexpr int MINICHUNK_HEIGHT = 16;
 constexpr int MINICHUNK_DEPTH = 16;
 constexpr int MINICHUNK_SIZE = MINICHUNK_WIDTH * MINICHUNK_DEPTH * MINICHUNK_HEIGHT;
 
-class MiniChunk : public ChunkData {
+class MiniChunkRenderComponent
+{
 private:
-	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
-	std::unique_ptr<MiniChunkMesh> mesh = nullptr;
-	std::unique_ptr<MiniChunkMesh> water_mesh = nullptr;
-	bool meshes_updated = false;
+	vmath::ivec3 coords;
+
+	std::unique_ptr<MiniChunkMesh> mesh;
+	std::unique_ptr<MiniChunkMesh> water_mesh;
+	bool meshes_updated;
 
 	// TODO: When someone else sets invisibility, we want to delete bufs as well.
-	GLuint quad_data_buf = 0;
-	GLuint base_coords_buf = 0;
+	GLuint quad_data_buf;
+	GLuint base_coords_buf;
 
 	// number of quads inside the buffer, as reading from mesh is not always reliable
-	GLuint num_nonwater_quads = 0;
-	GLuint num_water_quads = 0;
+	GLuint num_nonwater_quads;
+	GLuint num_water_quads;
 
 	// vao
-	GLuint vao = 0;
+	GLuint vao;
 
-	bool invisible = false;
+	bool invisible;
 
 public:
-	MiniChunk() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH)
+	MiniChunkRenderComponent()
+		: coords({0, 0, 0}),
+		mesh(nullptr), water_mesh(nullptr), meshes_updated(false),
+		quad_data_buf(0), base_coords_buf(0),
+		num_nonwater_quads(0), num_water_quads(0),
+		vao(0), invisible(false)
 	{
 	}
-	
+
 	// Hack for now, will prob remove
-	MiniChunk(const MiniChunk& other) : ChunkData(other)
+	// TODO: Do "Constructor : value(value)"
+	MiniChunkRenderComponent(const MiniChunkRenderComponent& other)
+		: coords(other.coords),
+		mesh(other.mesh != nullptr ? std::make_unique<MiniChunkMesh>(*other.mesh) : nullptr),
+		water_mesh(other.water_mesh != nullptr ? std::make_unique<MiniChunkMesh>(*other.water_mesh) : nullptr),
+		meshes_updated(other.meshes_updated),
+		quad_data_buf(other.quad_data_buf), base_coords_buf(other.base_coords_buf),
+		num_nonwater_quads(other.num_nonwater_quads), num_water_quads(other.num_water_quads),
+		vao(other.vao), invisible(other.invisible)
 	{
-		coords = other.coords;
-		if (other.mesh)
-		{
-			mesh = std::make_unique<MiniChunkMesh>(*other.mesh);
-		}
-		if (other.water_mesh)
-		{
-			water_mesh = std::make_unique<MiniChunkMesh>(*other.water_mesh);
-		}
-		meshes_updated = other.meshes_updated;
-		meshes_updated = false;
-		quad_data_buf = other.quad_data_buf;
-		base_coords_buf = other.base_coords_buf;
-		num_nonwater_quads = other.num_nonwater_quads;
-		num_water_quads = other.num_water_quads;
-		vao = other.vao;
-		invisible = other.invisible;
-
 	}
-	
-	MiniChunk(MiniChunk&& other) = delete;
 
-	inline void set_coords(const vmath::ivec3& coords) {
-		this->coords = coords;
+	inline void set_coords(const vmath::ivec3& coords_)
+	{
+		coords = coords_;
 
 		// update coords buf
 		glDeleteBuffers(1, &base_coords_buf);
@@ -77,17 +73,11 @@ public:
 		glNamedBufferStorage(base_coords_buf, sizeof(coords), coords, NULL);
 	}
 
-	const inline vmath::ivec3& get_coords() const {
-		return coords;
-	}
-
-	// assumes lock
 	inline void set_mesh(std::unique_ptr<MiniChunkMesh> mesh) {
 		this->mesh = std::move(mesh);
 		meshes_updated = true;
 	}
 
-	// assumes lock
 	inline void set_water_mesh(std::unique_ptr<MiniChunkMesh> water_mesh) {
 		this->water_mesh = std::move(water_mesh);
 		meshes_updated = true;
@@ -102,7 +92,6 @@ public:
 
 		// TODO: if set to invisible, also mark buffers/vao for deletion?
 	}
-
 
 	// render this minichunk's texture meshes
 	inline void render_meshes(const OpenGLInfo* glInfo) {
@@ -152,56 +141,14 @@ public:
 		glDrawArrays(GL_POINTS, num_nonwater_quads, num_water_quads);
 	}
 
-	// get MiniChunk's base coords in real coordinates
-	inline vmath::ivec3 real_coords() const {
-		return { coords[0] * 16, coords[1], coords[2] * 16 };
-	}
-
-	// get MiniChunk's base coords in real coordinates
-	static inline vmath::ivec3 real_coords(vmath::ivec3 &coords) {
-		return { coords[0] * 16, coords[1], coords[2] * 16 };
-	}
-
-	// get MiniChunk's center coords in real coordinates
-	inline vmath::vec3 center_coords_v3() const {
-		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f };
-	}
-
-	// get MiniChunk's center coords in real coordinates
-	inline vmath::vec4 center_coords_v41() const {
-		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f, 1.0f };
-	}
-
-	// get valid neighboring mini coords
-	inline std::vector<vmath::ivec3> neighbors() {
-		// n/e/s/w
-		std::vector<vmath::ivec3> result = { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH };
-
-		// up/down
-		if (coords[1] < BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) {
-			result.push_back(coords + IUP * MINICHUNK_HEIGHT);
-		}
-		if (coords[1] > 0) {
-			result.push_back(coords + IDOWN * MINICHUNK_HEIGHT);
-		}
-
-		return result;
-	}
-
-	// get all neighboring mini coords, even invalid ones (above/below)
-	inline std::vector<vmath::ivec3> all_neighbors() {
-		// n/e/s/w/u/d
-		return { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH, coords + IUP * MINICHUNK_HEIGHT , coords + IDOWN * MINICHUNK_HEIGHT };
-	}
-
 	// assumes mesh lock
 	void update_quads_buf(const OpenGLInfo* glInfo) {
 		if (mesh == nullptr || water_mesh == nullptr) {
 			throw "bad";
 		}
 
-		auto &quads = mesh->get_quads();
-		auto &water_quads = water_mesh->get_quads();
+		auto& quads = mesh->get_quads();
+		auto& water_quads = water_mesh->get_quads();
 
 		// if no quads, we done
 		if (quads.size() + water_quads.size() == 0) {
@@ -275,33 +222,6 @@ public:
 #endif
 	}
 
-	inline char* print_layer(int face, int layer) {
-		assert(layer < height && "cannot print this layer, too high");
-		assert(0 <= face && face <= 2);
-
-		char* result = new char[16 * 16 * 8]; // up to 8 chars per block type
-		char* tmp = result;
-
-		int working_idx_1, working_idx_2;
-		gen_working_indices(face, working_idx_1, working_idx_2);
-
-		for (int u = 0; u < 16; u++) {
-			tmp += sprintf(tmp, "[ ");
-
-			for (int v = 0; v < 16; v++) {
-				ivec3 coords = { 0, 0, 0 };
-				coords[face] = layer;
-				coords[working_idx_1] = u;
-				coords[working_idx_2] = v;
-
-				tmp += sprintf(tmp, "%d ", (uint8_t)get_block(coords));
-			}
-
-			tmp += sprintf(tmp, "]\n");
-		}
-
-		return result;
-	}
 
 	// TODO: remove this from render.cpp?
 	inline void recreate_vao(const OpenGLInfo* glInfo, const GLuint size) {
@@ -350,7 +270,7 @@ public:
 		// vao: match attributes to buffers
 		glVertexArrayVertexBuffer(vao, glInfo->quad_data_bidx, quad_data_buf, 0, sizeof(Quad3D));
 
-		glVertexArrayVertexBuffer(vao, glInfo->q_base_coords_bidx, base_coords_buf, 0, sizeof(coords));
+		glVertexArrayVertexBuffer(vao, glInfo->q_base_coords_bidx, base_coords_buf, 0, sizeof(vmath::ivec3));
 
 		// vao: extra properties
 		glBindVertexArray(vao);
@@ -359,5 +279,119 @@ public:
 		glVertexAttribDivisor(glInfo->q_base_coords_attr_idx, 1);
 
 		glBindVertexArray(0);
+	}
+};
+
+class MiniChunkDataComponent : public ChunkData
+{
+public:
+	MiniChunkDataComponent() : ChunkData(MINICHUNK_WIDTH, MINICHUNK_HEIGHT, MINICHUNK_DEPTH)
+	{
+	}
+
+	// Hack for now, will prob remove
+	MiniChunkDataComponent(const MiniChunkDataComponent& other) : ChunkData(other)
+	{
+	}
+
+	MiniChunkDataComponent(MiniChunkDataComponent&& other) = delete;
+
+	inline char* print_layer(int face, int layer) {
+		assert(layer < height && "cannot print this layer, too high");
+		assert(0 <= face && face <= 2);
+
+		char* result = new char[16 * 16 * 8]; // up to 8 chars per block type
+		char* tmp = result;
+
+		int working_idx_1, working_idx_2;
+		gen_working_indices(face, working_idx_1, working_idx_2);
+
+		for (int u = 0; u < 16; u++) {
+			tmp += sprintf(tmp, "[ ");
+
+			for (int v = 0; v < 16; v++) {
+				ivec3 coords = { 0, 0, 0 };
+				coords[face] = layer;
+				coords[working_idx_1] = u;
+				coords[working_idx_2] = v;
+
+				tmp += sprintf(tmp, "%d ", (uint8_t)get_block(coords));
+			}
+
+			tmp += sprintf(tmp, "]\n");
+		}
+
+		return result;
+	}
+};
+
+
+// TODO: Don't inherit both, just have an instance of both
+class MiniChunk : public MiniChunkDataComponent, public MiniChunkRenderComponent {
+private:
+	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
+
+public:
+	MiniChunk() : MiniChunkDataComponent(), MiniChunkRenderComponent()
+	{
+	}
+
+	// Hack for now, will prob remove
+	MiniChunk(const MiniChunk& other) : MiniChunkDataComponent(other), MiniChunkRenderComponent(other)
+	{
+		coords = other.coords;
+	}
+
+	MiniChunk(MiniChunk&& other) = delete;
+
+	inline void set_coords(const vmath::ivec3& coords_) {
+		coords = coords_;
+		MiniChunkRenderComponent::set_coords(coords);
+	}
+
+	const inline vmath::ivec3& get_coords() const {
+		return coords;
+	}
+
+	// get MiniChunk's base coords in real coordinates
+	inline vmath::ivec3 real_coords() const {
+		return { coords[0] * 16, coords[1], coords[2] * 16 };
+	}
+
+	// get MiniChunk's base coords in real coordinates
+	static inline vmath::ivec3 real_coords(vmath::ivec3& coords) {
+		return { coords[0] * 16, coords[1], coords[2] * 16 };
+	}
+
+	// get MiniChunk's center coords in real coordinates
+	inline vmath::vec3 center_coords_v3() const {
+		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f };
+	}
+
+	// get MiniChunk's center coords in real coordinates
+	inline vmath::vec4 center_coords_v41() const {
+		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f, 1.0f };
+	}
+
+	// get valid neighboring mini coords
+	inline std::vector<vmath::ivec3> neighbors() {
+		// n/e/s/w
+		std::vector<vmath::ivec3> result = { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH };
+
+		// up/down
+		if (coords[1] < BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) {
+			result.push_back(coords + IUP * MINICHUNK_HEIGHT);
+		}
+		if (coords[1] > 0) {
+			result.push_back(coords + IDOWN * MINICHUNK_HEIGHT);
+		}
+
+		return result;
+	}
+
+	// get all neighboring mini coords, even invalid ones (above/below)
+	inline std::vector<vmath::ivec3> all_neighbors() {
+		// n/e/s/w/u/d
+		return { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH, coords + IUP * MINICHUNK_HEIGHT , coords + IDOWN * MINICHUNK_HEIGHT };
 	}
 };
