@@ -1,5 +1,4 @@
-#ifndef __MINICHUNK_MESH__
-#define __MINICHUNK_MESH__
+#pragma once
 
 #include "block.h"
 #include "render.h"
@@ -26,6 +25,3 @@ public:
 		quads3d.push_back(quad);
 	}
 };
-
-#endif /* __MINICHUNK_MESH__ */
-

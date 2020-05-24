@@ -1,5 +1,4 @@
-#ifndef __MINICHUNK_H__
-#define __MINICHUNK_H__
+#pragma once
 
 #include "block.h"
 #include "chunkdata.h"
@@ -347,5 +346,3 @@ public:
 		glBindVertexArray(0);
 	}
 };
-
-#endif // __MINICHUNK_H__

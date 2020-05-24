@@ -1,6 +1,4 @@
-// class for managing chunk data, however we're storing it
-#ifndef __CHUNKDATA_H__
-#define __CHUNKDATA_H__
+#pragma once
 
 #include "block.h"
 #include "util.h"
@@ -304,6 +302,3 @@ public:
 		return result;
 	}
 };
-
-
-#endif /* __CHUNKDATA_H__ */

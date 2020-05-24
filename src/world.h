@@ -1,5 +1,4 @@
-#ifndef __WORLD_H__
-#define __WORLD_H__
+#pragma once
 
 #include "contiguous_hashmap.h"
 #include "chunk.h"
@@ -1595,5 +1594,3 @@ public:
 
 	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(MiniChunk* mini);
 };
-
-#endif /* __WORLD_H__ */

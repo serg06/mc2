@@ -1,5 +1,4 @@
-#ifndef __BLOCK_H__
-#define __BLOCK_H__
+#pragma once
 
 #include <assert.h>
 #include <string>
@@ -359,5 +358,3 @@ public:
 private:
 	Value value;
 };
-
-#endif // __BLOCK_H__

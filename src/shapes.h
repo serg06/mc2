@@ -1,5 +1,4 @@
-#ifndef __SHAPES_H__
-#define __SHAPES_H__
+#pragma once
 
 #include "util.h"
 #include "vmath.h"
@@ -257,6 +256,3 @@ static inline std::vector<vmath::ivec4> get_intersecting_blocks(const vec4& play
 
 	return blocks;
 }
-
-
-#endif /* __SHAPES_H__ */

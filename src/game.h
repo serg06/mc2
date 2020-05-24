@@ -1,5 +1,4 @@
-#ifndef __GAME_H__
-#define __GAME_H__
+#pragma once
 
 constexpr int GPU_MAX_CHUNKS = 256;
 constexpr int NUM_MESH_GEN_THREADS = 1;
@@ -126,5 +125,3 @@ namespace {
 
 	void APIENTRY gl_onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
 }
-
-#endif /* __GAME_H__ */

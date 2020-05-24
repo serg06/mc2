@@ -1,6 +1,4 @@
-// UTIL class filled with useful static functions
-#ifndef __CHUNK_H__
-#define __CHUNK_H__
+#pragma once
 
 #include "block.h"
 #include "chunkdata.h"
@@ -166,5 +164,3 @@ struct chunk_hash
 		return std::hash<int>()(chunk->coords[0]) ^ std::hash<int>()(chunk->coords[1]);
 	}
 };
-
-#endif // __CHUNK_H__

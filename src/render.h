@@ -1,6 +1,4 @@
-// All the info about our rendering practices
-#ifndef __RENDER_H__
-#define __RENDER_H__
+#pragma once
 
 #include "fbo.h"
 #include "GL/gl3w.h"
@@ -144,5 +142,3 @@ void render_text(OpenGLInfo* glInfo, const vmath::ivec2 start_pos, const vmath::
 void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in);
 void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in);
 void opengl_on_resize(OpenGLInfo& glInfo, int width, int height);
-
-#endif /* __RENDER_H__ */

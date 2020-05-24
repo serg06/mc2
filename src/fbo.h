@@ -1,5 +1,4 @@
-#ifndef __FBO_H__
-#define __FBO_H__
+#pragma once
 
 #include "GL/gl3w.h"
 #include "util.h"
@@ -144,5 +143,3 @@ public:
 		glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, depth_buf, 0);
 	}
 };
-
-#endif /* __FBO_H__ */

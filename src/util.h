@@ -1,6 +1,4 @@
-// UTIL class filled with useful static functions
-#ifndef __UTIL_H__
-#define __UTIL_H__
+#pragma once
 
 #include "GL/gl3w.h"
 #include "vmath.h"
@@ -463,8 +461,3 @@ public:
 		return get_interval(end) - get_interval(start);
 	}
 };
-
-
-
-
-#endif // __UTIL_H__

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <functional>
 #include <unordered_map>
 #include <vector>
@@ -89,8 +91,3 @@ private:
     std::unordered_map <Key, size_type, Hash, KeyEqual> map;
     std::vector<T> vec;
 };
-
-// Ok boom, idea:
-// -> Vector stores <key, value> pairs
-// -> Hashmap stores key-pointer and value-pointer to both of them
-// -> Override is_equal() to compare values at pointers
