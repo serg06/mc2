@@ -19,7 +19,8 @@ list(APPEND LIB_TARGETS ${OTHER_LIBS})
 set(ALL_TARGETS ${TARGET_NAME} ${LIB_TARGETS})
 
 # Boom
-file(GLOB_RECURSE sources CONFIGURE_DEPENDS src/*.cpp src/*.h src/*.hpp)
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS src/*.cpp)
+file(GLOB_RECURSE headers CONFIGURE_DEPENDS src/*.h src/*.hpp)
 file(GLOB_RECURSE shaders CONFIGURE_DEPENDS bin/shaders/*.glsl)
 
 # set the project info
@@ -54,7 +55,7 @@ endforeach(TARGET)
 # add source files (so they compile) and data (so we see it in IDE)
 # TODO: Add it as resources instead
 source_group(Shaders FILES ${shaders})
-add_executable(${TARGET_NAME} WIN32 ${sources} ${shaders})
+add_executable(${TARGET_NAME} WIN32 ${sources} ${headers} ${shaders})
 
 # TODO: Try without this
 set_property(TARGET ${TARGET_NAME} PROPERTY DEBUG_POSTFIX _d) # _dab on 'em
@@ -70,6 +71,9 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT $
 
 # set VS working directory to same place as binary files, so that relative file reading/writing has the same effects in debug mode
 set_property(TARGET ${TARGET_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+
+# specify include directories
+target_include_directories(${TARGET_NAME} PUBLIC src)
 
 # set to C++20 (we doin this hardcore)
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 20)
