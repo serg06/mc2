@@ -23,9 +23,7 @@
 using namespace std;
 using namespace vmath;
 
-namespace {
-	static bool stop = false;
-}
+static bool stop = false;
 
 // Windows main
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)

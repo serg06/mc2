@@ -1,6 +1,5 @@
 #pragma once
 
-constexpr int GPU_MAX_CHUNKS = 256;
 constexpr int NUM_MESH_GEN_THREADS = 1;
 
 #include "chunk.h"
