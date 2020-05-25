@@ -5,7 +5,7 @@ set(SOLUTION_NAME mc2)
 set(TARGET_NAME ${SOLUTION_NAME})
 
 set(HEADER_ONLY_LIBS vmath stb)
-set(OTHER_LIBS gl3w FastNoise glfw)
+set(OTHER_LIBS gl3w FastNoise glfw libzmq-static)
 
 # create ALL_LIBS list
 set(ALL_LIBS ${HEADER_ONLY_LIBS} ${OTHER_LIBS})
@@ -19,7 +19,7 @@ list(APPEND LIB_TARGETS ${OTHER_LIBS})
 set(ALL_TARGETS ${TARGET_NAME} ${LIB_TARGETS})
 
 # Boom
-file(GLOB_RECURSE sources CONFIGURE_DEPENDS src/*.cpp src/*.h)
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS src/*.cpp src/*.h src/*.hpp)
 file(GLOB_RECURSE shaders CONFIGURE_DEPENDS bin/shaders/*.glsl)
 
 # set the project info
