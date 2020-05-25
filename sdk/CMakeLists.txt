@@ -25,8 +25,7 @@ add_subdirectory("stb")
 # Add vmath
 add_subdirectory("vmath")
 
-# add ZeroMQ
-# TODO: add header-only bindings
+# add libzmq
 set(WITH_DOCS OFF CACHE BOOL "GLFW examples" FORCE)
 set(BUILD_TESTS OFF CACHE BOOL "ZeroMQ tests" FORCE)
 set(BUILD_SHARED OFF CACHE BOOL "ZeroMQ build shared" FORCE)
@@ -35,3 +34,6 @@ set(WITH_PERF_TOOL OFF CACHE BOOL "ZeroMQ build perf tool" FORCE)
 set(ENABLE_PRECOMPILED OFF CACHE BOOL "ZeroMQ pch" FORCE) # Manually copied from latest revision on Github
 set(ENABLE_CLANG OFF CACHE BOOL "ZeroMQ clang" FORCE) # Manually copied from latest revision on Github
 add_subdirectory("libzmq-4.3.2")
+
+# add cppzmq
+add_subdirectory("cppzmq-4.6.0")

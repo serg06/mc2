@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.17.0)
 set(SOLUTION_NAME mc2)
 set(TARGET_NAME ${SOLUTION_NAME})
 
-set(HEADER_ONLY_LIBS vmath stb)
+set(HEADER_ONLY_LIBS vmath stb cppzmq)
 set(OTHER_LIBS gl3w FastNoise glfw libzmq-static)
 
 # create ALL_LIBS list
