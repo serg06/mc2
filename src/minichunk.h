@@ -42,7 +42,7 @@ private:
 
 public:
 	MiniChunkRenderComponent()
-		: coords({0, 0, 0}),
+		: coords({ 0, 0, 0 }),
 		mesh(nullptr), water_mesh(nullptr), meshes_updated(false),
 		quad_data_buf(0), base_coords_buf(0),
 		num_nonwater_quads(0), num_water_quads(0),
@@ -71,6 +71,52 @@ public:
 		glDeleteBuffers(1, &base_coords_buf);
 		glCreateBuffers(1, &base_coords_buf);
 		glNamedBufferStorage(base_coords_buf, sizeof(coords), coords, NULL);
+	}
+
+	const inline vmath::ivec3& get_coords() const {
+		return coords;
+	}
+
+	// get MiniChunk's base coords in real coordinates
+	inline vmath::ivec3 real_coords() const {
+		return { coords[0] * 16, coords[1], coords[2] * 16 };
+	}
+
+	// get MiniChunk's base coords in real coordinates
+	static inline vmath::ivec3 real_coords(vmath::ivec3& coords) {
+		return { coords[0] * 16, coords[1], coords[2] * 16 };
+	}
+
+	// get MiniChunk's center coords in real coordinates
+	inline vmath::vec3 center_coords_v3() const {
+		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f };
+	}
+
+	// get MiniChunk's center coords in real coordinates
+	inline vmath::vec4 center_coords_v41() const {
+		return { coords[0] * 16.0f + 8.0f, coords[1] + 8.0f, coords[2] * 16.0f + 8.0f, 1.0f };
+	}
+
+	// get valid neighboring mini coords
+	inline std::vector<vmath::ivec3> neighbors() {
+		// n/e/s/w
+		std::vector<vmath::ivec3> result = { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH };
+
+		// up/down
+		if (coords[1] < BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) {
+			result.push_back(coords + IUP * MINICHUNK_HEIGHT);
+		}
+		if (coords[1] > 0) {
+			result.push_back(coords + IDOWN * MINICHUNK_HEIGHT);
+		}
+
+		return result;
+	}
+
+	// get all neighboring mini coords, even invalid ones (above/below)
+	inline std::vector<vmath::ivec3> all_neighbors() {
+		// n/e/s/w/u/d
+		return { coords + IEAST, coords + IWEST, coords + INORTH, coords + ISOUTH, coords + IUP * MINICHUNK_HEIGHT , coords + IDOWN * MINICHUNK_HEIGHT };
 	}
 
 	inline void set_mesh(std::unique_ptr<MiniChunkMesh> mesh) {
@@ -327,17 +373,17 @@ public:
 
 
 // TODO: Don't inherit both, just have an instance of both
-class MiniChunk : public MiniChunkDataComponent, public MiniChunkRenderComponent {
+class MiniChunk : public MiniChunkDataComponent {
 private:
 	vmath::ivec3 coords; // coordinates in minichunk format (chunk base x / 16, chunk base y, chunk base z / 16) (NOTE: y NOT DIVIDED BY 16 (YET?))
 
 public:
-	MiniChunk() : MiniChunkDataComponent(), MiniChunkRenderComponent()
+	MiniChunk() : MiniChunkDataComponent()
 	{
 	}
 
 	// Hack for now, will prob remove
-	MiniChunk(const MiniChunk& other) : MiniChunkDataComponent(other), MiniChunkRenderComponent(other)
+	MiniChunk(const MiniChunk& other) : MiniChunkDataComponent(other)
 	{
 		coords = other.coords;
 	}
@@ -346,7 +392,6 @@ public:
 
 	inline void set_coords(const vmath::ivec3& coords_) {
 		coords = coords_;
-		MiniChunkRenderComponent::set_coords(coords);
 	}
 
 	const inline vmath::ivec3& get_coords() const {

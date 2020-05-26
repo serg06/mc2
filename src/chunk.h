@@ -137,14 +137,6 @@ public:
 		}
 	}
 
-
-	// render this chunk
-	inline void render(OpenGLInfo* glInfo) {
-		for (auto &mini : minis) {
-			mini->render_meshes(glInfo);
-		}
-	}
-
 	inline std::vector<ivec2> surrounding_chunks() const {
 		return surrounding_chunks_s(coords);
 	}
