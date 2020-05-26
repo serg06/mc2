@@ -14,7 +14,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <functional>
-#include <mutex>          // std::mutex
 #include <queue>
 #include <string>
 #include <tuple>
@@ -130,16 +129,6 @@ public:
 	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
 	vmath::ivec2 chunk_cache_ivec2[5] = { ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX), ivec2(INT_MAX) };
 	int chunk_cache_clock_hand = 0; // clock cache
-
-	// multi-thread-access minis who need their mesh generated
-	std::deque<std::shared_ptr<MeshGenRequest>> mesh_gen_queue; // storage
-	std::unordered_set<std::shared_ptr<MeshGenRequest>> mesh_gen_set; // uniqueness
-
-	// mesh_gen_results
-	std::deque<MeshGenResult> mesh_gen_result_queue;
-
-	// thread safety
-	std::mutex mesh_gen_result_mut;
 
 	// count how many times render() has been called
 	int rendered = 0;
@@ -268,32 +257,6 @@ public:
 			std::this_thread::sleep_for(std::chrono::microseconds(1));
 			result = mesh_socket.send(msg, zmq::send_flags::dontwait);
 		}
-	}
-
-	inline std::shared_ptr<MeshGenRequest> dequeue_mesh_gen() {
-		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
-
-		// no meshes to generate!
-		if (mesh_gen_set.size() == 0) {
-			return nullptr;
-		}
-
-		// get mini
-		std::shared_ptr<MeshGenRequest> req = mesh_gen_queue.front();
-		assert(req != nullptr && "seriously?");
-
-#ifdef _DEBUG
-		std::stringstream out;
-		out << "Dequeue coords " << vec2str(req->coords) << "\n";
-		OutputDebugString(out.str().c_str());
-#endif //_DEBUG
-
-		// remove it from set and queue
-		mesh_gen_queue.pop_front();
-		mesh_gen_set.erase(req);
-
-		// done
-		return req;
 	}
 
 	// add chunk to chunk coords (x, z)
@@ -1401,57 +1364,6 @@ public:
 	}
 
 	void add_block(const ivec3& xyz, const BlockType& block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
-
-	// generate a minichunk mutex from queue
-	bool gen_minichunk_mesh_from_queue(const vec3& player_pos) {
-		assert(false);
-
-		// if queue empty, return
-		if (mesh_gen_queue.size() == 0) {
-			return false;
-		}
-
-		// get mini
-		std::shared_ptr<MeshGenRequest> req = dequeue_mesh_gen();
-
-		// update invisibility
-		bool invisible = req->data->self->all_air() || check_if_covered(req);
-
-		// if visible, update mesh
-		std::unique_ptr<MiniChunkMesh> non_water;
-		std::unique_ptr<MiniChunkMesh> water;
-		if (!invisible) {
-			const std::unique_ptr<MiniChunkMesh> mesh = gen_minichunk_mesh(req);
-
-			non_water = std::make_unique<MiniChunkMesh>();
-			water = std::make_unique<MiniChunkMesh>();
-
-			for (auto& quad : mesh->get_quads()) {
-				if ((BlockType)quad.block == BlockType::StillWater || (BlockType)quad.block == BlockType::FlowingWater) {
-					water->add_quad(quad);
-				}
-				else {
-					non_water->add_quad(quad);
-				}
-			}
-
-			assert(mesh->size() == non_water->size() + water->size());
-		}
-
-		// post result
-		if (non_water || water)
-		{
-			mesh_gen_result_mut.lock();
-
-			MeshGenResult result(req->data->self->get_coords(), invisible, std::move(non_water), std::move(water));
-			mesh_gen_result_queue.push_back(std::move(result));
-
-			mesh_gen_result_mut.unlock();
-		}
-
-		// generated mini
-		return true;
-	}
 
 	// generate a minichunk mutex from queue
 	MeshGenResult* gen_minichunk_mesh_from_req(MeshGenRequest* req_) {
