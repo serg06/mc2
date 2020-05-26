@@ -123,7 +123,7 @@ class World {
 public:
 	// map of (chunk coordinate) -> chunk
 	contiguous_hashmap<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
-	std::unordered_map<vmath::ivec3, std::shared_ptr<MiniChunkRenderComponent>, vecN_hash> mesh_map;
+	std::unordered_map<vmath::ivec3, std::shared_ptr<MiniRender>, vecN_hash> mesh_map;
 
 	// get_chunk cache
 	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
@@ -457,7 +457,7 @@ public:
 	inline std::shared_ptr<MiniChunk> get_mini(const ivec3& xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
 
 	// get mini render component or nullptr
-	inline std::shared_ptr<MiniChunkRenderComponent> get_mini_render_component(const int x, const int y, const int z) {
+	inline std::shared_ptr<MiniRender> get_mini_render_component(const int x, const int y, const int z) {
 		const auto search = mesh_map.find({ x, y, z });
 
 		// if chunk doesn't exist, return null
@@ -468,14 +468,14 @@ public:
 		return search->second;
 	}
 
-	inline std::shared_ptr<MiniChunkRenderComponent> get_mini_render_component(const ivec3& xyz) { return get_mini_render_component(xyz[0], xyz[1], xyz[2]); }
+	inline std::shared_ptr<MiniRender> get_mini_render_component(const ivec3& xyz) { return get_mini_render_component(xyz[0], xyz[1], xyz[2]); }
 
 	// get mini render component or nullptr
-	inline std::shared_ptr<MiniChunkRenderComponent> get_mini_render_component_or_generate(const int x, const int y, const int z) {
-		std::shared_ptr<MiniChunkRenderComponent> result = get_mini_render_component(x, y, z);
+	inline std::shared_ptr<MiniRender> get_mini_render_component_or_generate(const int x, const int y, const int z) {
+		std::shared_ptr<MiniRender> result = get_mini_render_component(x, y, z);
 		if (result == nullptr)
 		{
-			result = std::make_shared<MiniChunkRenderComponent>();
+			result = std::make_shared<MiniRender>();
 			result->set_coords({ x, y, z });
 			mesh_map[{x, y, z}] = result;
 		}
@@ -483,7 +483,7 @@ public:
 		return result;
 	}
 
-	inline std::shared_ptr<MiniChunkRenderComponent> get_mini_render_component_or_generate(const ivec3& xyz) { return get_mini_render_component_or_generate(xyz[0], xyz[1], xyz[2]); }
+	inline std::shared_ptr<MiniRender> get_mini_render_component_or_generate(const ivec3& xyz) { return get_mini_render_component_or_generate(xyz[0], xyz[1], xyz[2]); }
 
 	// generate chunks near player
 	inline void gen_nearby_chunks(const vmath::vec4& position, const int& distance) {
@@ -703,7 +703,7 @@ public:
 			MeshGenResult result = std::move(mesh_gen_result_queue.front());
 			mesh_gen_result_queue.pop_front();
 
-			std::shared_ptr<MiniChunkRenderComponent> mini = get_mini_render_component_or_generate(result.coords);
+			std::shared_ptr<MiniRender> mini = get_mini_render_component_or_generate(result.coords);
 			mini->set_mesh(std::move(result.mesh));
 			mini->set_water_mesh(std::move(result.water_mesh));
 		}
@@ -714,7 +714,7 @@ public:
 
 	inline void render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at) {
 		// collect all the minis we're gonna draw
-		vector<MiniChunkRenderComponent*> minis_to_draw;
+		vector<MiniRender*> minis_to_draw;
 
 		for (auto& [coords, mini] : mesh_map)
 		{
@@ -780,7 +780,7 @@ public:
 	}
 
 	// check if a mini is visible in a frustum
-	static inline bool mini_in_frustum(const MiniChunkRenderComponent* mini, const vmath::vec4(&planes)[6]) {
+	static inline bool mini_in_frustum(const MiniRender* mini, const vmath::vec4(&planes)[6]) {
 		return sphere_in_frustrum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
 	}
 
