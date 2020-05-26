@@ -111,6 +111,7 @@ void App::run() {
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
 		// run rendering function
 		render((float)glfwGetTime());
+		updateWorld((float)glfwGetTime());
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 		glfwSwapBuffers(window);
@@ -147,39 +148,15 @@ void App::render(float time) {
 	// FBO: BIND
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo.fbo_out.get_fbo());
 
-	char buf[256];
-
 	const auto start_of_fn = std::chrono::high_resolution_clock::now();
 
 	// change in time
 	const float dt = time - last_render_time;
 	last_render_time = time;
 	fps = (1 - 5 * dt) * fps + 5;
-	world->update_tick((int)floorf(time * 20));
 
-	/* CHANGES IN WORLD */
-
-	// update player movement
-	update_player_movement(dt);
-
-	// update last chunk coords
 	const auto chunk_coords = world->get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
-	if (chunk_coords != get_last_chunk_coords()) {
-		set_last_chunk_coords(chunk_coords);
-	}
-
-	// generate nearby chunks if required
-	if (should_check_for_nearby_chunks) {
-		world->gen_nearby_chunks(char_position, min_render_distance);
-		should_check_for_nearby_chunks = false;
-	}
-
-	// update block that player is staring at
 	const auto direction = staring_direction();
-	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](const ivec3& coords, const ivec3& face) {
-		const auto block = this->world->get_type(coords);
-		return block.is_solid();
-		});
 
 	/* TRANSFORMATION MATRICES */
 
@@ -270,8 +247,52 @@ void App::render(float time) {
 	const auto end_of_fn = std::chrono::high_resolution_clock::now();
 	const long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
 	if (result_total / 1000.0f > 50) {
-		sprintf(buf, "TOTAL GAME::RENDER TIME: %.2fms\n", result_total / 1000.0f);
-		OutputDebugString(buf);
+		std::stringstream buf;
+		buf << "TOTAL GAME::render TIME: " << result_total / 1000.0f << "ms\n";
+		OutputDebugString(buf.str().c_str());
+	}
+}
+
+void App::updateWorld(float time) {
+	const auto start_of_fn = std::chrono::high_resolution_clock::now();
+
+	// change in time
+	const float dt = time - last_render_time;
+	last_render_time = time;
+	fps = (1 - 5 * dt) * fps + 5;
+	world->update_tick((int)floorf(time * 20));
+
+	/* CHANGES IN WORLD */
+
+	// update player movement
+	update_player_movement(dt);
+
+	// update last chunk coords
+	const auto chunk_coords = world->get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
+	if (chunk_coords != get_last_chunk_coords()) {
+		set_last_chunk_coords(chunk_coords);
+	}
+
+	// generate nearby chunks if required
+	if (should_check_for_nearby_chunks) {
+		world->gen_nearby_chunks(char_position, min_render_distance);
+		should_check_for_nearby_chunks = false;
+	}
+
+	// update block that player is staring at
+	const auto direction = staring_direction();
+	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](const ivec3& coords, const ivec3& face) {
+		const auto block = this->world->get_type(coords);
+		return block.is_solid();
+		});
+
+	// make sure rendering didn't take too long
+	const auto end_of_fn = std::chrono::high_resolution_clock::now();
+	const long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
+	if (result_total / 1000.0f > 50) {
+		std::stringstream buf;
+		buf << "TOTAL GAME::updateWorld TIME: " << result_total / 1000.0f << "ms\n";
+		OutputDebugString(buf.str().c_str());
 	}
 }
 

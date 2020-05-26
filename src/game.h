@@ -70,6 +70,7 @@ public:
 	void startup();
 	void shutdown() { /* TODO: Maybe some day. */ }
 	void render(float time);
+	void updateWorld(float time);
 	void update_player_movement(const float dt);
 	vec4 prevent_collisions(const vec4 position_change);
 

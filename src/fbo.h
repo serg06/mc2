@@ -3,6 +3,7 @@
 #include "GL/gl3w.h"
 #include "util.h"
 
+#include <sstream>
 #include <utility>
 
 // can only run after glfw (and maybe opengl) have been initialized
@@ -19,9 +20,9 @@ static inline GLenum get_default_framebuffer_depth_attachment_type() {
 	case 32:
 		return GL_DEPTH_COMPONENT32;
 	default:
-		char buf[256];
-		sprintf(buf, "Unable to retrieve default framebuffer attachment size. (Got %d.)", result);
-		WindowsException(buf);
+		std::stringstream buf;
+		buf << "Unable to retrieve default framebuffer attachment size. (Got " << result << ".)";
+		WindowsException(buf.str().c_str());
 		exit(-1);
 	}
 

@@ -175,7 +175,7 @@ static inline void extract_planes_from_projmat(const vmath::mat4 &proj_mat, cons
 	planes[5] = mat[3] - mat[2];
 }
 
-static inline void WindowsException(char *description) {
+static inline void WindowsException(const char *description) {
 	MessageBox(NULL, description, "Thrown exception", MB_OK);
 }
 
