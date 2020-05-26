@@ -8,6 +8,7 @@
 #include "shapes.h"
 #include "util.h"
 #include "vmath.h"
+#include "zmq.hpp"
 
 #include <assert.h>
 #include <chrono>
@@ -138,8 +139,6 @@ public:
 	std::deque<MeshGenResult> mesh_gen_result_queue;
 
 	// thread safety
-	std::mutex mesh_gen_mutex;
-	std::condition_variable mesh_gen_cv;
 	std::mutex mesh_gen_result_mut;
 
 	// count how many times render() has been called
@@ -149,14 +148,31 @@ public:
 	// TODO: private
 	int current_tick = 0;
 
+	// zmq
+	zmq::context_t* ctx;
+	zmq::socket_t mesh_socket;
+
 	// water propagation min-priority queue
 	// maps <tick to propagate water at> to <coordinate of water>
 	// TODO: uniqueness (have hashtable which maps coords -> tick, and always keep earliest tick when adding)
 	// TODO: If I never add anything else to this queue (like fire/lava/etc), change it to a normal queue.
 	std::priority_queue<std::pair<int, vmath::ivec3>, std::vector<std::pair<int, vmath::ivec3>>, std::greater<std::pair<int, vmath::ivec3>>> water_propagation_queue;
 
-	World() {
+	void exit()
+	{
+		MeshGenRequest* req = nullptr;
+		zmq::message_t msg(&req, sizeof(req));
+		zmq::send_result_t result = mesh_socket.send(msg, zmq::send_flags::dontwait);
+		while (!result)
+		{
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
+			result = mesh_socket.send(msg, zmq::send_flags::dontwait);
+		}
+		mesh_socket.close();
+	}
 
+	World(zmq::context_t* ctx_) : ctx(ctx_), mesh_socket(*ctx, zmq::socket_type::pair) {
+		mesh_socket.connect("inproc://mesh-gen");
 	}
 
 	// update tick to *new_tick*
@@ -197,7 +213,7 @@ public:
 #endif //_DEBUG
 
 		// check if mini in set
-		std::shared_ptr<MeshGenRequest> req = std::make_shared<MeshGenRequest>();
+		MeshGenRequest* req = new MeshGenRequest();
 		req->coords = mini->get_coords();
 		req->data = std::make_shared<MeshGenRequestData>();
 		req->data->self = std::make_shared<MiniChunk>(*mini);
@@ -219,32 +235,39 @@ public:
 		ADD(south, ISOUTH);
 #undef ADD
 
-		// TODO: Search smartly, only have on version of request in here, keep latest updated time, etc.
-		const auto search = mesh_gen_set.find(req);
+		//// TODO: Search smartly, only have on version of request in here, keep latest updated time, etc.
+		//const auto search = mesh_gen_set.find(req);
 
-		// already in set
-		if (search != mesh_gen_set.end()) {
-			// if we want it at the front of the queue, remove it so we can re-add it at the front
-			// TODO: this is O(n), but we can speed it up by mapping mini ptr -> iterator-in-queue (pretty sure that's valid)
-			if (front_of_queue) {
-				const auto search2 = std::find(mesh_gen_queue.begin(), mesh_gen_queue.end(), req);
-				assert(search2 != mesh_gen_queue.end() && "unable to find??");
-				mesh_gen_queue.erase(search2);
-			}
-			else {
-				return;
-			}
-		}
+		//// already in set
+		//if (search != mesh_gen_set.end()) {
+		//	// if we want it at the front of the queue, remove it so we can re-add it at the front
+		//	// TODO: this is O(n), but we can speed it up by mapping mini ptr -> iterator-in-queue (pretty sure that's valid)
+		//	if (front_of_queue) {
+		//		const auto search2 = std::find(mesh_gen_queue.begin(), mesh_gen_queue.end(), req);
+		//		assert(search2 != mesh_gen_queue.end() && "unable to find??");
+		//		mesh_gen_queue.erase(search2);
+		//	}
+		//	else {
+		//		return;
+		//	}
+		//}
 
-		// not in set yet, add.
-		mesh_gen_set.insert(req);
-		if (front_of_queue) {
-			mesh_gen_queue.push_front(req);
+		//// not in set yet, add.
+		//mesh_gen_set.insert(req);
+		//if (front_of_queue) {
+		//	mesh_gen_queue.push_front(req);
+		//}
+		//else {
+		//	mesh_gen_queue.push_back(req);
+		//}
+
+		zmq::message_t msg(&req, sizeof(req));
+		zmq::send_result_t result = mesh_socket.send(msg, zmq::send_flags::dontwait);
+		while (!result)
+		{
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
+			result = mesh_socket.send(msg, zmq::send_flags::dontwait);
 		}
-		else {
-			mesh_gen_queue.push_back(req);
-		}
-		mesh_gen_cv.notify_one();
 	}
 
 	inline std::shared_ptr<MeshGenRequest> dequeue_mesh_gen() {
@@ -397,11 +420,9 @@ public:
 		}
 
 		// add them all to queue
-		mesh_gen_mutex.lock();
 		for (auto& mini : minis_to_mesh) {
 			enqueue_mesh_gen(mini);
 		}
-		mesh_gen_mutex.unlock();
 	}
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
@@ -1332,8 +1353,6 @@ public:
 			return;
 		}
 
-		mesh_gen_mutex.lock();
-
 		// regenerate neighbors' meshes
 		const auto neighbors = get_minis_touching_block(block[0], block[1], block[2]);
 		for (auto& neighbor : neighbors) {
@@ -1344,8 +1363,6 @@ public:
 
 		// regenerate own meshes
 		enqueue_mesh_gen(mini, true);
-
-		mesh_gen_mutex.unlock();
 
 		// finally, add nearby waters to propagation queue
 		// TODO: do this smarter?
@@ -1386,20 +1403,60 @@ public:
 
 	// generate a minichunk mutex from queue
 	bool gen_minichunk_mesh_from_queue(const vec3& player_pos) {
-		// lock queue lock
-		mesh_gen_mutex.lock();
+		assert(false);
 
 		// if queue empty, return
 		if (mesh_gen_queue.size() == 0) {
-			mesh_gen_mutex.unlock();
 			return false;
 		}
 
 		// get mini
 		std::shared_ptr<MeshGenRequest> req = dequeue_mesh_gen();
 
-		// no longer need queue
-		mesh_gen_mutex.unlock();
+		// update invisibility
+		bool invisible = req->data->self->all_air() || check_if_covered(req);
+
+		// if visible, update mesh
+		std::unique_ptr<MiniChunkMesh> non_water;
+		std::unique_ptr<MiniChunkMesh> water;
+		if (!invisible) {
+			const std::unique_ptr<MiniChunkMesh> mesh = gen_minichunk_mesh(req);
+
+			non_water = std::make_unique<MiniChunkMesh>();
+			water = std::make_unique<MiniChunkMesh>();
+
+			for (auto& quad : mesh->get_quads()) {
+				if ((BlockType)quad.block == BlockType::StillWater || (BlockType)quad.block == BlockType::FlowingWater) {
+					water->add_quad(quad);
+				}
+				else {
+					non_water->add_quad(quad);
+				}
+			}
+
+			assert(mesh->size() == non_water->size() + water->size());
+		}
+
+		// post result
+		if (non_water || water)
+		{
+			mesh_gen_result_mut.lock();
+
+			MeshGenResult result(req->data->self->get_coords(), invisible, std::move(non_water), std::move(water));
+			mesh_gen_result_queue.push_back(std::move(result));
+
+			mesh_gen_result_mut.unlock();
+		}
+
+		// generated mini
+		return true;
+	}
+
+	// generate a minichunk mutex from queue
+	bool gen_minichunk_mesh_from_req(MeshGenRequest* req_) {
+		// get mini
+		std::shared_ptr<MeshGenRequest> req(req_);
+
 
 		// update invisibility
 		bool invisible = req->data->self->all_air() || check_if_covered(req);

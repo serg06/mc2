@@ -4,6 +4,7 @@
 #include "render.h"
 #include "shapes.h"
 #include "util.h"
+#include "zmq.hpp"
 
 #include <algorithm>
 #include <assert.h>
@@ -34,7 +35,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 }
 
 // thread for generating new chunk meshes
-void ChunkGenThread() {
+void ChunkGenThread(zmq::context_t* ctx) {
 	if (App::app == nullptr) {
 		throw "No global app.";
 	}
@@ -42,24 +43,26 @@ void ChunkGenThread() {
 	// get global app
 	App* app = App::app.get();
 
+	// Connect to mesh requests socket
+	zmq::socket_t mesh_socket(*ctx, zmq::socket_type::pair);
+	mesh_socket.setsockopt(ZMQ_RCVHWM, 1000 * 1000);
+	mesh_socket.bind("inproc://mesh-gen");
+
 	// run thread until stopped
 	while (!stop)
 	{
-		// wait until queue is non-empty
-		while (app->world->mesh_gen_queue.size() == 0)
+		// Get mesh-gen message
+		zmq::message_t msg;
+		zmq::recv_result_t result = mesh_socket.recv(msg);
+		MeshGenRequest* req = *msg.data<MeshGenRequest*>();
+
+		if (req == nullptr && stop)
 		{
-			// acquire lock
-			std::unique_lock<std::mutex> mesh_lock(app->world->mesh_gen_mutex);
-
-			// wait
-			app->world->mesh_gen_cv.wait(mesh_lock);
-
-			// if woken up to end thread, exit
-			if (stop) return;
+			break;
 		}
 
 		// generate a mesh if possible
-		app->world->gen_minichunk_mesh_from_queue(vec3(app->char_position[0], app->char_position[1], app->char_position[2]));
+		app->world->gen_minichunk_mesh_from_req(req);
 	}
 }
 
@@ -91,7 +94,7 @@ void App::run() {
 	// Spawn mesh generation threads
 	vector<std::future<void>> chunk_gen_futures;
 	for (int i = 0; i < NUM_MESH_GEN_THREADS; i++) {
-		chunk_gen_futures.push_back(std::async(std::launch::async, ChunkGenThread));
+		chunk_gen_futures.push_back(std::async(std::launch::async, ChunkGenThread, &ctx));
 	}
 
 	// run until user presses ESC or tries to close window
@@ -109,12 +112,10 @@ void App::run() {
 
 	// Stop all other threads
 	stop = true;
-	world->mesh_gen_cv.notify_all(); // wake up any sleeping threads so they can exit
-	for (auto &fut : chunk_gen_futures) {
-		// keep waking them up until they get their lazy butts up and shut down
-		while (fut.wait_for(std::chrono::milliseconds(100)) == future_status::timeout) {
-			world->mesh_gen_cv.notify_all();
-		}
+	world->exit();
+	for (auto& fut : chunk_gen_futures) {
+		fut.wait_for(std::chrono::seconds(1));
+		OutputDebugString("Still waiting...\n");
 	}
 
 	shutdown();
@@ -124,7 +125,7 @@ void App::startup() {
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
-	world = new World();
+	world = new World(&ctx);
 
 	// prepare opengl
 	setup_opengl(&windowInfo, &glInfo);
@@ -157,7 +158,7 @@ void App::render(float time) {
 	if (chunk_coords != get_last_chunk_coords()) {
 		set_last_chunk_coords(chunk_coords);
 	}
-	
+
 	// generate nearby chunks if required
 	if (should_check_for_nearby_chunks) {
 		world->gen_nearby_chunks(char_position, min_render_distance);
@@ -166,10 +167,10 @@ void App::render(float time) {
 
 	// update block that player is staring at
 	const auto direction = staring_direction();
-	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](const ivec3 &coords, const ivec3& face) {
+	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](const ivec3& coords, const ivec3& face) {
 		const auto block = this->world->get_type(coords);
 		return block.is_solid();
-	});
+		});
 
 	/* TRANSFORMATION MATRICES */
 
@@ -375,7 +376,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	auto blocks = get_intersecting_blocks(char_position + position_change);
 
 	// if all blocks are non-solid, we done
-	if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
+	if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
 		return position_change;
 	}
 
@@ -394,7 +395,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are non-solid, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
 			return position_change_fixed;
 		}
 	}
@@ -409,7 +410,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	// sort again, this time based on 2d-vector length
 	sort(begin(pair_indices), end(pair_indices), [position_change](const auto pair1, const auto pair2) {
 		return length(vec2(position_change[pair1[0]], position_change[pair1[1]])) < length(vec2(position_change[pair2[0]], position_change[pair2[1]]));
-	});
+		});
 
 	// try removing two velocities
 	for (int i = 0; i < 3; i++) {
@@ -419,7 +420,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto &block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
 			return position_change_fixed;
 		}
 	}
@@ -575,9 +576,9 @@ void App::onResize(GLFWwindow* window, int width, int height) {
 	opengl_on_resize(glInfo, width, height);
 }
 
-void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message) {
+void App::onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message) {
 	char buf[4096];
-	char *bufp = buf;
+	char* bufp = buf;
 
 	// ignore non-significant error/warning codes (e.g. 131185 = "buffer created")
 	if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
@@ -639,9 +640,9 @@ void App::onMouseButton(int button, int action) {
 
 			// check if we're in the way
 			vector<ivec4> intersecting_blocks = get_intersecting_blocks(char_position);
-			auto result = find_if(begin(intersecting_blocks), end(intersecting_blocks), [desired_position](const auto &ipos) {
+			auto result = find_if(begin(intersecting_blocks), end(intersecting_blocks), [desired_position](const auto& ipos) {
 				return desired_position == ivec3(ipos[0], ipos[1], ipos[2]);
-			});
+				});
 
 			// if we're not in the way, place it
 			if (result == end(intersecting_blocks)) {

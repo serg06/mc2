@@ -10,6 +10,7 @@ constexpr int NUM_MESH_GEN_THREADS = 1;
 #include "util.h"
 #include "vmath.h"
 #include "world.h"
+#include "zmq.hpp"
 
 #include <assert.h>
 #include <memory>
@@ -61,7 +62,10 @@ public:
 	ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
 	bool should_check_for_nearby_chunks = true;
 
-	App() {}
+	// zmq
+	zmq::context_t ctx;
+
+	App() : ctx(0) {}
 	void run();
 	void startup();
 	void shutdown() { /* TODO: Maybe some day. */ }
