@@ -1365,7 +1365,6 @@ public:
 
 	void add_block(const ivec3& xyz, const BlockType& block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
-	// generate a minichunk mutex from queue
 	MeshGenResult* gen_minichunk_mesh_from_req(MeshGenRequest* req_) {
 		std::shared_ptr<MeshGenRequest> req(req_);
 

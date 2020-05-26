@@ -13,7 +13,6 @@
 #include <future>
 #include <math.h>
 #include <memory>
-#include <mutex>          // std::mutex
 #include <numeric>
 #include <string>
 

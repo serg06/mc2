@@ -10,7 +10,6 @@
 #include <assert.h>
 #include <algorithm> // std::find
 #include <memory>
-#include <mutex>
 #include <vector>
 
 constexpr int MINICHUNK_WIDTH = 16;
