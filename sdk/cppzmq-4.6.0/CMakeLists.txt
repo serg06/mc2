@@ -14,6 +14,8 @@ add_library(${LIB_NAME} INTERFACE)
 
 # hack to show header-only project in VS
 add_custom_target(${LIB_NAME}_ SOURCES ${headers})
+add_dependencies(${LIB_NAME} libzmq-static)
+add_dependencies(${LIB_NAME}_ libzmq-static)
 
 # specify include directories
 target_include_directories(${LIB_NAME} INTERFACE include)

@@ -8,7 +8,9 @@
 #include "shapes.h"
 #include "util.h"
 #include "vmath.h"
+#include "zmq.h"
 #include "zmq.hpp"
+
 
 #include <assert.h>
 #include <chrono>
@@ -192,7 +194,6 @@ public:
 	// enqueue mesh generation of this mini
 	// expects mesh lock
 	inline void enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool front_of_queue = false) {
-		assert(mesh_gen_set.size() == mesh_gen_queue.size() && "wew");
 		assert(mini != nullptr && "seriously?");
 
 #ifdef _DEBUG
