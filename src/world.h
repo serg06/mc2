@@ -716,20 +716,21 @@ public:
 
 	inline void update_meshes()
 	{
-		// Before rendering, check if there's any completed meshes and update them
-		mesh_gen_result_mut.lock();
-
-		while (mesh_gen_result_queue.size() > 0)
+		zmq::message_t msg;
+		zmq::recv_result_t result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
+		while (result)
 		{
-			MeshGenResult result = std::move(mesh_gen_result_queue.front());
-			mesh_gen_result_queue.pop_front();
+			// Extract result
+			MeshGenResult* mesh_ = *msg.data<MeshGenResult*>();
+			std::shared_ptr<MeshGenResult> mesh(mesh_);
 
-			std::shared_ptr<MiniRender> mini = get_mini_render_component_or_generate(result.coords);
-			mini->set_mesh(std::move(result.mesh));
-			mini->set_water_mesh(std::move(result.water_mesh));
+			// Do it!
+			std::shared_ptr<MiniRender> mini = get_mini_render_component_or_generate(mesh->coords);
+			mini->set_mesh(std::move(mesh->mesh));
+			mini->set_water_mesh(std::move(mesh->water_mesh));
+
+			result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
 		}
-
-		mesh_gen_result_mut.unlock();
 	}
 
 
@@ -1453,10 +1454,8 @@ public:
 	}
 
 	// generate a minichunk mutex from queue
-	bool gen_minichunk_mesh_from_req(MeshGenRequest* req_) {
-		// get mini
+	MeshGenResult* gen_minichunk_mesh_from_req(MeshGenRequest* req_) {
 		std::shared_ptr<MeshGenRequest> req(req_);
-
 
 		// update invisibility
 		bool invisible = req->data->self->all_air() || check_if_covered(req);
@@ -1483,18 +1482,14 @@ public:
 		}
 
 		// post result
+		MeshGenResult* result = nullptr;
 		if (non_water || water)
 		{
-			mesh_gen_result_mut.lock();
-
-			MeshGenResult result(req->data->self->get_coords(), invisible, std::move(non_water), std::move(water));
-			mesh_gen_result_queue.push_back(std::move(result));
-
-			mesh_gen_result_mut.unlock();
+			result = new MeshGenResult(req->data->self->get_coords(), invisible, std::move(non_water), std::move(water));
 		}
 
-		// generated mini
-		return true;
+		// generated result
+		return result;
 	}
 
 	// TODO

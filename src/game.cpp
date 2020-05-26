@@ -62,7 +62,17 @@ void ChunkGenThread(zmq::context_t* ctx) {
 		}
 
 		// generate a mesh if possible
-		app->world->gen_minichunk_mesh_from_req(req);
+		MeshGenResult* mesh = app->world->gen_minichunk_mesh_from_req(req);
+		if (mesh != nullptr)
+		{
+			zmq::message_t response(&mesh, sizeof(mesh));
+			zmq::send_result_t send_result = mesh_socket.send(response, zmq::send_flags::dontwait);
+			while (!send_result && !stop)
+			{
+				send_result = mesh_socket.send(response, zmq::send_flags::dontwait);
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
+		}
 	}
 }
 

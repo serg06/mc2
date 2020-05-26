@@ -136,13 +136,13 @@ public:
 		glNamedBufferStorage(base_coords_buf, sizeof(get_coords()), get_coords(), NULL);
 	}
 
-	inline void set_mesh(std::unique_ptr<MiniChunkMesh> mesh) {
-		this->mesh = std::move(mesh);
+	inline void set_mesh(std::unique_ptr<MiniChunkMesh> mesh_) {
+		std::swap(this->mesh, mesh_);
 		meshes_updated = true;
 	}
 
-	inline void set_water_mesh(std::unique_ptr<MiniChunkMesh> water_mesh) {
-		this->water_mesh = std::move(water_mesh);
+	inline void set_water_mesh(std::unique_ptr<MiniChunkMesh> water_mesh_) {
+		std::swap(this->water_mesh, water_mesh_);
 		meshes_updated = true;
 	}
 
