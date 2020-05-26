@@ -1,7 +1,10 @@
 #include <future>
+#include <iostream>
 #include <string>
 
-#include "zmq.hpp"
+#include "zmq_addon.hpp"
+
+#define REMOVE
 
 void PublisherThread(zmq::context_t* ctx)
 {
@@ -35,17 +38,17 @@ void SubscriberThread1(zmq::context_t* ctx)
 	subscriber.setsockopt(ZMQ_SUBSCRIBE, "B", 1);
 
 	while (1) {
-		//  Read envelope address
-		zmq::message_t address;
-		zmq::recv_result_t result = subscriber.recv(address);
-
-		//  Read message contents
-		zmq::message_t contents;
-		result = subscriber.recv(contents);
+		// Receive all parts of the message
+		std::vector<zmq::message_t> recv_msgs;
+		zmq::recv_result_t result = zmq::recv_multipart(subscriber, std::back_inserter(recv_msgs));
+		assert(result && "recv failed");
 
 		std::stringstream out;
-		out << "Thread2: [" << address.to_string_view() << "] " << contents.to_string_view() << std::endl;
+		out << "Thread2: [" << recv_msgs[0].to_string_view() << "] " << recv_msgs[1].to_string_view() << std::endl;
+		std::cout << out.str();
+#ifdef REMOVE
 		OutputDebugString(out.str().c_str());
+#endif // REMOVE
 	}
 }
 
@@ -59,17 +62,17 @@ void SubscriberThread2(zmq::context_t* ctx)
 	subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
 	while (1) {
-		//  Read envelope address
-		zmq::message_t address;
-		zmq::recv_result_t result = subscriber.recv(address);
-
-		//  Read message contents
-		zmq::message_t contents;
-		result = subscriber.recv(contents);
+		// Receive all parts of the message
+		std::vector<zmq::message_t> recv_msgs;
+		zmq::recv_result_t result = zmq::recv_multipart(subscriber, std::back_inserter(recv_msgs));
+		assert(result && "recv failed");
 
 		std::stringstream out;
-		out << "Thread3: [" << address.to_string_view() << "] " << contents.to_string_view() << std::endl;
+		out << "Thread3: [" << recv_msgs[0].to_string_view() << "] " << recv_msgs[1].to_string_view() << std::endl;
+		std::cout << out.str();
+#ifdef REMOVE
 		OutputDebugString(out.str().c_str());
+#endif // REMOVE
 	}
 }
 
@@ -80,7 +83,7 @@ int main()
 	 * Therefore, if you are using a ØMQ context for in-process messaging only you
 	 * can initialise the context with zero I/O threads.
 	 *
-	 * Source: http://api.zeromq.org/2-1:zmq-inproc
+	 * Source: http://api.zeromq.org/4-3:zmq-inproc
 	 */
 	zmq::context_t ctx(0);
 
@@ -106,9 +109,11 @@ int main()
 	 */
 }
 
+#ifdef REMOVE
 #ifdef _WIN32
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	main();
 }
 #endif // _WIN32
+#endif // REMOVE
