@@ -110,8 +110,9 @@ void App::run() {
 	last_render_time = (float)glfwGetTime(); // updated in render()
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
 		// run rendering function
-		render((float)glfwGetTime());
-		updateWorld((float)glfwGetTime());
+		float time = (float)glfwGetTime();
+		updateWorld(time);
+		render(time);
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 		glfwSwapBuffers(window);
