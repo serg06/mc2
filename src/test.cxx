@@ -6,6 +6,8 @@
 
 namespace msg
 {
+	const std::string BUS_CREATED = "BUS_CREATED";
+	const std::string CONNECTED_TO_BUS = "CONNECTED_TO_BUS";
 	const std::string START = "START";
 	const std::string MESH_GEN_REQUEST = "MESH_GEN_REQUEST";
 	const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
@@ -49,7 +51,9 @@ void MeshGenThread(zmq::context_t* ctx)
 	sub.connect("inproc://bus-out");
 
 	// Prove you're connected
-	// TODO
+	zmq::socket_t push(*ctx, zmq::socket_type::push);
+	push.connect("inproc://bus-status");
+	push.send(zmq::buffer(msg::CONNECTED_TO_BUS));
 
 	// Wait for START signal before running
 	while (true)
@@ -97,12 +101,19 @@ void MeshGenThread(zmq::context_t* ctx)
 	}
 }
 
-void BusListener(zmq::context_t* ctx, int idx)
+void BusListener(zmq::context_t* ctx)
 {
+	int idx = 0;
+
 	// Connect to bus
 	zmq::socket_t sock(*ctx, zmq::socket_type::sub);
 	sock.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 	sock.connect("inproc://bus-out");
+
+	// Prove you're connected
+	zmq::socket_t push(*ctx, zmq::socket_type::push);
+	push.connect("inproc://bus-status");
+	push.send(zmq::buffer(msg::CONNECTED_TO_BUS));
 
 	// Receive messages
 	while (true)
@@ -121,11 +132,18 @@ void BusListener(zmq::context_t* ctx, int idx)
 	}
 }
 
-void BusSender(zmq::context_t* ctx, int idx)
+void BusSender(zmq::context_t* ctx)
 {
+	int idx = 0;
+
 	// Connect to bus
 	zmq::socket_t sock(*ctx, zmq::socket_type::pub);
 	sock.connect("inproc://bus-in");
+
+	// Prove you're connected
+	zmq::socket_t push(*ctx, zmq::socket_type::push);
+	push.connect("inproc://bus-status");
+	push.send(zmq::buffer(msg::CONNECTED_TO_BUS));
 
 	// Send messages
 	while (true)
@@ -167,12 +185,12 @@ void BusProxy(zmq::context_t* ctx)
 	publisher.bind("inproc://bus-out");
 
 	// connect to creator and tell them we're ready
-	zmq::socket_t pair(*ctx, zmq::socket_type::pair);
-	pair.connect("inproc://bus-status");
-	pair.send(zmq::str_buffer("done"));
+	zmq::socket_t push(*ctx, zmq::socket_type::push);
+	push.connect("inproc://bus-status");
+	push.send(zmq::buffer(msg::BUS_CREATED));
 
 	// disconnect
-	pair.close();
+	push.close();
 
 	// receive and send repeatedly
 	// TODO: Change to proxy_steerable so we can remotely shut it down
@@ -183,30 +201,47 @@ void BusProxy(zmq::context_t* ctx)
 	publisher.close();
 }
 
+std::future<void> launch_thread_wait_until_ready(zmq::context_t& ctx, zmq::socket_t& listener, std::function<void(zmq::context_t*)> thread)
+{
+	// Launch
+	std::future<void> result = std::async(std::launch::async, thread, &ctx);
+
+	// Wait for response
+	std::vector<zmq::message_t> recv_msgs;
+	auto res = zmq::recv_multipart(listener, std::back_inserter(recv_msgs));
+	assert(res);
+
+	// Just in case
+	assert(recv_msgs[0].to_string_view() == msg::CONNECTED_TO_BUS);
+
+	return result;
+}
+
 int main()
 {
 	// Create context
 	zmq::context_t ctx(0);
 
 	// Listen to bus start
-	zmq::socket_t pair(ctx, zmq::socket_type::pair);
-	pair.bind("inproc://bus-status");
+	zmq::socket_t pull(ctx, zmq::socket_type::pull);
+	pull.bind("inproc://bus-status");
 
 	// Start bus
 	auto thread1 = std::async(std::launch::async, BusProxy, &ctx);
 
 	// Wait for it to start
 	zmq::message_t msg;
-	auto ret = pair.recv(msg);
-	assert(ret && msg.to_string_view() == "done");
+	auto ret = pull.recv(msg);
+	assert(ret && msg.to_string_view() == msg::BUS_CREATED);
 
 	// Wew!
 	OutputDebugString("Successfully launched bus!\n");
 
+	// Launch all threads one at a time
 	std::vector<std::future<void>> meshers;
 	for (int i = 0; i < 1; i++)
 	{
-		meshers.push_back(std::async(std::launch::async, MeshGenThread, &ctx));
+		meshers.push_back(launch_thread_wait_until_ready(ctx, pull, MeshGenThread));
 	}
 
 	// Create senders and listeners
@@ -214,8 +249,8 @@ int main()
 	std::vector<std::future<void>> senders;
 	for (int i = 0; i < 1; i++)
 	{
-		listeners.push_back(std::async(std::launch::async, BusListener, &ctx, i));
-		senders.push_back(std::async(std::launch::async, BusSender, &ctx, i));
+		listeners.push_back(launch_thread_wait_until_ready(ctx, pull, BusListener));
+		senders.push_back(launch_thread_wait_until_ready(ctx, pull, BusSender));
 	}
 
 	OutputDebugString("Launched listeners.\n");
