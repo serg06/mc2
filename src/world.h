@@ -206,15 +206,12 @@ public:
 		MeshGenRequest* req = new MeshGenRequest();
 		req->coords = mini->get_coords();
 		req->data = std::make_shared<MeshGenRequestData>();
-		req->data->self = std::make_shared<MiniChunk>(*mini);
+		req->data->self = mini;
 
 #define ADD(ATTR, DIRECTION)\
 		{\
 			std::shared_ptr<MiniChunk> minip_ = get_mini(mini->get_coords() + DIRECTION);\
-			if (minip_)\
-			{\
-				req->data->ATTR = std::make_shared<MiniChunk>(*minip_);\
-			}\
+			req->data->ATTR = minip_;\
 		}
 
 		ADD(up, IUP);

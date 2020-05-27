@@ -89,6 +89,13 @@ public:
 		return 0 <= y && y <= 255 ? minis[y / 16] : nullptr;
 	}
 
+	inline void set_mini_with_y_level(const int y, std::shared_ptr<MiniChunk> mini) {
+		if (0 <= y && y <= 255)
+		{
+			minis[y / 16] = mini;
+		}
+	}
+
 	// get block at these coordinates
 	inline BlockType get_block(const int &x, const int &y, const int &z) {
 		return get_mini_with_y_level(y) == nullptr ? BlockType::Air : get_mini_with_y_level(y)->get_block(x, y % MINICHUNK_HEIGHT, z);
@@ -100,14 +107,42 @@ public:
 	// set blocks in map using array, efficiently
 	inline void set_blocks(BlockType* new_blocks) {
 		for (int y = 0; y < BLOCK_MAX_HEIGHT; y += MINICHUNK_HEIGHT) {
-			get_mini_with_y_level(y)->set_blocks(new_blocks + MINICHUNK_WIDTH * MINICHUNK_DEPTH * y);
+			std::shared_ptr<MiniChunk> mini = get_mini_with_y_level(y);
+
+			// If someone else has a copy, make a copy before updating
+			bool copy = mini.use_count() > 1;
+			if (copy)
+			{
+				mini = std::make_shared<MiniChunk>(*mini);
+			}
+
+			mini->set_blocks(new_blocks + MINICHUNK_WIDTH * MINICHUNK_DEPTH * y);
+
+			if (copy)
+			{
+				set_mini_with_y_level(y, mini);
+			}
 		}
 	}
 
 	// set block at these coordinates
 	// TODO: create a set_block_range that takes a min_xyz and max_xyz and efficiently set them.
 	inline void set_block(int x, int y, int z, const BlockType &val) {
-		get_mini_with_y_level(y)->set_block(x, y % MINICHUNK_HEIGHT, z, val);
+		std::shared_ptr<MiniChunk> mini = get_mini_with_y_level(y);
+
+		// If someone else has a copy, make a copy before updating
+		bool copy = mini.use_count() > 1;
+		if (copy)
+		{
+			mini = std::make_shared<MiniChunk>(*mini);
+		}
+
+		mini->set_block(x, y % MINICHUNK_HEIGHT, z, val);
+
+		if (copy)
+		{
+			set_mini_with_y_level(y, mini);
+		}
 	}
 
 	inline void set_block(const vmath::ivec3 &xyz, const BlockType &val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
