@@ -377,9 +377,8 @@ public:
 		vector<std::shared_ptr<MiniChunk>> minis_to_mesh;
 
 		for (auto chunk : to_generate_minis) {
-			for (auto& mini_ : chunk->minis) {
-				auto& mini = *mini_;
-				minis_to_mesh.push_back(mini_);
+			for (auto& mini : chunk->minis) {
+				minis_to_mesh.push_back(mini);
 			}
 		}
 
@@ -1776,6 +1775,6 @@ public:
 	//	return 1.0F - heightSum / (float)sumDivisor;
 	//}
 
-	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MiniChunk> mini);
-	std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req);
+	std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MiniChunk> mini);
+	std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req);
 };

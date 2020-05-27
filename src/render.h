@@ -46,13 +46,13 @@ const enum TextAlignment : GLuint {
 // all the OpenGL info for our game
 struct OpenGLInfo {
 	// programs
-	GLuint game_rendering_program;
-	GLuint text_rendering_program;
-	GLuint tjunction_fixing_program;
-	GLuint fbo_merging_program;
+	GLuint game_rendering_program = 0;
+	GLuint text_rendering_program = 0;
+	GLuint tjunction_fixing_program = 0;
+	GLuint fbo_merging_program = 0;
 
 	// VAOs
-	GLuint vao_empty, vao_cube, vao_quad, vao_text;
+	GLuint vao_empty = 0, vao_cube = 0, vao_quad = 0, vao_text = 0;
 
 	// FBOs
 	FBO fbo_out;

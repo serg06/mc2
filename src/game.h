@@ -24,21 +24,54 @@ using namespace vmath;
 
 class App {
 public:
+	/* ETC */
 	static std::unique_ptr<App> app;
-	GLFWwindow* window;
+	
+	// zmq
+	zmq::context_t ctx;
+
+	App() : ctx(0) {
+		std::fill(held_keys, held_keys + (sizeof(held_keys) / sizeof(held_keys[0])), false);
+	}
+
+	/* INPUTS */
+
+	// mouse inputs
+	double last_mouse_x = 0;
+	double last_mouse_y = 0;
+
+	// key inputs
+	bool held_keys[GLFW_KEY_LAST + 1];
+
+	/* RENDER PART */
+
+	GLFWwindow* window = nullptr;
 
 	// settings
 	GlfwInfo windowInfo;
 	OpenGLInfo glInfo;
 
-	// mouse inputs
-	double last_mouse_x;
-	double last_mouse_y;
+	// misc
+	float last_render_time = 0;
 
-	// key inputs
-	bool held_keys[GLFW_KEY_LAST + 1];
-	bool noclip = false;
+	// funcs
+	void render(float time);
+
+	bool show_debug_info = false;
+	bool should_fix_tjunctions = true;
 	unsigned min_render_distance = 0;
+	double fps = 0;
+
+	// redirected GLFW/GL callbacks
+	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
+	void onMouseMove(GLFWwindow* window, double x, double y);
+	void onResize(GLFWwindow* window, int width, int height);
+	void onMouseButton(int button, int action);
+	void onMouseWheel(double scroll_direction);
+
+	void onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message);
+
+	/* WORLD PART */
 
 	// movement
 	vec4 char_position = { 8.0f, 73.0f, 8.0f, 1.0f };
@@ -49,39 +82,18 @@ public:
 	float char_yaw = 0.0f;   // left/right angle; un-capped (TODO: Reset it if it gets too high?)
 
 	// misc
-	World* world;
-	float last_render_time;
-	int num_chunks = 0;
+	World* world = nullptr;
 	ivec3 staring_at = { 0, -1, 0 }; // the block you're staring at (invalid by default)
 	ivec3 staring_at_face; // the face you're staring at on the block you're staring at
-	int wew = 0;
-	bool show_debug_info = false;
-	bool should_fix_tjunctions = true;
-	double fps = 0;
 	BlockType held_block = BlockType::StillWater;
 	ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
 	bool should_check_for_nearby_chunks = true;
+	bool noclip = false;
 
-	// zmq
-	zmq::context_t ctx;
-
-	App() : ctx(0) {}
-	void run();
-	void startup();
-	void shutdown() { /* TODO: Maybe some day. */ }
-	void render(float time);
+	// funcs
 	void updateWorld(float time);
 	void update_player_movement(const float dt);
 	vec4 prevent_collisions(const vec4 position_change);
-
-	// redirected GLFW/GL callbacks
-	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
-	void onMouseMove(GLFWwindow* window, double x, double y);
-	void onResize(GLFWwindow* window, int width, int height);
-	void onMouseButton(int button, int action);
-	void onMouseWheel(double scroll_direction);
-
-	void onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
 
 	// get direction player's staring at
 	inline auto staring_direction() {
@@ -98,13 +110,6 @@ public:
 		return rotate_pitch_yaw(char_pitch, char_yaw) * EAST_0;
 	}
 
-	inline void set_min_render_distance(int min_render_distance) {
-		if (min_render_distance > this->min_render_distance) {
-			should_check_for_nearby_chunks = true;
-		}
-		this->min_render_distance = min_render_distance;
-	}
-
 	const inline auto& get_last_chunk_coords() const {
 		return last_chunk_coords;
 	}
@@ -114,6 +119,20 @@ public:
 			this->last_chunk_coords = last_chunk_coords;
 			should_check_for_nearby_chunks = true;
 		}
+	}
+
+	/* GAME STATE PART */
+
+	// funcs
+	void run();
+	void startup();
+	void shutdown() { /* TODO: Maybe some day. */ }
+
+	inline void set_min_render_distance(int min_render_distance) {
+		if (min_render_distance > this->min_render_distance) {
+			should_check_for_nearby_chunks = true;
+		}
+		this->min_render_distance = min_render_distance;
 	}
 };
 std::unique_ptr<App> App::app;

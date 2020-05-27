@@ -258,8 +258,6 @@ void App::updateWorld(float time) {
 
 	// change in time
 	const float dt = time - last_render_time;
-	last_render_time = time;
-	fps = (1 - 5 * dt) * fps + 5;
 	world->update_tick((int)floorf(time * 20));
 
 	/* CHANGES IN WORLD */

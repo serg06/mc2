@@ -39,7 +39,7 @@ private:
 	GLuint fbo = 0;
 
 public:
-	FBO(){}
+	FBO() : width(0), height(0) {}
 
 	FBO(const GLsizei width, const GLsizei height) : width(width), height(height)
 	{
