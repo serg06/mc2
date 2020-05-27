@@ -4,7 +4,98 @@
 
 #include "zmq_addon.hpp"
 
+namespace msg
+{
+	const std::string START = "START";
+	const std::string MESH_GEN_REQUEST = "MESH_GEN_REQUEST";
+	const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
+}
+
 #define REMOVE
+
+// Convert multipart msg to string
+std::string multi_to_str(const std::vector<zmq::message_t>& resp)
+{
+	std::stringstream s;
+	s << "[" << resp[0].to_string_view() << "]: [";
+	for (int i = 1; i < resp.size(); i++)
+	{
+		s << resp[i].to_string_view();
+		if (i != resp.size() - 1)
+		{
+			s << ", ";
+		}
+	}
+	s << "]";
+	return s.str();
+}
+
+void MeshGenThread(zmq::context_t* ctx)
+{
+	// Connect to bus
+	zmq::socket_t pub(*ctx, zmq::socket_type::pub);
+	pub.connect("inproc://bus-in");
+	zmq::socket_t sub(*ctx, zmq::socket_type::sub);
+	std::vector<std::string> incoming_messages({
+		msg::START,
+		msg::MESH_GEN_REQUEST
+	});
+	for (const auto& s : incoming_messages)
+	{
+		sub.setsockopt(ZMQ_SUBSCRIBE, s.c_str(), s.size());
+	}
+	//sub.setsockopt(ZMQ_SUBSCRIBE, msg::START.c_str(), 5);
+	//sub.setsockopt(ZMQ_SUBSCRIBE, "MESH_GEN_REQUEST", 16);
+	sub.connect("inproc://bus-out");
+
+	// Prove you're connected
+	// TODO
+
+	// Wait for START signal before running
+	while (true)
+	{
+		std::vector<zmq::message_t> recv_msgs;
+		const auto ret = zmq::recv_multipart(sub, std::back_inserter(recv_msgs));
+		if (ret)
+		{
+			if (recv_msgs[0].to_string_view() == msg::START)
+			{
+				OutputDebugString("START success!\n");
+				break;
+			}
+		}
+		else
+		{
+			OutputDebugString("START failed\n");
+			return;
+		}
+	}
+
+	// Start running
+	while (true)
+	{
+		std::vector<zmq::message_t> recv_msgs;
+		const auto ret = zmq::recv_multipart(sub, std::back_inserter(recv_msgs), zmq::recv_flags::dontwait);
+		if (ret)
+		{
+			std::stringstream s;
+			s << "MeshGenThread: " << multi_to_str(recv_msgs) << "\n";
+			OutputDebugString(s.str().c_str());
+			if (recv_msgs[0].to_string_view() == msg::MESH_GEN_REQUEST)
+			{
+				std::vector<zmq::const_buffer> send_msgs({
+					zmq::buffer(msg::MESH_GEN_RESPONSE),
+					zmq::str_buffer("body of response :)")
+					});
+				zmq::send_multipart(pub, send_msgs);
+			}
+		}
+		else
+		{
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
+		}
+	}
+}
 
 void BusListener(zmq::context_t* ctx, int idx)
 {
@@ -24,18 +115,9 @@ void BusListener(zmq::context_t* ctx, int idx)
 			return;
 		}
 
-		std::stringstream out;
-		out << "listener [" << idx << "] recv [" << recv_msgs.size() << "] msgs: [";
-		for (int i = 0; i < recv_msgs.size(); i++)
-		{
-			out << recv_msgs[i].to_string_view();
-			if (i != recv_msgs.size() - 1)
-			{
-				out << ", ";
-			}
-		}
-		out << "]\n";
-		OutputDebugString(out.str().c_str());
+		std::stringstream s;
+		s << "BusListener: " << multi_to_str(recv_msgs) << "\n";
+		OutputDebugString(s.str().c_str());
 	}
 }
 
@@ -49,11 +131,22 @@ void BusSender(zmq::context_t* ctx, int idx)
 	while (true)
 	{
 		std::array<zmq::const_buffer, 2> send_msgs = {
-			zmq::str_buffer("foo"),
-			zmq::str_buffer("bar!")
+			zmq::buffer(msg::MESH_GEN_REQUEST),
+			zmq::str_buffer("request body LULW")
 		};
 		const auto ret = zmq::send_multipart(sock, send_msgs);
 		if (!ret)
+		{
+			OutputDebugString("Sender failed!\n");
+			return;
+		}
+
+		send_msgs = {
+			zmq::buffer(msg::START),
+			zmq::str_buffer("start bodyyyyy")
+		};
+		const auto ret2 = zmq::send_multipart(sock, send_msgs);
+		if (!ret2)
 		{
 			OutputDebugString("Sender failed!\n");
 			return;
@@ -83,7 +176,7 @@ void BusProxy(zmq::context_t* ctx)
 
 	// receive and send repeatedly
 	// TODO: Change to proxy_steerable so we can remotely shut it down
-	zmq::proxy(subscriber, publisher);
+	zmq::proxy_steerable(subscriber, publisher, nullptr, nullptr);
 
 	// wew
 	subscriber.close();
@@ -104,11 +197,17 @@ int main()
 
 	// Wait for it to start
 	zmq::message_t msg;
-	pair.recv(msg);
-	assert(msg.to_string_view() == "done");
+	auto ret = pair.recv(msg);
+	assert(ret && msg.to_string_view() == "done");
 
 	// Wew!
 	OutputDebugString("Successfully launched bus!\n");
+
+	std::vector<std::future<void>> meshers;
+	for (int i = 0; i < 1; i++)
+	{
+		meshers.push_back(std::async(std::launch::async, MeshGenThread, &ctx));
+	}
 
 	// Create senders and listeners
 	std::vector<std::future<void>> listeners;
