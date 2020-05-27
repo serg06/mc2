@@ -156,7 +156,6 @@ void App::render(float time) {
 	last_render_time = time;
 	fps = (1 - 5 * dt) * fps + 5;
 
-	const auto chunk_coords = world->get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
 	const auto direction = staring_direction();
 
 	/* TRANSFORMATION MATRICES */
