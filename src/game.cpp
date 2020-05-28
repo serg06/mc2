@@ -3,6 +3,7 @@
 #include "chunkdata.h"
 #include "render.h"
 #include "shapes.h"
+#include "unique_queue.h"
 #include "util.h"
 #include "zmq.hpp"
 
@@ -44,33 +45,62 @@ void ChunkGenThread(zmq::context_t* ctx) {
 
 	// Connect to mesh requests socket
 	zmq::socket_t mesh_socket(*ctx, zmq::socket_type::pair);
-	mesh_socket.setsockopt(ZMQ_RCVHWM, 1000 * 1000);
 	mesh_socket.bind("inproc://mesh-gen");
+
+	// Keep queue of incoming requests
+	unique_queue<vmath::ivec3, MeshGenRequest*, vecN_hash> request_queue;
 
 	// run thread until stopped
 	while (!stop)
 	{
-		// Get mesh-gen message
+		// read all messages
 		zmq::message_t msg;
-		zmq::recv_result_t result = mesh_socket.recv(msg);
-		MeshGenRequest* req = *msg.data<MeshGenRequest*>();
-
-		if (req == nullptr && stop)
+		zmq::recv_result_t result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
+		for (; result; result = mesh_socket.recv(msg, zmq::recv_flags::dontwait))
 		{
-			break;
+			MeshGenRequest* req = *msg.data<MeshGenRequest*>();
+			request_queue.push_back({ req->coords, req });
 		}
 
-		// generate a mesh if possible
-		MeshGenResult* mesh = app->world->gen_minichunk_mesh_from_req(req);
-		if (mesh != nullptr)
+		// if requests in queue
+		if (request_queue.size())
 		{
-			zmq::message_t response(&mesh, sizeof(mesh));
-			zmq::send_result_t send_result = mesh_socket.send(response, zmq::send_flags::dontwait);
-			while (!send_result && !stop)
+			// handle
+			MeshGenRequest* req = request_queue.front().second;
+			request_queue.pop();
+
+			// break if finished
+			if (req == nullptr)
 			{
-				send_result = mesh_socket.send(response, zmq::send_flags::dontwait);
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				break;
 			}
+
+			// generate a mesh if possible
+			MeshGenResult* mesh = app->world->gen_minichunk_mesh_from_req(req);
+			if (mesh != nullptr)
+			{
+				zmq::message_t response(&mesh, sizeof(mesh));
+				zmq::send_result_t send_result = mesh_socket.send(response, zmq::send_flags::dontwait);
+
+				// send it until they accept it
+				for (; !send_result && !stop; send_result = mesh_socket.send(response, zmq::send_flags::dontwait))
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+					// hmm, maybe they're frozen waiting for us to receive some messages - let's handle that
+					result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
+					for (; result; result = mesh_socket.recv(msg, zmq::recv_flags::dontwait))
+					{
+						MeshGenRequest* req = *msg.data<MeshGenRequest*>();
+						request_queue.push_back({ req->coords, req });
+					}
+				}
+			}
+		}
+		// otherwise wait to try again
+		else
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 	}
 }

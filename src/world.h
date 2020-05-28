@@ -222,38 +222,11 @@ public:
 		ADD(south, ISOUTH);
 #undef ADD
 
-		//// TODO: Search smartly, only have on version of request in here, keep latest updated time, etc.
-		//const auto search = mesh_gen_set.find(req);
-
-		//// already in set
-		//if (search != mesh_gen_set.end()) {
-		//	// if we want it at the front of the queue, remove it so we can re-add it at the front
-		//	// TODO: this is O(n), but we can speed it up by mapping mini ptr -> iterator-in-queue (pretty sure that's valid)
-		//	if (front_of_queue) {
-		//		const auto search2 = std::find(mesh_gen_queue.begin(), mesh_gen_queue.end(), req);
-		//		assert(search2 != mesh_gen_queue.end() && "unable to find??");
-		//		mesh_gen_queue.erase(search2);
-		//	}
-		//	else {
-		//		return;
-		//	}
-		//}
-
-		//// not in set yet, add.
-		//mesh_gen_set.insert(req);
-		//if (front_of_queue) {
-		//	mesh_gen_queue.push_front(req);
-		//}
-		//else {
-		//	mesh_gen_queue.push_back(req);
-		//}
-
 		zmq::message_t msg(&req, sizeof(req));
 		zmq::send_result_t result = mesh_socket.send(msg, zmq::send_flags::dontwait);
-		while (!result)
+		for (; !result; result = mesh_socket.send(msg, zmq::send_flags::dontwait))
 		{
 			std::this_thread::sleep_for(std::chrono::microseconds(1));
-			result = mesh_socket.send(msg, zmq::send_flags::dontwait);
 		}
 	}
 
@@ -676,23 +649,21 @@ public:
 
 	inline void update_meshes()
 	{
+		// Receive all mesh-gen results
 		zmq::message_t msg;
 		zmq::recv_result_t result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
-		while (result)
+		for (; result; result = mesh_socket.recv(msg, zmq::recv_flags::dontwait))
 		{
 			// Extract result
 			MeshGenResult* mesh_ = *msg.data<MeshGenResult*>();
 			std::shared_ptr<MeshGenResult> mesh(mesh_);
 
-			// Do it!
+			// Update mesh!
 			std::shared_ptr<MiniRender> mini = get_mini_render_component_or_generate(mesh->coords);
 			mini->set_mesh(std::move(mesh->mesh));
 			mini->set_water_mesh(std::move(mesh->water_mesh));
-
-			result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
 		}
 	}
-
 
 	inline void render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at) {
 		// collect all the minis we're gonna draw
