@@ -24,10 +24,11 @@
 using namespace std;
 using namespace vmath;
 
+std::unique_ptr<App> App::app;
+
 static bool stop = false;
 
-// Windows main
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+void run_game()
 {
 	glfwSetErrorCallback(glfw_onError);
 	App::app = make_unique<App>();

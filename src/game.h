@@ -22,11 +22,13 @@ constexpr int NUM_MESH_GEN_THREADS = 1;
 using namespace std;
 using namespace vmath;
 
+void run_game();
+
 class App {
 public:
 	/* ETC */
 	static std::unique_ptr<App> app;
-	
+
 	// zmq
 	zmq::context_t ctx;
 
@@ -135,7 +137,6 @@ public:
 		this->min_render_distance = min_render_distance;
 	}
 };
-std::unique_ptr<App> App::app;
 
 namespace {
 	// global GLFW/GL callback functions
