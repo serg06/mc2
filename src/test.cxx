@@ -24,7 +24,7 @@ std::string multi_to_str(const std::vector<zmq::message_t>& resp)
 	return s.str();
 }
 
-void MeshGenThread(zmq::context_t* ctx)
+void MeshGenThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 {
 	// Connect to bus
 	zmq::socket_t pub(*ctx, zmq::socket_type::pub);
@@ -43,9 +43,7 @@ void MeshGenThread(zmq::context_t* ctx)
 	sub.connect("inproc://bus-out");
 
 	// Prove you're connected
-	zmq::socket_t push(*ctx, zmq::socket_type::push);
-	push.connect("inproc://bus-status");
-	push.send(zmq::buffer(msg::CONNECTED_TO_BUS));
+	on_ready();
 
 	// Wait for START signal before running
 	while (true)
@@ -93,7 +91,7 @@ void MeshGenThread(zmq::context_t* ctx)
 	}
 }
 
-void BusListener(zmq::context_t* ctx)
+void BusListener(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 {
 	int idx = 0;
 
@@ -103,9 +101,7 @@ void BusListener(zmq::context_t* ctx)
 	sock.connect("inproc://bus-out");
 
 	// Prove you're connected
-	zmq::socket_t push(*ctx, zmq::socket_type::push);
-	push.connect("inproc://bus-status");
-	push.send(zmq::buffer(msg::CONNECTED_TO_BUS));
+	on_ready();
 
 	// Receive messages
 	while (true)
@@ -124,7 +120,7 @@ void BusListener(zmq::context_t* ctx)
 	}
 }
 
-void BusSender(zmq::context_t* ctx)
+void BusSender(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 {
 	int idx = 0;
 
@@ -133,9 +129,7 @@ void BusSender(zmq::context_t* ctx)
 	sock.connect("inproc://bus-in");
 
 	// Prove you're connected
-	zmq::socket_t push(*ctx, zmq::socket_type::push);
-	push.connect("inproc://bus-status");
-	push.send(zmq::buffer(msg::CONNECTED_TO_BUS));
+	on_ready();
 
 	// Send messages
 	while (true)
@@ -168,7 +162,7 @@ void BusSender(zmq::context_t* ctx)
 
 namespace
 {
-	void BusProxy_old(zmq::context_t* ctx)
+	void BusProxy(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 	{
 		// create sub/pub
 		zmq::socket_t subscriber(*ctx, zmq::socket_type::sub);
@@ -179,12 +173,7 @@ namespace
 		publisher.bind("inproc://bus-out");
 
 		// connect to creator and tell them we're ready
-		zmq::socket_t push(*ctx, zmq::socket_type::push);
-		push.connect("inproc://bus-status");
-		push.send(zmq::buffer(msg::BUS_CREATED));
-
-		// disconnect
-		push.close();
+		on_ready();
 
 		// receive and send repeatedly
 		// TODO: Change to proxy_steerable so we can remotely shut it down
@@ -196,39 +185,13 @@ namespace
 	}
 }
 
-
-std::future<void> launch_thread_wait_until_ready(zmq::context_t& ctx, zmq::socket_t& listener, std::function<void(zmq::context_t*)> thread)
-{
-	// Launch
-	std::future<void> result = std::async(std::launch::async, thread, &ctx);
-
-	// Wait for response
-	std::vector<zmq::message_t> recv_msgs;
-	auto res = zmq::recv_multipart(listener, std::back_inserter(recv_msgs));
-	assert(res);
-
-	// Just in case
-	assert(recv_msgs[0].to_string_view() == msg::CONNECTED_TO_BUS);
-
-	return result;
-}
-
 int main()
 {
 	// Create context
 	zmq::context_t ctx(0);
 
-	// Listen to bus start
-	zmq::socket_t pull(ctx, zmq::socket_type::pull);
-	pull.bind("inproc://bus-status");
-
 	// Start bus
-	auto thread1 = std::async(std::launch::async, BusProxy_old, &ctx);
-
-	// Wait for it to start
-	zmq::message_t msg;
-	auto ret = pull.recv(msg);
-	assert(ret && msg.to_string_view() == msg::BUS_CREATED);
+	auto thread1 = msg::launch_thread_wait_until_ready(ctx, BusProxy);
 
 	// Wew!
 	OutputDebugString("Successfully launched bus!\n");
@@ -237,7 +200,7 @@ int main()
 	std::vector<std::future<void>> meshers;
 	for (int i = 0; i < 1; i++)
 	{
-		meshers.push_back(launch_thread_wait_until_ready(ctx, pull, MeshGenThread));
+		meshers.push_back(msg::launch_thread_wait_until_ready(ctx, MeshGenThread));
 	}
 
 	// Create senders and listeners
@@ -245,8 +208,8 @@ int main()
 	std::vector<std::future<void>> senders;
 	for (int i = 0; i < 1; i++)
 	{
-		listeners.push_back(launch_thread_wait_until_ready(ctx, pull, BusListener));
-		senders.push_back(launch_thread_wait_until_ready(ctx, pull, BusSender));
+		listeners.push_back(msg::launch_thread_wait_until_ready(ctx, BusListener));
+		senders.push_back(msg::launch_thread_wait_until_ready(ctx, BusSender));
 	}
 
 	OutputDebugString("Launched listeners.\n");

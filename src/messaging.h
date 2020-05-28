@@ -15,7 +15,8 @@ namespace msg
 {
 	extern zmq::context_t ctx;
 
-	using notifier_thread = std::function<void(zmq::context_t*, std::function<void()>)>;
+	using on_ready_fn = std::function<void()>;
+	using notifier_thread = std::function<void(zmq::context_t*, on_ready_fn)>;
 
 	const std::string READY = "READY";
 	const std::string BUS_CREATED = "BUS_CREATED";
@@ -51,17 +52,18 @@ namespace msg
 		return out.str();
 	}
 
-	inline std::future<void> launch_thread_wait_until_ready(zmq::context_t& ctx, zmq::socket_t& listener, notifier_thread thread)
+	inline std::future<void> launch_thread_wait_until_ready(zmq::context_t& ctx, notifier_thread thread)
 	{
 		// Listen to bus start
 		std::string unique_addr = gen_unique_addr();
 		zmq::socket_t pull(ctx, zmq::socket_type::pull);
 		pull.bind(unique_addr);
 
-		std::function<void()> on_complete = [&]() {
+		on_ready_fn on_complete = [&]() {
 			zmq::socket_t push(ctx, zmq::socket_type::push);
 			push.connect(unique_addr);
 			push.send(zmq::buffer(msg::READY));
+			push.close();
 		};
 
 		// Launch
@@ -69,13 +71,16 @@ namespace msg
 
 		// Wait for response
 		std::vector<zmq::message_t> recv_msgs;
-		auto res = zmq::recv_multipart(listener, std::back_inserter(recv_msgs));
+		auto res = zmq::recv_multipart(pull, std::back_inserter(recv_msgs));
 		assert(res);
 		assert(recv_msgs[0].to_string_view() == msg::READY);
+		pull.close();
 
 		// Done
 		return result;
 	}
+
+	std::future<void> launch_bus_proxy(zmq::context_t& ctx);
 }
 //
 //int main()

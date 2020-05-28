@@ -12,7 +12,7 @@ namespace msg
 {
 	static zmq::context_t ctx(0);
 
-	void BusProxy(zmq::context_t* ctx)
+	void BusProxy(zmq::context_t* ctx, on_ready_fn on_ready)
 	{
 		// create sub/pub
 		zmq::socket_t subscriber(*ctx, zmq::socket_type::sub);
@@ -23,12 +23,7 @@ namespace msg
 		publisher.bind("inproc://bus-out");
 
 		// connect to creator and tell them we're ready
-		zmq::socket_t push(*ctx, zmq::socket_type::push);
-		push.connect("inproc://bus-status");
-		push.send(zmq::buffer(msg::BUS_CREATED));
-
-		// disconnect
-		push.close();
+		on_ready();
 
 		// receive and send repeatedly
 		// TODO: Change to proxy_steerable so we can remotely shut it down
@@ -37,6 +32,11 @@ namespace msg
 		// wew
 		subscriber.close();
 		publisher.close();
+	}
+
+	std::future<void> launch_bus_proxy(zmq::context_t& ctx)
+	{
+		return launch_thread_wait_until_ready(ctx, BusProxy);
 	}
 }
 
