@@ -2,16 +2,8 @@
 #include <iostream>
 #include <string>
 
+#include "messaging.h"
 #include "zmq_addon.hpp"
-
-namespace msg
-{
-	const std::string BUS_CREATED = "BUS_CREATED";
-	const std::string CONNECTED_TO_BUS = "CONNECTED_TO_BUS";
-	const std::string START = "START";
-	const std::string MESH_GEN_REQUEST = "MESH_GEN_REQUEST";
-	const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
-}
 
 #define REMOVE
 
@@ -174,32 +166,36 @@ void BusSender(zmq::context_t* ctx)
 	}
 }
 
-void BusProxy(zmq::context_t* ctx)
+namespace
 {
-	// create sub/pub
-	zmq::socket_t subscriber(*ctx, zmq::socket_type::sub);
-	subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-	subscriber.bind("inproc://bus-in");
+	void BusProxy_old(zmq::context_t* ctx)
+	{
+		// create sub/pub
+		zmq::socket_t subscriber(*ctx, zmq::socket_type::sub);
+		subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+		subscriber.bind("inproc://bus-in");
 
-	zmq::socket_t publisher(*ctx, zmq::socket_type::pub);
-	publisher.bind("inproc://bus-out");
+		zmq::socket_t publisher(*ctx, zmq::socket_type::pub);
+		publisher.bind("inproc://bus-out");
 
-	// connect to creator and tell them we're ready
-	zmq::socket_t push(*ctx, zmq::socket_type::push);
-	push.connect("inproc://bus-status");
-	push.send(zmq::buffer(msg::BUS_CREATED));
+		// connect to creator and tell them we're ready
+		zmq::socket_t push(*ctx, zmq::socket_type::push);
+		push.connect("inproc://bus-status");
+		push.send(zmq::buffer(msg::BUS_CREATED));
 
-	// disconnect
-	push.close();
+		// disconnect
+		push.close();
 
-	// receive and send repeatedly
-	// TODO: Change to proxy_steerable so we can remotely shut it down
-	zmq::proxy_steerable(subscriber, publisher, nullptr, nullptr);
+		// receive and send repeatedly
+		// TODO: Change to proxy_steerable so we can remotely shut it down
+		zmq::proxy_steerable(subscriber, publisher, nullptr, nullptr);
 
-	// wew
-	subscriber.close();
-	publisher.close();
+		// wew
+		subscriber.close();
+		publisher.close();
+	}
 }
+
 
 std::future<void> launch_thread_wait_until_ready(zmq::context_t& ctx, zmq::socket_t& listener, std::function<void(zmq::context_t*)> thread)
 {
@@ -227,7 +223,7 @@ int main()
 	pull.bind("inproc://bus-status");
 
 	// Start bus
-	auto thread1 = std::async(std::launch::async, BusProxy, &ctx);
+	auto thread1 = std::async(std::launch::async, BusProxy_old, &ctx);
 
 	// Wait for it to start
 	zmq::message_t msg;

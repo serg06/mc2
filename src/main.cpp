@@ -1,4 +1,5 @@
 #include "game.h"
+#include "messaging.h"
 
 #include "GL/gl3w.h"
 #include "GL/glcorearb.h"

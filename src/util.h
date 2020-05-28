@@ -3,11 +3,14 @@
 #include "GL/gl3w.h"
 #include "vmath.h"
 
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <map>
 #include <memory>
 #include <numeric>
+#include <random>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -358,11 +361,62 @@ static constexpr inline void extract_from_atlas(float* atlas, unsigned atlas_wid
 	}
 }
 
-
 // In C++, -1 % 16 == -1. Want it to be 15 instead.
 template<typename T>
 static constexpr T posmod(const T &x, const T &m) {
 	return ((x % m) + m) % m;
+}
+
+// Thread-safe random number generator.
+// Each thread's generator is guaranteed to get a unique seed.
+template<typename T = int32_t>
+T rand_32(const T& min = std::numeric_limits<T>::min(), const T& max = std::numeric_limits<T>::max())
+{
+	static thread_local std::mt19937* generator = nullptr;
+	if (!generator)
+	{
+		static std::atomic_uint64_t extra(0);
+
+		// TODO: Learn memory order
+		int toadd = extra.fetch_add(1);
+
+		auto now = std::chrono::high_resolution_clock::now();
+
+		// TODO: Figure out the type of this
+		auto test = now.time_since_epoch().count();
+
+		// wew
+		generator = new std::mt19937(test + toadd);
+	}
+
+	std::uniform_int_distribution<T> distribution(min, max);
+	return distribution(*generator);
+}
+
+// Thread-safe random number generator.
+// Each thread's generator is guaranteed to get a unique seed.
+template<typename T = int64_t>
+T rand_64(const T& min = std::numeric_limits<T>::min(), const T& max = std::numeric_limits<T>::max())
+{
+	static thread_local std::mt19937_64* generator = nullptr;
+	if (!generator)
+	{
+		static std::atomic_uint64_t extra(0);
+
+		// TODO: Learn memory order
+		int toadd = extra.fetch_add(1);
+
+		auto now = std::chrono::high_resolution_clock::now();
+
+		// TODO: Figure out the type of this
+		auto test = now.time_since_epoch().count();
+
+		// wew
+		generator = new std::mt19937_64(test + toadd);
+	}
+
+	std::uniform_int_distribution<T> distribution(min, max);
+	return distribution(*generator);
 }
 
 // TODO: Could be slightly improved with `const`, `&`, and `private:` in the right places, but otherwise it works great.
