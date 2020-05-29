@@ -669,16 +669,12 @@ public:
 			{
 				// Extract result
 				MeshGenResult* mesh_ = *message[1].data<MeshGenResult*>();
-				//std::shared_ptr<MeshGenResult> mesh(mesh_);
-				MeshGenResult* mesh = mesh_;
+				std::unique_ptr<MeshGenResult> mesh(mesh_);
 
 				// Update mesh!
 				std::shared_ptr<MiniRender> mini = get_mini_render_component_or_generate(mesh->coords);
 				mini->set_mesh(std::move(mesh->mesh));
 				mini->set_water_mesh(std::move(mesh->water_mesh));
-
-				// TODO: just unique_ptr
-				delete mesh;
 			}
 
 			message.clear();
