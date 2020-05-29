@@ -1,6 +1,8 @@
 #include "game.h"
+
 #include "chunk.h"
 #include "chunkdata.h"
+#include "messaging.h"
 #include "render.h"
 #include "shapes.h"
 #include "unique_queue.h"
@@ -36,72 +38,125 @@ void run_game()
 }
 
 // thread for generating new chunk meshes
-void ChunkGenThread(zmq::context_t* ctx) {
-	if (App::app == nullptr) {
-		throw "No global app.";
-	}
+void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
+	// Connect to bus
+	zmq::socket_t bus_in(*ctx, zmq::socket_type::pub);
+	bus_in.connect(addr::MSG_BUS_IN);
 
-	// get global app
-	App* app = App::app.get();
+	zmq::socket_t bus_out(*ctx, zmq::socket_type::sub);
+	bus_out.setsockopt(ZMQ_SUBSCRIBE, "", 0); // TODO: filter
+	bus_out.connect(addr::MSG_BUS_OUT);
 
-	// Connect to mesh requests socket
-	zmq::socket_t mesh_socket(*ctx, zmq::socket_type::pair);
-	mesh_socket.bind("inproc://mesh-gen");
+	// Prove you're connected
+	on_ready();
 
 	// Keep queue of incoming requests
 	unique_queue<vmath::ivec3, MeshGenRequest*, vecN_hash> request_queue;
+
+	// TODO: Wait for "START" then unsubscribe and start
 
 	// run thread until stopped
 	while (!stop)
 	{
 		// read all messages
-		zmq::message_t msg;
-		zmq::recv_result_t result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
-		for (; result; result = mesh_socket.recv(msg, zmq::recv_flags::dontwait))
+		std::vector<zmq::message_t> msg;
+		zmq::recv_result_t result = zmq::recv_multipart(bus_out, std::back_inserter(msg), zmq::recv_flags::dontwait);
+		while (result)
 		{
-			MeshGenRequest* req = *msg.data<MeshGenRequest*>();
-			request_queue.push_back({ req->coords, req });
+			if (msg[0].to_string_view() == msg::EXIT)
+			{
+				OutputDebugString("MeshGen: Received EXIT signal\n");
+				stop = true;
+				break;
+			}
+			else if (msg[0].to_string_view() == msg::MESH_GEN_REQUEST)
+			{
+				MeshGenRequest* req = *(msg[1].data<MeshGenRequest*>());
+				if (req == nullptr)
+				{
+					OutputDebugString("MeshGen: Received STOP signal\n");
+					stop = true;
+					break;
+				}
+				else
+				{
+#ifdef _DEBUG
+					std::stringstream out;
+					out << "MeshGen: Received req for " << vec2str(req->coords) << "\n";
+					OutputDebugString(out.str().c_str());
+#endif // _DEBUG
+					request_queue.push_back({ req->coords, req });
+				}
+			}
+#ifdef _DEBUG
+			else if (msg[0].to_string_view() == msg::TEST)
+			{
+				std::stringstream s;
+				s << "MeshGen: " << msg::multi_to_str(msg) << "\n";
+				OutputDebugString(s.str().c_str());
+			}
+#endif // _DEBUG
+			else
+			{
+				std::stringstream s;
+				s << "MeshGen: Unknown msg [" << msg[0].to_string_view() << "\n";
+			}
+
+			msg.clear();
+			result = zmq::recv_multipart(bus_out, std::back_inserter(msg), zmq::recv_flags::dontwait);
 		}
+
+		if (stop) break;
 
 		// if requests in queue
 		if (request_queue.size())
 		{
-			// handle
-			MeshGenRequest* req = request_queue.front().second;
+			// handle one
+			MeshGenRequest* req_ = request_queue.front().second;
+			std::shared_ptr<MeshGenRequest> req(req_);
+
 			request_queue.pop();
 
-			// break if finished
-			if (req == nullptr)
-			{
-				break;
-			}
+			assert(req);
 
 			// generate a mesh if possible
+			App* app = App::app.get();
+			if (app == nullptr)
+			{
+				// world not ready yet
+				OutputDebugString("Warn: app is null\n");
+				std::this_thread::sleep_for(std::chrono::microseconds(1));
+				continue;
+			}
 			MeshGenResult* mesh = app->world->gen_minichunk_mesh_from_req(req);
 			if (mesh != nullptr)
 			{
-				zmq::message_t response(&mesh, sizeof(mesh));
-				zmq::send_result_t send_result = mesh_socket.send(response, zmq::send_flags::dontwait);
+				// send it
+				std::vector<zmq::const_buffer> result({
+					zmq::buffer(msg::MESH_GEN_RESPONSE),
+					zmq::const_buffer(&mesh, sizeof(mesh))
+					});
+				zmq::send_result_t send_result = zmq::send_multipart(bus_in, result, zmq::send_flags::dontwait);
+				assert(send_result);
 
-				// send it until they accept it
-				for (; !send_result && !stop; send_result = mesh_socket.send(response, zmq::send_flags::dontwait))
-				{
-					std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-					// hmm, maybe they're frozen waiting for us to receive some messages - let's handle that
-					result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
-					for (; result; result = mesh_socket.recv(msg, zmq::recv_flags::dontwait))
-					{
-						MeshGenRequest* req = *msg.data<MeshGenRequest*>();
-						request_queue.push_back({ req->coords, req });
-					}
-				}
+#ifdef SLEEPS
+				// JUST IN CASE
+				std::this_thread::sleep_for(std::chrono::microseconds(1));
+#endif // SLEEPS
 			}
+#ifdef _DEBUG
+			else
+			{
+				std::stringstream out;
+				out << "Warn: nullptr mesh for " << vec2str(req->coords) << "\n";
+				OutputDebugString(out.str().c_str());
+			}
+#endif // _DEBUG
 		}
 		// otherwise wait to try again
 		else
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
 		}
 	}
 }
@@ -133,9 +188,9 @@ void App::run() {
 
 	// Spawn mesh generation threads
 	vector<std::future<void>> chunk_gen_futures;
-	for (int i = 0; i < NUM_MESH_GEN_THREADS; i++) {
-		chunk_gen_futures.push_back(std::async(std::launch::async, ChunkGenThread, &ctx));
-	}
+	//for (int i = 0; i < NUM_MESH_GEN_THREADS; i++) {
+	//	chunk_gen_futures.push_back(std::async(std::launch::async, ChunkGenThread, &ctx));
+	//}
 
 	// run until user presses ESC or tries to close window
 	last_render_time = (float)glfwGetTime(); // updated in render()
@@ -277,11 +332,13 @@ void App::render(float time) {
 	// make sure rendering didn't take too long
 	const auto end_of_fn = std::chrono::high_resolution_clock::now();
 	const long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
+#ifdef _DEBUG
 	if (result_total / 1000.0f > 50) {
 		std::stringstream buf;
 		buf << "TOTAL GAME::render TIME: " << result_total / 1000.0f << "ms\n";
 		OutputDebugString(buf.str().c_str());
 	}
+#endif // _DEBUG
 }
 
 void App::updateWorld(float time) {
@@ -318,11 +375,13 @@ void App::updateWorld(float time) {
 	// make sure rendering didn't take too long
 	const auto end_of_fn = std::chrono::high_resolution_clock::now();
 	const long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
+#ifdef _DEBUG
 	if (result_total / 1000.0f > 50) {
 		std::stringstream buf;
 		buf << "TOTAL GAME::updateWorld TIME: " << result_total / 1000.0f << "ms\n";
 		OutputDebugString(buf.str().c_str());
 	}
+#endif // _DEBUG
 }
 
 // update player's movement based on how much time has passed since we last did it

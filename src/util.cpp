@@ -13,6 +13,7 @@ using namespace std;
 using namespace vmath;
 
 void print_arr(const GLfloat *arr, int size, int row_size) {
+#ifdef _DEBUG
 	char str[64];
 
 	OutputDebugString("\nPRINTING ARR:\n");
@@ -34,6 +35,7 @@ void print_arr(const GLfloat *arr, int size, int row_size) {
 	}
 
 	OutputDebugString("\nDONE\n");
+#endif // _DEBUG
 }
 
 GLuint link_program(const GLuint program) {

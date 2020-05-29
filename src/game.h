@@ -1,15 +1,15 @@
 #pragma once
 
-constexpr int NUM_MESH_GEN_THREADS = 1;
-
 #include "chunk.h"
 #include "chunkdata.h"
-#include "GL/gl3w.h"
-#include "GLFW/glfw3.h"
+#include "messaging.h"
 #include "render.h"
 #include "util.h"
-#include "vmath.h"
 #include "world.h"
+
+#include "GL/gl3w.h"
+#include "GLFW/glfw3.h"
+#include "vmath.h"
 #include "zmq.hpp"
 
 #include <assert.h>
@@ -22,7 +22,10 @@ constexpr int NUM_MESH_GEN_THREADS = 1;
 using namespace std;
 using namespace vmath;
 
+constexpr int NUM_MESH_GEN_THREADS = 1;
+
 void run_game();
+void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready);
 
 class App {
 public:

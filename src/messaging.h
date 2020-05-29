@@ -1,3 +1,5 @@
+#pragma once
+
 #include <functional>
 #include <future>
 #include <iostream>
@@ -8,7 +10,8 @@
 
 namespace addr
 {
-	// TODO: store common addresses here
+	static const std::string MSG_BUS_IN = "inproc://bus-in";
+	static const std::string MSG_BUS_OUT = "inproc://bus-out";
 }
 
 namespace msg
@@ -18,21 +21,44 @@ namespace msg
 	using on_ready_fn = std::function<void()>;
 	using notifier_thread = std::function<void(zmq::context_t*, on_ready_fn)>;
 
-	const std::string READY = "READY";
-	const std::string BUS_CREATED = "BUS_CREATED";
-	const std::string CONNECTED_TO_BUS = "CONNECTED_TO_BUS";
-	const std::string START = "START";
-	const std::string MESH_GEN_REQUEST = "MESH_GEN_REQUEST";
-	const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
+	static const std::string READY = "READY";
+	static const std::string EXIT = "EXIT";
+	static const std::string BUS_CREATED = "BUS_CREATED";
+	static const std::string CONNECTED_TO_BUS = "CONNECTED_TO_BUS";
+	static const std::string START = "START";
+	static const std::string MESH_GEN_REQUEST = "MESH_GEN_REQUEST";
+	static const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
+	static const std::string TEST = "TEST";
 
 	// Convert multipart msg to string
-	static std::string multi_to_str(const std::vector<zmq::message_t>& resp)
+	inline std::string multi_to_str(const std::vector<zmq::message_t>& resp)
 	{
+		if (resp[0].to_string_view() == "TEST")
+		{
+			int i = 0;
+			i++;
+		}
 		std::stringstream s;
 		s << "[" << resp[0].to_string_view() << "]: [";
 		for (int i = 1; i < resp.size(); i++)
 		{
-			s << resp[i].to_string_view();
+			std::string_view sv = resp[i].to_string_view();
+			bool printable = true;
+			for (auto c : sv)
+			{
+				if (c < 32 || c > 126)
+				{
+					printable = false;
+				}
+			}
+			if (printable)
+			{
+				s << sv;
+			}
+			else
+			{
+				s << "<binary data>";
+			}
 			if (i != resp.size() - 1)
 			{
 				s << ", ";
@@ -52,7 +78,7 @@ namespace msg
 		return out.str();
 	}
 
-	inline std::future<void> launch_thread_wait_until_ready(zmq::context_t& ctx, notifier_thread thread)
+	inline std::future<void> launch_thread_wait_until_ready(notifier_thread thread)
 	{
 		// Listen to bus start
 		std::string unique_addr = gen_unique_addr();
@@ -80,7 +106,7 @@ namespace msg
 		return result;
 	}
 
-	std::future<void> launch_bus_proxy(zmq::context_t& ctx);
+	//std::future<void> run_message_bus(zmq::context_t& ctx);
 }
 //
 //int main()

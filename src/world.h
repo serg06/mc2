@@ -3,14 +3,14 @@
 #include "contiguous_hashmap.h"
 #include "chunk.h"
 #include "chunkdata.h"
+#include "messaging.h"
 #include "minichunkmesh.h"
 #include "render.h"
 #include "shapes.h"
 #include "util.h"
-#include "vmath.h"
-#include "zmq.h"
-#include "zmq.hpp"
 
+#include "vmath.h"
+#include "zmq_addon.hpp"
 
 #include <assert.h>
 #include <chrono>
@@ -140,8 +140,8 @@ public:
 	int current_tick = 0;
 
 	// zmq
-	zmq::context_t* ctx;
-	zmq::socket_t mesh_socket;
+	zmq::socket_t bus_in;
+	zmq::socket_t bus_out;
 
 	// water propagation min-priority queue
 	// maps <tick to propagate water at> to <coordinate of water>
@@ -151,19 +151,24 @@ public:
 
 	void exit()
 	{
+		bus_out.close();
 		MeshGenRequest* req = nullptr;
 		zmq::message_t msg(&req, sizeof(req));
-		zmq::send_result_t result = mesh_socket.send(msg, zmq::send_flags::dontwait);
-		while (!result)
-		{
-			std::this_thread::sleep_for(std::chrono::microseconds(1));
-			result = mesh_socket.send(msg, zmq::send_flags::dontwait);
-		}
-		mesh_socket.close();
+		std::vector<zmq::const_buffer> message({
+			zmq::buffer(msg::EXIT)
+			});
+
+		zmq::send_result_t result = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
+		assert(result);
+		bus_in.close();
 	}
 
-	World(zmq::context_t* ctx_) : ctx(ctx_), mesh_socket(*ctx, zmq::socket_type::pair) {
-		mesh_socket.connect("inproc://mesh-gen");
+	World(zmq::context_t* ctx_) : bus_in(msg::ctx, zmq::socket_type::pub), bus_out(msg::ctx, zmq::socket_type::sub) {
+		//bus_in.setsockopt(ZMQ_SNDHWM, 1000 * 1000);
+		bus_in.connect(addr::MSG_BUS_IN);
+		bus_out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+		//bus_out.setsockopt(ZMQ_RCVHWM, 1000 * 1000);
+		bus_out.connect(addr::MSG_BUS_OUT);
 	}
 
 	// update tick to *new_tick*
@@ -196,12 +201,6 @@ public:
 	inline void enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool front_of_queue = false) {
 		assert(mini != nullptr && "seriously?");
 
-#ifdef _DEBUG
-		std::stringstream out;
-		out << "Enqueue coords " << vec2str(mini->get_coords()) << "\n";
-		OutputDebugString(out.str().c_str());
-#endif //_DEBUG
-
 		// check if mini in set
 		MeshGenRequest* req = new MeshGenRequest();
 		req->coords = mini->get_coords();
@@ -222,12 +221,50 @@ public:
 		ADD(south, ISOUTH);
 #undef ADD
 
-		zmq::message_t msg(&req, sizeof(req));
-		zmq::send_result_t result = mesh_socket.send(msg, zmq::send_flags::dontwait);
-		for (; !result; result = mesh_socket.send(msg, zmq::send_flags::dontwait))
-		{
-			std::this_thread::sleep_for(std::chrono::microseconds(1));
-		}
+		std::vector<zmq::const_buffer> message({
+			zmq::buffer(msg::MESH_GEN_REQUEST),
+			zmq::buffer(&req, sizeof(req))
+			});
+		//std::array<zmq::message_t, 2> message({{
+		//	{ msg::MESH_GEN_REQUEST.c_str(), msg::MESH_GEN_REQUEST.size() },
+		//	{ &req, sizeof(req) }
+		//	}});
+
+		zmq::send_result_t result = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
+		assert(result);
+
+#ifdef _DEBUG
+		std::stringstream out;
+		out << "Enqueue coords " << vec2str(req->coords) << "\n";
+		OutputDebugString(out.str().c_str());
+#endif //_DEBUG
+
+		//zmq::message_t part1(msg::MESH_GEN_REQUEST.c_str(), msg::MESH_GEN_REQUEST.size());
+		//zmq::message_t part2(&req, sizeof(req));
+		//auto ret = bus_in.send(part1, zmq::send_flags::sndmore);
+		//assert(ret);
+		//ret = bus_in.send(part2);
+		//assert(ret);
+
+		//std::vector<zmq::const_buffer> test({
+		//	zmq::str_buffer("TEST")
+		//	//zmq::buffer(out.str())
+		//	////zmq::str_buffer("msg data 1"),
+		//	////zmq::str_buffer("msg data 2")
+		//	////zmq::const_buffer(part3, strlen(part3))
+		//	////zmq::const_buffer(&part3, sizeof(&part3))
+		//	});
+		//zmq::send_multipart(bus_in, test1);
+
+		//zmq::message_t test1("TEST", 4);
+		//bus_in.send(test1);
+
+		// just in case
+		// TODO: remove
+
+#ifdef SLEEPS
+		std::this_thread::sleep_for(std::chrono::microseconds(1));
+#endif // SLEEPS
 	}
 
 	// add chunk to chunk coords (x, z)
@@ -650,18 +687,29 @@ public:
 	inline void update_meshes()
 	{
 		// Receive all mesh-gen results
-		zmq::message_t msg;
-		zmq::recv_result_t result = mesh_socket.recv(msg, zmq::recv_flags::dontwait);
-		for (; result; result = mesh_socket.recv(msg, zmq::recv_flags::dontwait))
+		std::vector<zmq::message_t> message;
+		zmq::recv_result_t result = zmq::recv_multipart(bus_out, std::back_inserter(message), zmq::recv_flags::dontwait);
+		while (result)
 		{
-			// Extract result
-			MeshGenResult* mesh_ = *msg.data<MeshGenResult*>();
-			std::shared_ptr<MeshGenResult> mesh(mesh_);
+			// TODO: Filter
+			if (message[0].to_string_view() == msg::MESH_GEN_RESPONSE)
+			{
+				// Extract result
+				MeshGenResult* mesh_ = *message[1].data<MeshGenResult*>();
+				//std::shared_ptr<MeshGenResult> mesh(mesh_);
+				MeshGenResult* mesh = mesh_;
 
-			// Update mesh!
-			std::shared_ptr<MiniRender> mini = get_mini_render_component_or_generate(mesh->coords);
-			mini->set_mesh(std::move(mesh->mesh));
-			mini->set_water_mesh(std::move(mesh->water_mesh));
+				// Update mesh!
+				std::shared_ptr<MiniRender> mini = get_mini_render_component_or_generate(mesh->coords);
+				mini->set_mesh(std::move(mesh->mesh));
+				mini->set_water_mesh(std::move(mesh->water_mesh));
+
+				// TODO: just unique_ptr
+				delete mesh;
+			}
+
+			message.clear();
+			result = zmq::recv_multipart(bus_out, std::back_inserter(message), zmq::recv_flags::dontwait);
 		}
 	}
 
@@ -1333,9 +1381,7 @@ public:
 
 	void add_block(const ivec3& xyz, const BlockType& block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
-	MeshGenResult* gen_minichunk_mesh_from_req(MeshGenRequest* req_) {
-		std::shared_ptr<MeshGenRequest> req(req_);
-
+	MeshGenResult* gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest> req) {
 		// update invisibility
 		bool invisible = req->data->self->all_air() || check_if_covered(req);
 
@@ -1430,9 +1476,11 @@ public:
 
 		// if we're air or flowing water, adjust height
 		if (block == BlockType::Air || block == BlockType::FlowingWater) {
+#ifdef _DEBUG
 			char buf[256];
 			sprintf(buf, "Propagating water at (%d, %d, %d)\n", x, y, z);
 			OutputDebugString(buf);
+#endif // _DEBUG
 
 			uint8_t water_level = block == BlockType::FlowingWater ? get_metadata(x, y, z).get_liquid_level() : block == BlockType::StillWater ? 7 : 0;
 			uint8_t new_water_level = water_level;
