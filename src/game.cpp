@@ -144,14 +144,6 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
 #endif // SLEEPS
 			}
-#ifdef _DEBUG
-			else
-			{
-				std::stringstream out;
-				out << "Warn: nullptr mesh for " << vec2str(req->coords) << "\n";
-				OutputDebugString(out.str().c_str());
-			}
-#endif // _DEBUG
 		}
 		// otherwise wait to try again
 		else
