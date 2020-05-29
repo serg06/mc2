@@ -221,14 +221,11 @@ public:
 		ADD(south, ISOUTH);
 #undef ADD
 
+		// TODO: Figure out how to do zero-copy messaging since we don't need to copy msg::MESH_GEN_REQ (it's static const)
 		std::vector<zmq::const_buffer> message({
 			zmq::buffer(msg::MESH_GEN_REQUEST),
 			zmq::buffer(&req, sizeof(req))
 			});
-		//std::array<zmq::message_t, 2> message({{
-		//	{ msg::MESH_GEN_REQUEST.c_str(), msg::MESH_GEN_REQUEST.size() },
-		//	{ &req, sizeof(req) }
-		//	}});
 
 		zmq::send_result_t result = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
 		assert(result);
