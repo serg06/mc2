@@ -239,30 +239,8 @@ public:
 		OutputDebugString(out.str().c_str());
 #endif //_DEBUG
 
-		//zmq::message_t part1(msg::MESH_GEN_REQUEST.c_str(), msg::MESH_GEN_REQUEST.size());
-		//zmq::message_t part2(&req, sizeof(req));
-		//auto ret = bus_in.send(part1, zmq::send_flags::sndmore);
-		//assert(ret);
-		//ret = bus_in.send(part2);
-		//assert(ret);
-
-		//std::vector<zmq::const_buffer> test({
-		//	zmq::str_buffer("TEST")
-		//	//zmq::buffer(out.str())
-		//	////zmq::str_buffer("msg data 1"),
-		//	////zmq::str_buffer("msg data 2")
-		//	////zmq::const_buffer(part3, strlen(part3))
-		//	////zmq::const_buffer(&part3, sizeof(&part3))
-		//	});
-		//zmq::send_multipart(bus_in, test1);
-
-		//zmq::message_t test1("TEST", 4);
-		//bus_in.send(test1);
-
-		// just in case
-		// TODO: remove
-
 #ifdef SLEEPS
+		// Just in case
 		std::this_thread::sleep_for(std::chrono::microseconds(1));
 #endif // SLEEPS
 	}
