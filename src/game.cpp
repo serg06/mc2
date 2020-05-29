@@ -60,8 +60,8 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 	{
 		// read all messages
 		std::vector<zmq::message_t> msg;
-		zmq::recv_result_t result = zmq::recv_multipart(bus_out, std::back_inserter(msg), zmq::recv_flags::dontwait);
-		while (result)
+		auto ret = zmq::recv_multipart(bus_out, std::back_inserter(msg), zmq::recv_flags::dontwait);
+		while (ret)
 		{
 			if (msg[0].to_string_view() == msg::EXIT)
 			{
@@ -103,7 +103,7 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 			}
 
 			msg.clear();
-			result = zmq::recv_multipart(bus_out, std::back_inserter(msg), zmq::recv_flags::dontwait);
+			ret = zmq::recv_multipart(bus_out, std::back_inserter(msg), zmq::recv_flags::dontwait);
 		}
 
 		if (stop) break;
@@ -134,10 +134,10 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 				// send it
 				std::vector<zmq::const_buffer> result({
 					zmq::buffer(msg::MESH_GEN_RESPONSE),
-					zmq::const_buffer(&mesh, sizeof(mesh))
+					zmq::buffer(&mesh, sizeof(mesh))
 					});
-				zmq::send_result_t send_result = zmq::send_multipart(bus_in, result, zmq::send_flags::dontwait);
-				assert(send_result);
+				auto ret = zmq::send_multipart(bus_in, result, zmq::send_flags::dontwait);
+				assert(ret);
 
 #ifdef SLEEPS
 				// JUST IN CASE

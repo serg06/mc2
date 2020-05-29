@@ -97,8 +97,8 @@ namespace msg
 
 		// Wait for response
 		std::vector<zmq::message_t> recv_msgs;
-		auto res = zmq::recv_multipart(pull, std::back_inserter(recv_msgs));
-		assert(res);
+		auto ret = zmq::recv_multipart(pull, std::back_inserter(recv_msgs));
+		assert(ret);
 		assert(recv_msgs[0].to_string_view() == msg::READY);
 		pull.close();
 

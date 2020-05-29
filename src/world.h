@@ -152,14 +152,12 @@ public:
 	void exit()
 	{
 		bus_out.close();
-		MeshGenRequest* req = nullptr;
-		zmq::message_t msg(&req, sizeof(req));
 		std::vector<zmq::const_buffer> message({
 			zmq::buffer(msg::EXIT)
 			});
 
-		zmq::send_result_t result = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
-		assert(result);
+		auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
+		assert(ret);
 		bus_in.close();
 	}
 
@@ -227,8 +225,8 @@ public:
 			zmq::buffer(&req, sizeof(req))
 			});
 
-		zmq::send_result_t result = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
-		assert(result);
+		auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
+		assert(ret);
 
 #ifdef _DEBUG
 		std::stringstream out;
@@ -663,8 +661,8 @@ public:
 	{
 		// Receive all mesh-gen results
 		std::vector<zmq::message_t> message;
-		zmq::recv_result_t result = zmq::recv_multipart(bus_out, std::back_inserter(message), zmq::recv_flags::dontwait);
-		while (result)
+		auto ret = zmq::recv_multipart(bus_out, std::back_inserter(message), zmq::recv_flags::dontwait);
+		while (ret)
 		{
 			// TODO: Filter
 			if (message[0].to_string_view() == msg::MESH_GEN_RESPONSE)
@@ -684,7 +682,7 @@ public:
 			}
 
 			message.clear();
-			result = zmq::recv_multipart(bus_out, std::back_inserter(message), zmq::recv_flags::dontwait);
+			ret = zmq::recv_multipart(bus_out, std::back_inserter(message), zmq::recv_flags::dontwait);
 		}
 	}
 
