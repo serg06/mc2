@@ -114,12 +114,6 @@ struct MeshGenRequest
 	std::shared_ptr<MeshGenRequestData> data;
 };
 
-// TODO: Replace
-inline bool operator==(const std::shared_ptr<MeshGenRequest>& lhs, const std::shared_ptr<MeshGenRequest>& rhs)
-{
-	return lhs->coords == rhs->coords;
-}
-
 // represents an in-game world
 class World {
 public:
