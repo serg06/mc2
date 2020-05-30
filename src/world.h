@@ -145,14 +145,18 @@ public:
 
 	void exit()
 	{
-		bus_out.close();
 		std::vector<zmq::const_buffer> message({
 			zmq::buffer(msg::EXIT)
 			});
 
 		auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
 		assert(ret);
+		
+		// TODO: Completely separate mesh-gen and world, so that I can make App
+		//   a non-static variable, so that the destructor is called, so that I
+		//   don't have to call these manually.
 		bus_in.close();
+		bus_out.close();
 	}
 
 	World(zmq::context_t* ctx_) : bus_in(msg::ctx, zmq::socket_type::pub), bus_out(msg::ctx, zmq::socket_type::sub) {

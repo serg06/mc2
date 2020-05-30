@@ -96,7 +96,6 @@ namespace msg
 			zmq::socket_t push(ctx, zmq::socket_type::push);
 			push.connect(unique_addr);
 			push.send(zmq::buffer(msg::READY));
-			push.close();
 		};
 
 		// Launch
@@ -107,7 +106,6 @@ namespace msg
 		auto ret = zmq::recv_multipart(pull, std::back_inserter(recv_msgs));
 		assert(ret);
 		assert(recv_msgs[0].to_string_view() == msg::READY);
-		pull.close();
 
 		// Done
 		return result;

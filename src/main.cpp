@@ -28,11 +28,6 @@ void MessageBus(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 
 	// receive and send repeatedly
 	zmq::proxy_steerable(subscriber, publisher, nullptr, control);
-
-	// wew
-	// TODO: Try without this!
-	subscriber.close();
-	publisher.close();
 }
 
 #ifdef _DEBUG
@@ -64,9 +59,6 @@ void ListenerThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 			stop = true;
 		}
 	}
-
-	bus_in.close();
-	bus_out.close();
 }
 
 void SenderThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
@@ -85,6 +77,7 @@ void SenderThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 	// send int every second
 	int i = 0;
 	bool stop = false;
+	std::chrono::time_point<std::chrono::high_resolution_clock> last_send_time = std::numeric_limits<std::chrono::time_point<std::chrono::high_resolution_clock>>::max();
 	while (!stop)
 	{
 		// read in all messages and check for exit message
@@ -101,19 +94,23 @@ void SenderThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 			ret_in = zmq::recv_multipart(bus_out, std::back_inserter(message_in), zmq::recv_flags::dontwait);
 		}
 
-		// send message and sleep
-		std::string tmp = std::to_string(i++);
-		std::vector<zmq::const_buffer> message_out({
-			zmq::str_buffer("test"),
-			zmq::buffer(tmp),
-			});
-		auto ret_out = zmq::send_multipart(bus_in, message_out, zmq::send_flags::dontwait);
-		assert(ret_out);
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-	}
+		// if it's time to send, send
+		auto now = std::chrono::high_resolution_clock::now();
+		if (now - last_send_time > std::chrono::seconds(1))
+		{
+			std::string tmp = std::to_string(i++);
+			std::vector<zmq::const_buffer> message_out({
+				zmq::str_buffer("test"),
+				zmq::buffer(tmp),
+				});
+			auto ret_out = zmq::send_multipart(bus_in, message_out, zmq::send_flags::dontwait);
+			assert(ret_out);
+			last_send_time = now;
+		}
 
-	bus_in.close();
-	bus_out.close();
+		// sleep
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
 }
 #endif // _DEBUG
 
@@ -161,10 +158,8 @@ int main()
 
 	// Everyone's done, shut down bus
 	auto ret = msg_bus_control.send(zmq::buffer(msg::TERMINATE));
+	msg_bus_thread.wait();
 	assert(ret);
-
-	int a = 0;
-	a++;
 }
 
 #ifdef _WIN32

@@ -87,7 +87,7 @@ public:
 	float char_yaw = 0.0f;   // left/right angle; un-capped (TODO: Reset it if it gets too high?)
 
 	// misc
-	World* world = nullptr;
+	std::unique_ptr<World> world;
 	ivec3 staring_at = { 0, -1, 0 }; // the block you're staring at (invalid by default)
 	ivec3 staring_at_face; // the face you're staring at on the block you're staring at
 	BlockType held_block = BlockType::StillWater;

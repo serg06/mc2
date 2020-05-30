@@ -151,9 +151,6 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 			std::this_thread::sleep_for(std::chrono::microseconds(1));
 		}
 	}
-
-	bus_in.close();
-	bus_out.close();
 }
 
 void App::run() {
@@ -217,7 +214,7 @@ void App::startup() {
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
-	world = new World(&ctx);
+	world = std::make_unique<World>(&ctx);
 
 	// prepare opengl
 	setup_opengl(&windowInfo, &glInfo);
