@@ -46,7 +46,8 @@ void ListenerThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 	on_ready();
 
 	// print all messages
-	while (true)
+	bool stop = false;
+	while (!stop)
 	{
 		std::vector<zmq::message_t> message;
 		auto ret = zmq::recv_multipart(bus_out, std::back_inserter(message));
@@ -54,6 +55,10 @@ void ListenerThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 		std::stringstream out;
 		out << "Listener: " << msg::multi_to_str(message) << "\n";
 		OutputDebugString(out.str().c_str());
+		if (message[0].to_string_view() == msg::EXIT)
+		{
+			stop = true;
+		}
 	}
 
 	bus_in.close();
@@ -75,15 +80,31 @@ void SenderThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 
 	// send int every second
 	int i = 0;
-	while (true)
+	bool stop = false;
+	while (!stop)
 	{
+		// read in all messages and check for exit message
+		std::vector<zmq::message_t> message_in;
+		auto ret_in = zmq::recv_multipart(bus_out, std::back_inserter(message_in), zmq::recv_flags::dontwait);
+		while (ret_in)
+		{
+			if (message_in[0].to_string_view() == msg::EXIT)
+			{
+				stop = true;
+				break;
+			}
+			message_in.clear();
+			ret_in = zmq::recv_multipart(bus_out, std::back_inserter(message_in), zmq::recv_flags::dontwait);
+		}
+
+		// send message and sleep
 		std::string tmp = std::to_string(i++);
-		std::vector<zmq::const_buffer> message({
+		std::vector<zmq::const_buffer> message_out({
 			zmq::str_buffer("test"),
 			zmq::buffer(tmp),
 			});
-		auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
-		assert(ret);
+		auto ret_out = zmq::send_multipart(bus_in, message_out, zmq::send_flags::dontwait);
+		assert(ret_out);
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 
@@ -121,6 +142,18 @@ int main()
 
 	// Run game!
 	run_game();
+
+	// Debug
+	mesh_gen_thread.wait();
+
+#ifdef _DEBUG
+	listener_thread.wait();
+	sender_thread.wait();
+#endif // _DEBUG
+	msg_bus_thread.wait();
+
+	int a = 0;
+	a++;
 }
 
 #ifdef _WIN32

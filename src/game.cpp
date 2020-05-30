@@ -28,8 +28,6 @@ using namespace vmath;
 
 std::unique_ptr<App> App::app;
 
-static bool stop = false;
-
 void run_game()
 {
 	glfwSetErrorCallback(glfw_onError);
@@ -56,6 +54,7 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 	// TODO: Wait for "START" then unsubscribe and start
 
 	// run thread until stopped
+	bool stop = false;
 	while (!stop)
 	{
 		// read all messages
@@ -99,7 +98,8 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 			else
 			{
 				std::stringstream s;
-				s << "MeshGen: Unknown msg [" << msg[0].to_string_view() << "\n";
+				s << "MeshGen: Unknown msg [" << msg[0].to_string_view() << "]" << "\n";
+				OutputDebugString(s.str().c_str());
 			}
 
 			msg.clear();
@@ -151,6 +151,9 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 			std::this_thread::sleep_for(std::chrono::microseconds(1));
 		}
 	}
+
+	bus_in.close();
+	bus_out.close();
 }
 
 void App::run() {
@@ -200,8 +203,8 @@ void App::run() {
 	}
 
 	// Stop all other threads
-	stop = true;
 	world->exit();
+	// TODO: Have app run on separate thread, keep sending EXIT until they all exit.
 	for (auto& fut : chunk_gen_futures) {
 		fut.wait_for(std::chrono::seconds(1));
 		OutputDebugString("Still waiting...\n");
