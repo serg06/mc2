@@ -12,6 +12,7 @@ namespace addr
 {
 	static const std::string MSG_BUS_IN = "inproc://bus-in";
 	static const std::string MSG_BUS_OUT = "inproc://bus-out";
+	static const std::string MSG_BUS_CONTROL = "inproc://bus-control";
 }
 
 namespace msg
@@ -29,6 +30,12 @@ namespace msg
 	static const std::string MESH_GEN_REQUEST = "MESH_GEN_REQUEST";
 	static const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
 	static const std::string TEST = "TEST";
+
+	// zmq_proxy_steerable messages BEGIN
+	static const std::string PAUSE = "PAUSE";
+	static const std::string RESUME = "RESUME";
+	static const std::string TERMINATE = "TERMINATE";
+	// zmq_proxy_steerable messages END
 
 	// Convert multipart msg to string
 	inline std::string multi_to_str(const std::vector<zmq::message_t>& resp)

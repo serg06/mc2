@@ -9,24 +9,28 @@
 
 void MessageBus(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 {
-	// create sub/pub
+	// create pub/sub
+	zmq::socket_t publisher(*ctx, zmq::socket_type::pub);
+	publisher.setsockopt(ZMQ_SNDHWM, 1000 * 1000);
+	publisher.bind(addr::MSG_BUS_OUT);
+
 	zmq::socket_t subscriber(*ctx, zmq::socket_type::sub);
 	subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 	subscriber.setsockopt(ZMQ_RCVHWM, 1000 * 1000);
 	subscriber.bind(addr::MSG_BUS_IN);
 
-	zmq::socket_t publisher(*ctx, zmq::socket_type::pub);
-	publisher.setsockopt(ZMQ_SNDHWM, 1000 * 1000);
-	publisher.bind(addr::MSG_BUS_OUT);
+	// create control socket
+	zmq::socket_t control(*ctx, zmq::socket_type::pair);
+	control.bind(addr::MSG_BUS_CONTROL);
 
 	// connect to creator and tell them we're ready
 	on_ready();
 
 	// receive and send repeatedly
-	// TODO: Change to proxy_steerable so we can remotely shut it down
-	zmq::proxy_steerable(subscriber, publisher, nullptr, nullptr);
+	zmq::proxy_steerable(subscriber, publisher, nullptr, control);
 
 	// wew
+	// TODO: Try without this!
 	subscriber.close();
 	publisher.close();
 }
@@ -140,6 +144,10 @@ int main()
 	//	std::this_thread::sleep_for(std::chrono::seconds(1));
 	//}
 
+	// Msg bus control socket
+	zmq::socket_t msg_bus_control(msg::ctx, zmq::socket_type::pair);
+	msg_bus_control.connect(addr::MSG_BUS_CONTROL);
+
 	// Run game!
 	run_game();
 
@@ -150,7 +158,10 @@ int main()
 	listener_thread.wait();
 	sender_thread.wait();
 #endif // _DEBUG
-	msg_bus_thread.wait();
+
+	// Everyone's done, shut down bus
+	auto ret = msg_bus_control.send(zmq::buffer(msg::TERMINATE));
+	assert(ret);
 
 	int a = 0;
 	a++;
