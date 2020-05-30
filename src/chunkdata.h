@@ -235,7 +235,7 @@ public:
 	}
 
 	inline bool any_air() {
-		for (auto iter = blocks.get_interval(0); iter != blocks.end(); iter++) {
+		for (auto iter = blocks.get_interval(0); iter != blocks.end(); ++iter) {
 			if (iter->first < width*depth*height && iter->second == BlockType::Air) {
 				return true;
 			}
@@ -247,7 +247,7 @@ public:
 	}
 
 	inline bool any_translucent() {
-		for (auto iter = this->blocks.get_interval(0); iter != blocks.end(); iter++) {
+		for (auto iter = this->blocks.get_interval(0); iter != blocks.end(); ++iter) {
 			if (iter->first < width*depth*height && iter->second.is_translucent()) {
 				return true;
 			}

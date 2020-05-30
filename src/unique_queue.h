@@ -108,7 +108,7 @@ public:
 	void print_inorder()
 	{
 		std::cout << "[";
-		for (auto iter = list.begin(); iter != list.end(); iter++)
+		for (auto iter = list.begin(); iter != list.end(); ++iter)
 		{
 			std::cout << iter->second;
 			if (std::next(iter) != list.end())
@@ -123,7 +123,7 @@ public:
 	void print_with_keys()
 	{
 		std::cout << "[";
-		for (auto iter = map.begin(); iter != map.end(); iter++)
+		for (auto iter = map.begin(); iter != map.end(); ++iter)
 		{
 			std::cout << "(" << iter->first << ", " << (*(iter->second)).second << ")";
 			if (std::next(iter) != map.end())

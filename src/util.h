@@ -273,12 +273,13 @@ public:
 
 // generate all points in a circle a center
 // TODO: cache
+// TODO: return std::array using -> to specify return type?
 static inline std::vector<ivec2> gen_circle(const int radius, const ivec2 center = { 0, 0 }) {
 	std::vector<ivec2> result;
 	result.reserve(4 * radius * radius + 4 * radius + 1); // always makes <= (2r+1)^2 = 4r^2 + 4r + 1 elements
 
 	CircleGenerator cg(radius);
-	for (auto iter = cg.begin(); iter != cg.end(); iter++) {
+	for (auto iter = cg.begin(); iter != cg.end(); ++iter) {
 		result.push_back(*iter + center);
 	}
 
