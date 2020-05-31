@@ -76,8 +76,8 @@ public:
 
 	void allocate();
 
-	// TODO: replace allocate() and free() with just reset()
-	void free();
+	// TODO: replace allocate() and clear() with just reset()
+	void clear();
 
 	int size() const;
 

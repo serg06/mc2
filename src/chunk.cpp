@@ -177,7 +177,7 @@ void Chunk::set_metadata(const int x, const int y, const int z, const Metadata& 
 void Chunk::set_metadata(const vmath::ivec3& xyz, const Metadata& val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
 void Chunk::set_metadata(const vmath::ivec4& xyz_, const Metadata& val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
 
-void Chunk::free() {
+void Chunk::clear() {
 	for (auto& mini : minis) {
 		mini.reset();
 	}

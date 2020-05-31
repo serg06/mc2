@@ -71,7 +71,7 @@ public:
 	void set_metadata(const vmath::ivec4& xyz_, const Metadata& val);
 
 	// TODO: Rename to clear()
-	void free();
+	void clear();
 
 	std::vector<vmath::ivec2> surrounding_chunks() const;
 

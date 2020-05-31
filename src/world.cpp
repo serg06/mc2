@@ -1738,8 +1738,8 @@ namespace WorldTests {
 	//		}
 	//	}
 
-	//	// free
-	//	chunk->free();
+	//	// clear
+	//	chunk->clear();
 	//}
 
 	void test_gen_quads() {

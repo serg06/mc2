@@ -85,8 +85,8 @@ void ChunkData::allocate() {
 	lightings.clear(0);
 }
 
-// TODO: replace allocate() and free() with just reset()
-void ChunkData::free() {
+// TODO: replace allocate() and clear() with just reset()
+void ChunkData::clear() {
 	blocks.clear(BlockType::Air);
 	metadatas.clear(0);
 	lightings.clear(0);
