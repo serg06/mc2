@@ -122,14 +122,6 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 			assert(req);
 
 			// generate a mesh if possible
-			App* app = App::app.get();
-			if (app == nullptr)
-			{
-				// world not ready yet
-				OutputDebugString("Warn: app is null\n");
-				std::this_thread::sleep_for(std::chrono::microseconds(1));
-				continue;
-			}
 			MeshGenResult* mesh = gen_minichunk_mesh_from_req(req);
 			if (mesh != nullptr)
 			{
