@@ -27,13 +27,6 @@
 #include <sstream>
 #include <string>
 
-
-#include <chrono>
-
-/*************************************************************/
-/* PLACING TESTS IN HERE UNTIL I LEARN HOW TO DO IT PROPERLY */
-/*************************************************************/
-
 static constexpr void gen_working_indices(const int& layers_idx, int& working_idx_1, int& working_idx_2) {
 	switch (layers_idx) {
 	case 0:
@@ -1663,7 +1656,9 @@ std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGen
 
 
 
-
+/*************************************************************/
+/* PLACING TESTS IN HERE UNTIL I LEARN HOW TO DO IT PROPERLY */
+/*************************************************************/
 
 
 #include "minichunk.h"
