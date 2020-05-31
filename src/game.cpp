@@ -197,7 +197,6 @@ void App::run() {
 	// Stop all other threads
 	world_data->exit();
 	world_render->exit();
-	world_mesh->exit();
 	// TODO: Have app run on separate thread, keep sending EXIT until they all exit.
 	for (auto& fut : chunk_gen_futures) {
 		fut.wait_for(std::chrono::seconds(1));
@@ -213,8 +212,7 @@ void App::startup() {
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 	world_data = std::make_unique<WorldDataPart>(&ctx);
 	world_render = std::make_unique<WorldRenderPart>(&ctx);
-	world_mesh = std::make_unique<WorldMeshPart>(&ctx);
-
+	
 	// prepare opengl
 	setup_opengl(&windowInfo, &glInfo);
 }

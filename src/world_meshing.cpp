@@ -1,7 +1,5 @@
 #include "world_meshing.h"
 
-WorldMeshPart::WorldMeshPart(zmq::context_t* const ctx_) : WorldCommonPart(ctx_) {}
-
 // Private functions
 vector<Quad3D> quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face);
 void gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]);
