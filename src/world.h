@@ -561,53 +561,6 @@ public:
 	inline void set_type(const vmath::ivec3& xyz, const BlockType& val) { return set_type(xyz[0], xyz[1], xyz[2], val); }
 	inline void set_type(const vmath::ivec4& xyz_, const BlockType& val) { return set_type(xyz_[0], xyz_[1], xyz_[2], val); }
 
-	inline bool check_if_covered(MiniChunk& mini) {
-		// if contains any translucent blocks, don't know how to handle that yet
-		// TODO?
-		if (mini.any_translucent()) {
-			return false;
-		}
-
-		// none are air, so only check outside blocks
-		for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
-			for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
-				for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
-					const auto& mini_coords = mini.get_coords();
-					const vmath::ivec3 coords = { mini_coords[0] * CHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * CHUNK_DEPTH + miniZ };
-
-					// if along east wall, check east
-					if (miniX == CHUNK_WIDTH - 1) {
-						if (get_type(clamp_coords_to_world(coords + IEAST)).is_translucent()) return false;
-					}
-					// if along west wall, check west
-					if (miniX == 0) {
-						if (get_type(clamp_coords_to_world(coords + IWEST)).is_translucent()) return false;
-					}
-
-					// if along north wall, check north
-					if (miniZ == 0) {
-						if (get_type(clamp_coords_to_world(coords + INORTH)).is_translucent()) return false;
-					}
-					// if along south wall, check south
-					if (miniZ == CHUNK_DEPTH - 1) {
-						if (get_type(clamp_coords_to_world(coords + ISOUTH)).is_translucent()) return false;
-					}
-
-					// if along bottom wall, check bottom
-					if (miniY == 0) {
-						if (get_type(clamp_coords_to_world(coords + IDOWN)).is_translucent()) return false;
-					}
-					// if along top wall, check top
-					if (miniY == MINICHUNK_HEIGHT - 1) {
-						if (get_type(clamp_coords_to_world(coords + IUP)).is_translucent()) return false;
-					}
-				}
-			}
-		}
-
-		return true;
-	}
-
 	inline bool check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 		// if contains any translucent blocks, don't know how to handle that yet
 		// TODO?
@@ -743,11 +696,6 @@ public:
 	}
 
 	// check if a mini is visible in a frustum
-	static inline bool mini_in_frustum(const MiniChunk* mini, const vmath::vec4(&planes)[6]) {
-		return sphere_in_frustrum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
-	}
-
-	// check if a mini is visible in a frustum
 	static inline bool mini_in_frustum(const MiniRender* mini, const vmath::vec4(&planes)[6]) {
 		return sphere_in_frustrum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
 	}
@@ -864,27 +812,6 @@ public:
 	static inline bool is_face_visible(const BlockType& block, const BlockType& face_block) {
 		return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 	}
-
-	inline void gen_layer(const std::shared_ptr<MiniChunk> mini, const int layers_idx, const int layer_no, const ivec3& face, BlockType(&result)[16][16]) {
-		// get coordinates of a random block
-		ivec3 coords = { 0, 0, 0 };
-		coords[layers_idx] = layer_no;
-		const ivec3 face_coords = coords + face;
-
-		// figure out which mini has our face layer (usually ours)
-		std::shared_ptr<MiniChunk> face_mini;
-		if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
-			face_mini = mini;
-		}
-		else {
-			const auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
-			face_mini = (face_mini_coords[1] < 0 || face_mini_coords[1] > BLOCK_MAX_HEIGHT - MINICHUNK_HEIGHT) ? nullptr : get_mini(face_mini_coords);
-		}
-
-		// generate layer
-		gen_layer_generalized(mini, face_mini, layers_idx, layer_no, face, result);
-	}
-
 
 	inline void gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const ivec3& face, BlockType(&result)[16][16]) {
 		// get coordinates of a random block
@@ -1758,6 +1685,5 @@ public:
 	//	return 1.0F - heightSum / (float)sumDivisor;
 	//}
 
-	std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MiniChunk> mini);
 	std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req);
 };

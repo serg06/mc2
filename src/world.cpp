@@ -279,69 +279,6 @@ namespace WorldTests {
 
 }
 
-std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MiniChunk> mini) {
-	// got our mesh
-	std::unique_ptr<MiniChunkMesh> mesh = std::make_unique<MiniChunkMesh>();
-
-	// for all 6 sides
-	for (int i = 0; i < 6; i++) {
-		bool backface = i < 3;
-		int layers_idx = i % 3;
-
-		// most efficient to traverse working_idx_1 then working_idx_2;
-		int working_idx_1, working_idx_2;
-		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
-
-		// generate face variable
-		ivec3 face = { 0, 0, 0 };
-		// I don't think it matters whether we start with front or back face, as long as we switch halfway through.
-		// BACKFACE => +X/+Y/+Z SIDE. 
-		face[layers_idx] = backface ? -1 : 1;
-
-		// for each layer
-		for (int i = 0; i < 16; i++) {
-			BlockType layer[16][16];
-			bool merged[16][16];
-
-			// extract it from the data
-			gen_layer(mini, layers_idx, i, face, layer);
-
-			// get quads from layer
-			vector<Quad2D> quads2d = gen_quads(layer, merged);
-
-			// if -x, -y, or +z, flip triangles around so that we're not drawing them backwards
-			if (face[0] < 0 || face[1] < 0 || face[2] > 0) {
-				for (auto& quad2d : quads2d) {
-					ivec2 diffs = quad2d.corners[1] - quad2d.corners[0];
-					quad2d.corners[0][0] += diffs[0];
-					quad2d.corners[1][0] -= diffs[0];
-				}
-			}
-
-			// TODO: rotate texture sides the correct way. (It's noticeable when placing down diamond block.)
-			// -> Or alternatively, can just rotate texture lmao.
-
-			// convert quads back to 3D coordinates
-			vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
-
-			// if not backface (i.e. not facing (0,0,0)), move 1 forwards
-			if (face[0] > 0 || face[1] > 0 || face[2] > 0) {
-				for (auto& quad : quads) {
-					quad.corner1 += face;
-					quad.corner2 += face;
-				}
-			}
-
-			// append quads
-			for (auto quad : quads) {
-				mesh->add_quad(quad);
-			}
-		}
-	}
-
-	return mesh;
-}
-
 std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req) {
 	// got our mesh
 	std::unique_ptr<MiniChunkMesh> mesh = std::make_unique<MiniChunkMesh>();
