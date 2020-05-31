@@ -28,13 +28,11 @@
 using namespace std;
 using namespace vmath;
 
-std::unique_ptr<App> App::app;
-
 void run_game()
 {
 	glfwSetErrorCallback(glfw_onError);
-	App::app = make_unique<App>();
-	App::app->run();
+	App app;
+	app.run();
 }
 
 // thread for generating new chunk meshes
@@ -151,6 +149,9 @@ void App::run() {
 	// create glfw window
 	setup_glfw(&windowInfo, &window);
 
+	// point window to app for glfw callbacks
+	glfwSetWindowUserPointer(window, this);
+
 	// set callbacks
 	glfwSetWindowSizeCallback(window, glfw_onResize);
 	glfwSetKeyCallback(window, glfw_onKey);
@@ -164,7 +165,7 @@ void App::run() {
 		{
 			glEnable(GL_DEBUG_OUTPUT);
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-			glDebugMessageCallback((GLDEBUGPROC)gl_onDebugMessage, nullptr);
+			glDebugMessageCallback((GLDEBUGPROC)gl_onDebugMessage, this);
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 		}
 	}
@@ -775,28 +776,34 @@ namespace {
 	}
 
 	void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
-		App::app->onKey(window, key, scancode, action, mods);
+		App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+		app->onKey(window, key, scancode, action, mods);
 	}
 
 	void glfw_onMouseMove(GLFWwindow* window, double x, double y) {
-		App::app->onMouseMove(window, x, y);
+		App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+		app->onMouseMove(window, x, y);
 	}
 
 	void glfw_onResize(GLFWwindow* window, int width, int height) {
-		App::app->onResize(window, width, height);
+		App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+		app->onResize(window, width, height);
 	}
 
 	void glfw_onMouseButton(GLFWwindow* window, int button, int action, int mods)
 	{
-		App::app->onMouseButton(button, action);
+		App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+		app->onMouseButton(button, action);
 	}
 
 	static void glfw_onMouseWheel(GLFWwindow* window, double xoffset, double yoffset)
 	{
-		App::app->onMouseWheel(yoffset);
+		App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+		app->onMouseWheel(yoffset);
 	}
 
 	void APIENTRY gl_onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam) {
-		App::app->onDebugMessage(source, type, id, severity, length, message);
+		App* app = static_cast<App*>(userParam);
+		app->onDebugMessage(source, type, id, severity, length, message);
 	}
 }

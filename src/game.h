@@ -30,9 +30,6 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready);
 
 class App {
 public:
-	/* ETC */
-	static std::unique_ptr<App> app;
-
 	// zmq
 	zmq::context_t ctx;
 
