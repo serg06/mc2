@@ -1,5 +1,32 @@
-#include "minichunk.h"
 #include "world.h"
+
+#include "contiguous_hashmap.h"
+#include "chunk.h"
+#include "chunkdata.h"
+#include "messaging.h"
+#include "minichunkmesh.h"
+#include "render.h"
+#include "shapes.h"
+#include "util.h"
+
+#include "vmath.h"
+#include "zmq_addon.hpp"
+
+#include <assert.h>
+#include <chrono>
+#include <condition_variable>
+#include <functional>
+#include <queue>
+#include <string>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include <sstream>
+#include <string>
+
 
 #include <chrono>
 
@@ -1639,7 +1666,8 @@ std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGen
 
 
 
-
+#include "minichunk.h"
+#include <chrono>
 
 namespace WorldTests {
 	void run_all_tests(OpenGLInfo* glInfo) {

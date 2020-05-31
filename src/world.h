@@ -1,31 +1,17 @@
 #pragma once
 
-#include "contiguous_hashmap.h"
 #include "chunk.h"
-#include "chunkdata.h"
-#include "messaging.h"
-#include "minichunkmesh.h"
-#include "render.h"
-#include "shapes.h"
-#include "util.h"
-
 #include "vmath.h"
-#include "zmq_addon.hpp"
+#include "zmq.hpp"
 
-#include <assert.h>
-#include <chrono>
-#include <condition_variable>
-#include <functional>
 #include <queue>
-#include <string>
-#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
-#include <vector>
 
-#include <sstream>
-#include <string>
+// Rendering part
+#include "contiguous_hashmap.h"
+#include "minichunkmesh.h"
+#include "render.h"
 
 // radius from center of minichunk that must be included in view frustum
 constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
