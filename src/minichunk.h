@@ -17,6 +17,16 @@ constexpr int MINICHUNK_HEIGHT = 16;
 constexpr int MINICHUNK_DEPTH = 16;
 constexpr int MINICHUNK_SIZE = MINICHUNK_WIDTH * MINICHUNK_DEPTH * MINICHUNK_HEIGHT;
 
+// TODO: Remove
+namespace {
+	// given a vec3 index, generate the other 2 indices
+	static inline void gen_working_indices2(const int& layers_idx, int& working_idx_1, int& working_idx_2) {
+		// working indices are always gonna be xy, xz, or yz.
+		working_idx_1 = layers_idx == 0 ? 1 : 0;
+		working_idx_2 = layers_idx == 2 ? 1 : 2;
+	}
+}
+
 class MiniCoords
 {
 private:
@@ -365,7 +375,7 @@ public:
 		char* tmp = result;
 
 		int working_idx_1, working_idx_2;
-		gen_working_indices(face, working_idx_1, working_idx_2);
+		gen_working_indices2(face, working_idx_1, working_idx_2);
 
 		for (int u = 0; u < 16; u++) {
 			tmp += sprintf(tmp, "[ ");
