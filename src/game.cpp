@@ -35,14 +35,35 @@ void run_game()
 	app.run();
 }
 
+namespace msg
+{
+	const std::vector<std::string> meshing_thread_incoming = {
+		msg::EXIT,
+		msg::MESH_GEN_REQUEST
+	};
+
+	const std::vector<std::string> world_thread_incoming = {
+		msg::EXIT,
+		msg::MESH_GEN_RESPONSE
+	};
+}
+
 // thread for generating new chunk meshes
-void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
+void MeshingThread(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 	// Connect to bus
 	zmq::socket_t bus_in(*ctx, zmq::socket_type::pub);
 	bus_in.connect(addr::MSG_BUS_IN);
 
 	zmq::socket_t bus_out(*ctx, zmq::socket_type::sub);
-	bus_out.setsockopt(ZMQ_SUBSCRIBE, "", 0); // TODO: filter
+#ifdef _DEBUG
+	bus_out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+#else
+	for (const auto& m : msg::meshing_thread_incoming)
+	{
+		// TODO: Upgrade zmq and replace this with .set()
+		bus_out.setsockopt(ZMQ_SUBSCRIBE, m.c_str(), m.size());
+	}
+#endif // _DEBUG
 	bus_out.connect(addr::MSG_BUS_OUT);
 
 	// Prove you're connected

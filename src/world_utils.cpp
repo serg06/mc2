@@ -17,12 +17,6 @@ void WorldCommonPart::exit() {
 
 	auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
 	assert(ret);
-
-	// TODO: Completely separate mesh-gen and world, so that I can make App
-	//   a non-static variable, so that the destructor is called, so that I
-	//   don't have to call these manually.
-	bus_in.close();
-	bus_out.close();
 }
 
 

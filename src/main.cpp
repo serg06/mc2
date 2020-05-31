@@ -121,7 +121,7 @@ int main()
 	auto msg_bus_thread = msg::launch_thread_wait_until_ready(MessageBus);
 
 	// launch mesh gen threads
-	auto mesh_gen_thread = msg::launch_thread_wait_until_ready(ChunkGenThread2);
+	auto mesh_gen_thread = msg::launch_thread_wait_until_ready(MeshingThread);
 
 #ifdef _DEBUG
 	// launch listener

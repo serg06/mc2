@@ -26,7 +26,7 @@ using namespace vmath;
 constexpr int NUM_MESH_GEN_THREADS = 1;
 
 void run_game();
-void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready);
+void MeshingThread(zmq::context_t* ctx, msg::on_ready_fn on_ready);
 
 class App {
 public:
