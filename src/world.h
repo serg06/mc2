@@ -158,13 +158,21 @@ public:
 	std::shared_ptr<MiniRender> get_mini_render_component_or_generate(const int x, const int y, const int z);
 	std::shared_ptr<MiniRender> get_mini_render_component_or_generate(const vmath::ivec3& xyz);
 
-
-	bool check_if_covered(std::shared_ptr<MeshGenRequest> req);
 	void update_meshes();
 	void render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at);
 
 	// check if a mini is visible in a frustum
 	static inline bool mini_in_frustum(const MiniRender* mini, const vmath::vec4(&planes)[6]);
+
+	static inline float intbound(const float s, const float ds);
+	void highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const int x, const int y, const int z);
+	void highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const vmath::ivec3& xyz);
+};
+
+class WorldMeshPart : public WorldCommonPart
+{
+public:
+	WorldMeshPart(zmq::context_t* const ctx_);
 
 	// convert 2D quads to 3D quads
 	// face: for offset
@@ -183,13 +191,10 @@ public:
 
 	// given a layer and start point, find its best dimensions
 	static inline vmath::ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const vmath::ivec2& start_point, const BlockType& block_type);
-
-	static inline float intbound(const float s, const float ds);
-	void highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const int x, const int y, const int z);
-	void highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const vmath::ivec3& xyz);
+	
+	bool check_if_covered(std::shared_ptr<MeshGenRequest> req);
 
 	MeshGenResult* gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest> req);
-
 	std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req);
 };
 

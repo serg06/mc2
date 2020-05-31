@@ -248,8 +248,9 @@ void WorldCommonPart::exit() {
 	bus_out.close();
 }
 
-WorldRenderPart::WorldRenderPart(zmq::context_t* ctx_) : WorldCommonPart(ctx_) {}
-WorldDataPart::WorldDataPart(zmq::context_t* ctx_) : WorldCommonPart(ctx_) {}
+WorldRenderPart::WorldRenderPart(zmq::context_t* const ctx_) : WorldCommonPart(ctx_) {}
+WorldDataPart::WorldDataPart(zmq::context_t* const ctx_) : WorldCommonPart(ctx_) {}
+WorldMeshPart::WorldMeshPart(zmq::context_t* const ctx_) : WorldCommonPart(ctx_) {}
 
 // update tick to *new_tick*
 void WorldDataPart::update_tick(const int new_tick) {
@@ -617,7 +618,7 @@ void WorldDataPart::set_type(const int x, const int y, const int z, const BlockT
 void WorldDataPart::set_type(const vmath::ivec3& xyz, const BlockType& val) { return set_type(xyz[0], xyz[1], xyz[2], val); }
 void WorldDataPart::set_type(const vmath::ivec4& xyz_, const BlockType& val) { return set_type(xyz_[0], xyz_[1], xyz_[2], val); }
 
-bool WorldRenderPart::check_if_covered(std::shared_ptr<MeshGenRequest> req) {
+bool WorldMeshPart::check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 	// if contains any translucent blocks, don't know how to handle that yet
 	// TODO?
 	if (req->data->self->any_translucent()) {
@@ -758,7 +759,7 @@ bool WorldRenderPart::mini_in_frustum(const MiniRender* mini, const vmath::vec4(
 
 // convert 2D quads to 3D quads
 // face: for offset
-vector<Quad3D> WorldRenderPart::quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face) {
+vector<Quad3D> WorldMeshPart::quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face) {
 	vector<Quad3D> result(quads2d.size());
 
 	// working variable
@@ -795,7 +796,7 @@ vector<Quad3D> WorldRenderPart::quads_2d_3d(const vector<Quad2D>& quads2d, const
 }
 
 // generate layer by grabbing face blocks directly from the minichunk
-void WorldRenderPart::gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]) {
+void WorldMeshPart::gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]) {
 	// most efficient to traverse working_idx_1 then working_idx_2;
 	int working_idx_1, working_idx_2;
 	gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -847,11 +848,11 @@ void WorldRenderPart::gen_layer_generalized(const std::shared_ptr<MiniChunk> min
 	}
 }
 
-bool WorldRenderPart::is_face_visible(const BlockType& block, const BlockType& face_block) {
+bool WorldMeshPart::is_face_visible(const BlockType& block, const BlockType& face_block) {
 	return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 }
 
-void WorldRenderPart::gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const vmath::ivec3& face, BlockType(&result)[16][16]) {
+void WorldMeshPart::gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const vmath::ivec3& face, BlockType(&result)[16][16]) {
 	// get coordinates of a random block
 	vmath::ivec3 coords = { 0, 0, 0 };
 	coords[layers_idx] = layer_no;
@@ -886,7 +887,7 @@ void WorldRenderPart::gen_layer(const std::shared_ptr<MeshGenRequest> req, const
 }
 
 // given 2D array of block numbers, generate optimal quads
-vector<Quad2D> WorldRenderPart::gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
+vector<Quad2D> WorldMeshPart::gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
 	memset(merged, false, sizeof(merged));
 
 	vector<Quad2D> result;
@@ -925,7 +926,7 @@ vector<Quad2D> WorldRenderPart::gen_quads(const BlockType(&layer)[16][16], /* co
 	return result;
 }
 
-void WorldRenderPart::mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& start, const vmath::ivec2& max_size) {
+void WorldMeshPart::mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& start, const vmath::ivec2& max_size) {
 	for (int i = start[0]; i < start[0] + max_size[0]; i++) {
 		for (int j = start[1]; j < start[1] + max_size[1]; j++) {
 			merged[i][j] = true;
@@ -934,7 +935,7 @@ void WorldRenderPart::mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& 
 }
 
 // given a layer and start point, find its best dimensions
-vmath::ivec2 WorldRenderPart::get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const vmath::ivec2& start_point, const BlockType& block_type) {
+vmath::ivec2 WorldMeshPart::get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const vmath::ivec2& start_point, const BlockType& block_type) {
 	assert(block_type != BlockType::Air);
 	assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
@@ -1163,7 +1164,7 @@ void WorldDataPart::add_block(const int x, const int y, const int z, const Block
 
 void WorldDataPart::add_block(const vmath::ivec3& xyz, const BlockType& block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
-MeshGenResult* WorldRenderPart::gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest> req) {
+MeshGenResult* WorldMeshPart::gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest> req) {
 	// update invisibility
 	bool invisible = req->data->self->all_air() || check_if_covered(req);
 
@@ -1575,7 +1576,7 @@ constexpr  float liquid_level_to_height(int liquid_level) {
 */
 
 
-std::unique_ptr<MiniChunkMesh> WorldRenderPart::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req) {
+std::unique_ptr<MiniChunkMesh> WorldMeshPart::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req) {
 	// got our mesh
 	std::unique_ptr<MiniChunkMesh> mesh = std::make_unique<MiniChunkMesh>();
 

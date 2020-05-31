@@ -89,6 +89,7 @@ public:
 	// misc
 	std::unique_ptr<WorldDataPart> world_data;
 	std::unique_ptr<WorldRenderPart> world_render;
+	std::unique_ptr<WorldMeshPart> world_mesh;
 	ivec3 staring_at = { 0, -1, 0 }; // the block you're staring at (invalid by default)
 	ivec3 staring_at_face; // the face you're staring at on the block you're staring at
 	BlockType held_block = BlockType::StillWater;
