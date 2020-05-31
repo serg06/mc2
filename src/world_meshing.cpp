@@ -1,5 +1,17 @@
 #include "world_meshing.h"
 
+WorldMeshPart::WorldMeshPart(zmq::context_t* const ctx_) : WorldCommonPart(ctx_) {}
+
+// Private functions
+vector<Quad3D> quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face);
+void gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]);
+bool is_face_visible(const BlockType& block, const BlockType& face_block);
+void gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const vmath::ivec3& face, BlockType(&result)[16][16]);
+vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]);
+void mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& start, const vmath::ivec2& max_size);
+vmath::ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const vmath::ivec2& start_point, const BlockType& block_type);
+bool check_if_covered(std::shared_ptr<MeshGenRequest> req);
+
 constexpr void gen_working_indices(const int& layers_idx, int& working_idx_1, int& working_idx_2) {
 	switch (layers_idx) {
 	case 0:
@@ -18,9 +30,7 @@ constexpr void gen_working_indices(const int& layers_idx, int& working_idx_1, in
 	return;
 }
 
-WorldMeshPart::WorldMeshPart(zmq::context_t* const ctx_) : WorldCommonPart(ctx_) {}
-
-bool WorldMeshPart::check_if_covered(std::shared_ptr<MeshGenRequest> req) {
+bool check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 	// if contains any translucent blocks, don't know how to handle that yet
 	// TODO?
 	if (req->data->self->any_translucent()) {
@@ -69,7 +79,7 @@ bool WorldMeshPart::check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 
 // convert 2D quads to 3D quads
 // face: for offset
-vector<Quad3D> WorldMeshPart::quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face) {
+vector<Quad3D> quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face) {
 	vector<Quad3D> result(quads2d.size());
 
 	// working variable
@@ -106,7 +116,7 @@ vector<Quad3D> WorldMeshPart::quads_2d_3d(const vector<Quad2D>& quads2d, const i
 }
 
 // generate layer by grabbing face blocks directly from the minichunk
-void WorldMeshPart::gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]) {
+void gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]) {
 	// most efficient to traverse working_idx_1 then working_idx_2;
 	int working_idx_1, working_idx_2;
 	gen_working_indices(layers_idx, working_idx_1, working_idx_2);
@@ -158,11 +168,11 @@ void WorldMeshPart::gen_layer_generalized(const std::shared_ptr<MiniChunk> mini,
 	}
 }
 
-bool WorldMeshPart::is_face_visible(const BlockType& block, const BlockType& face_block) {
+bool is_face_visible(const BlockType& block, const BlockType& face_block) {
 	return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 }
 
-void WorldMeshPart::gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const vmath::ivec3& face, BlockType(&result)[16][16]) {
+void gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const vmath::ivec3& face, BlockType(&result)[16][16]) {
 	// get coordinates of a random block
 	vmath::ivec3 coords = { 0, 0, 0 };
 	coords[layers_idx] = layer_no;
@@ -197,7 +207,7 @@ void WorldMeshPart::gen_layer(const std::shared_ptr<MeshGenRequest> req, const i
 }
 
 // given 2D array of block numbers, generate optimal quads
-vector<Quad2D> WorldMeshPart::gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
+vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
 	memset(merged, false, sizeof(merged));
 
 	vector<Quad2D> result;
@@ -236,7 +246,7 @@ vector<Quad2D> WorldMeshPart::gen_quads(const BlockType(&layer)[16][16], /* cons
 	return result;
 }
 
-void WorldMeshPart::mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& start, const vmath::ivec2& max_size) {
+void mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& start, const vmath::ivec2& max_size) {
 	for (int i = start[0]; i < start[0] + max_size[0]; i++) {
 		for (int j = start[1]; j < start[1] + max_size[1]; j++) {
 			merged[i][j] = true;
@@ -245,7 +255,7 @@ void WorldMeshPart::mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& st
 }
 
 // given a layer and start point, find its best dimensions
-vmath::ivec2 WorldMeshPart::get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const vmath::ivec2& start_point, const BlockType& block_type) {
+vmath::ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const vmath::ivec2& start_point, const BlockType& block_type) {
 	assert(block_type != BlockType::Air);
 	assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
@@ -296,7 +306,7 @@ vmath::ivec2 WorldMeshPart::get_max_size(const BlockType(&layer)[16][16], const 
 	return max_size;
 }
 
-MeshGenResult* WorldMeshPart::gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest> req) {
+MeshGenResult* gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest> req) {
 	// update invisibility
 	bool invisible = req->data->self->all_air() || check_if_covered(req);
 
@@ -332,7 +342,7 @@ MeshGenResult* WorldMeshPart::gen_minichunk_mesh_from_req(std::shared_ptr<MeshGe
 	return result;
 }
 
-std::unique_ptr<MiniChunkMesh> WorldMeshPart::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req) {
+std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req) {
 	// got our mesh
 	std::unique_ptr<MiniChunkMesh> mesh = std::make_unique<MiniChunkMesh>();
 

@@ -7,6 +7,8 @@
 #include "shapes.h"
 #include "unique_queue.h"
 #include "util.h"
+#include "world_meshing.h"
+
 #include "zmq.hpp"
 
 #include <algorithm>
@@ -128,7 +130,7 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
 				continue;
 			}
-			MeshGenResult* mesh = app->world_mesh->gen_minichunk_mesh_from_req(req);
+			MeshGenResult* mesh = gen_minichunk_mesh_from_req(req);
 			if (mesh != nullptr)
 			{
 				// send it
