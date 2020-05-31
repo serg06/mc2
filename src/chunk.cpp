@@ -11,10 +11,12 @@
 
 constexpr int WATER_HEIGHT = 64;
 
+static std::unique_ptr<BlockType[]> __chunk_tmp_storage = std::make_unique<BlockType[]>(CHUNK_SIZE);
+
 using namespace std;
 using namespace vmath;
 
-static inline float softmax(float v, float minv, float maxv) {
+static float softmax(float v, float minv, float maxv) {
 	assert(maxv > minv);
 	assert(minv <= v && v <= maxv);
 
@@ -45,6 +47,150 @@ static inline float softmax(float v, float minv, float maxv) {
 	return v;
 }
 
+static std::vector<vmath::ivec2> surrounding_chunks_s(const vmath::ivec2& chunk_coord) {
+	return {
+		// sides
+		chunk_coord + vmath::ivec2(1, 0),
+		chunk_coord + vmath::ivec2(0, 1),
+		chunk_coord + vmath::ivec2(-1, 0),
+		chunk_coord + vmath::ivec2(0, -1),
+
+		// corners
+		chunk_coord + vmath::ivec2(1, 1),
+		chunk_coord + vmath::ivec2(-1, 1),
+		chunk_coord + vmath::ivec2(-1, -1),
+		chunk_coord + vmath::ivec2(1, -1),
+	};
+}
+
+// get surrounding chunks, but only the ones on the sides
+static std::vector<vmath::ivec2> surrounding_chunks_sides_s(const vmath::ivec2& chunk_coord) {
+	return {
+		// sides
+		chunk_coord + vmath::ivec2(1, 0),
+		chunk_coord + vmath::ivec2(0, 1),
+		chunk_coord + vmath::ivec2(-1, 0),
+		chunk_coord + vmath::ivec2(0, -1),
+	};
+}
+
+// convert coordinates to idx
+static int c2idx_chunk(const int& x, const int& y, const int& z) {
+	return x + z * CHUNK_WIDTH + y * CHUNK_WIDTH * CHUNK_DEPTH;
+}
+static int c2idx_chunk(const vmath::ivec3& xyz) { return c2idx_chunk(xyz[0], xyz[1], xyz[2]); }
+
+
+/* Chunk */
+
+
+Chunk::Chunk() : Chunk({ 0, 0 }) {}
+Chunk::Chunk(const vmath::ivec2& coords) : coords(coords) {}
+
+// initialize minichunks by setting coords and allocating space
+void Chunk::init_minichunks() {
+	for (int i = 0; i < MINIS_PER_CHUNK; i++) {
+		// create mini and populate it
+		minis[i] = std::make_shared<MiniChunk>();
+		minis[i]->set_coords({ coords[0], i * MINICHUNK_HEIGHT, coords[1] });
+		minis[i]->allocate();
+		minis[i]->set_all_air();
+	}
+}
+
+std::shared_ptr<MiniChunk> Chunk::get_mini_with_y_level(const int y) {
+	return 0 <= y && y <= 255 ? minis[y / 16] : nullptr;
+}
+
+void Chunk::set_mini_with_y_level(const int y, std::shared_ptr<MiniChunk> mini) {
+	if (0 <= y && y <= 255)
+	{
+		minis[y / 16] = mini;
+	}
+}
+
+// get block at these coordinates
+BlockType Chunk::get_block(const int& x, const int& y, const int& z) {
+	return get_mini_with_y_level(y) == nullptr ? BlockType::Air : get_mini_with_y_level(y)->get_block(x, y % MINICHUNK_HEIGHT, z);
+}
+
+BlockType Chunk::get_block(const vmath::ivec3& xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }
+BlockType Chunk::get_block(const vmath::ivec4& xyz_) { return get_block(xyz_[0], xyz_[1], xyz_[2]); }
+
+// set blocks in map using array, efficiently
+void Chunk::set_blocks(BlockType* new_blocks) {
+	for (int y = 0; y < BLOCK_MAX_HEIGHT; y += MINICHUNK_HEIGHT) {
+		std::shared_ptr<MiniChunk> mini = get_mini_with_y_level(y);
+
+		// If someone else has a copy, make a copy before updating
+		bool copy = mini.use_count() > 1;
+		if (copy)
+		{
+			mini = std::make_shared<MiniChunk>(*mini);
+		}
+
+		mini->set_blocks(new_blocks + MINICHUNK_WIDTH * MINICHUNK_DEPTH * y);
+
+		if (copy)
+		{
+			set_mini_with_y_level(y, mini);
+		}
+	}
+}
+
+// set block at these coordinates
+// TODO: create a set_block_range that takes a min_xyz and max_xyz and efficiently set them.
+void Chunk::set_block(int x, int y, int z, const BlockType& val) {
+	std::shared_ptr<MiniChunk> mini = get_mini_with_y_level(y);
+
+	// If someone else has a copy, make a copy before updating
+	bool copy = mini.use_count() > 1;
+	if (copy)
+	{
+		mini = std::make_shared<MiniChunk>(*mini);
+	}
+
+	mini->set_block(x, y % MINICHUNK_HEIGHT, z, val);
+
+	if (copy)
+	{
+		set_mini_with_y_level(y, mini);
+	}
+}
+
+void Chunk::set_block(const vmath::ivec3& xyz, const BlockType& val) { return set_block(xyz[0], xyz[1], xyz[2], val); }
+void Chunk::set_block(const vmath::ivec4& xyz_, const BlockType& val) { return set_block(xyz_[0], xyz_[1], xyz_[2], val); }
+
+// get metadata at these coordinates
+Metadata Chunk::get_metadata(const int& x, const int& y, const int& z) {
+	return get_mini_with_y_level(y)->get_metadata(x, y % MINICHUNK_HEIGHT, z);
+}
+
+Metadata Chunk::get_metadata(const vmath::ivec3& xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
+Metadata Chunk::get_metadata(const vmath::ivec4& xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
+
+// set metadata at these coordinates
+void Chunk::set_metadata(const int x, const int y, const int z, const Metadata& val) {
+	get_mini_with_y_level(y)->set_metadata(x, y % MINICHUNK_HEIGHT, z, val);
+}
+
+void Chunk::set_metadata(const vmath::ivec3& xyz, const Metadata& val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
+void Chunk::set_metadata(const vmath::ivec4& xyz_, const Metadata& val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
+
+void Chunk::free() {
+	for (auto& mini : minis) {
+		mini.reset();
+	}
+}
+
+std::vector<vmath::ivec2> Chunk::surrounding_chunks() const {
+	return surrounding_chunks_s(coords);
+}
+
+std::vector<vmath::ivec2> Chunk::surrounding_chunks_sides() const {
+	return surrounding_chunks_sides_s(coords);
+}
+
 void Chunk::generate() {
 	// generate this chunk
 	// NOTE: traverse x, then z, then y, whenever possible
@@ -54,7 +200,7 @@ void Chunk::generate() {
 	init_minichunks();
 
 #ifdef _DEBUG
-	if (coords == ivec2(0, 0)) {
+	if (coords == vmath::ivec2(0, 0)) {
 		OutputDebugString("Warning: Generating chunk for {0, 0}.\n");
 	}
 #endif
