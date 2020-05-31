@@ -114,13 +114,25 @@ vmath::ivec3 get_chunk_relative_coordinates(const int x, const int y, const int 
 vmath::ivec3 get_mini_relative_coords(const int x, const int y, const int z);
 vmath::ivec3 get_mini_relative_coords(const vmath::ivec3& xyz);
 
-
+/**
+* Call the callback with (x,y,z,value,face) of all blocks along the line
+* segment from point 'origin' in vector direction 'direction' of length
+* 'radius'. 'radius' may be infinite.
+*
+* 'face' is the normal vector of the face of that block that was entered.
+* It should not be used after the callback returns.
+*
+* If the callback returns a true value, the traversal will be stopped.
+*/
+void raycast(const vec4& origin, const vec4& direction, int radius, vmath::ivec3* result_coords, vmath::ivec3* result_face, const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check);
 
 
 class WorldCommonPart
 {
 public:
 	WorldCommonPart(zmq::context_t* const ctx_);
+
+	void exit();
 
 	// zmq
 	zmq::context_t* const ctx;
@@ -261,20 +273,6 @@ public:
 	void set_type(const vmath::ivec3& xyz, const BlockType& val);
 	void set_type(const vmath::ivec4& xyz_, const BlockType& val);
 
-
-	/**
-	* Call the callback with (x,y,z,value,face) of all blocks along the line
-	* segment from point 'origin' in vector direction 'direction' of length
-	* 'radius'. 'radius' may be infinite.
-	*
-	* 'face' is the normal vector of the face of that block that was entered.
-	* It should not be used after the callback returns.
-	*
-	* If the callback returns a true value, the traversal will be stopped.
-	*/
-	// stop_check = function that decides if we stop the raycast or not
-	const void raycast(const vec4& origin, const vec4& direction, int radius, vmath::ivec3* result_coords, vmath::ivec3* result_face, const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check);
-
 	// when a mini updates, update its and its neighbors' meshes, if required.
 	// mini: the mini that changed
 	// block: the mini-coordinates of the block that was added/deleted
@@ -317,13 +315,4 @@ public:
 
 	// For a certain corner, get height of flowing water at that corner
 	float get_water_height(const vmath::ivec3& corner);
-};
-
-class World : public WorldRenderPart, public WorldDataPart
-{
-public:
-	World(zmq::context_t* ctx_);
-
-	// funcs
-	void exit();
 };

@@ -98,6 +98,133 @@ float intbound(const float s, const float ds)
 	return (ds > 0 ? ceil(s) - s : s - floor(s)) / abs(ds);
 }
 
+void raycast(const vec4& origin, const vec4& direction, int radius, vmath::ivec3* result_coords, vmath::ivec3* result_face, const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check) {
+	// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
+	// by John Amanatides and Andrew Woo, 1987
+	// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
+	// <http://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.42.3443>
+	// Extensions to the described algorithm:
+	//   • Imposed a distance limit.
+	//   • The face passed through to reach the current cube is provided to
+	//     the callback.
+
+	// The foundation of this algorithm is a parameterized representation of
+	// the provided ray,
+	//                    origin + t * direction,
+	// except that t is not actually stored; rather, at any given point in the
+	// traversal, we keep track of the *greater* t values which we would have
+	// if we took a step sufficient to cross a cube boundary along that axis
+	// (i.e. change the integer part of the coordinate) in the variables
+	// tMaxX, tMaxY, and tMaxZ
+
+	// Cube containing origin point.
+	int x = (int)floorf(origin[0]);
+	int y = (int)floorf(origin[1]);
+	int z = (int)floorf(origin[2]);
+	// Break out direction vector.
+	float dx = direction[0];
+	float dy = direction[1];
+	float dz = direction[2];
+	// Direction to increment x,y,z when stepping.
+	// TODO: Consider case where sgn = 0.
+	int stepX = sgn(dx);
+	int stepY = sgn(dy);
+	int stepZ = sgn(dz);
+	// See description above. The initial values depend on the fractional
+	// part of the origin.
+	float tMaxX = intbound(origin[0], dx);
+	float tMaxY = intbound(origin[1], dy);
+	float tMaxZ = intbound(origin[2], dz);
+	// The change in t when taking a step (always positive).
+	float tDeltaX = stepX / dx;
+	float tDeltaY = stepY / dy;
+	float tDeltaZ = stepZ / dz;
+	// Buffer for reporting faces to the callback.
+	vmath::ivec3 face = { 0, 0, 0 };
+
+	// Avoids an infinite loop.
+	if (dx == 0 && dy == 0 && dz == 0) {
+		throw "Raycast in zero direction!";
+	}
+
+	// Rescale from units of 1 cube-edge to units of 'direction' so we can
+	// compare with 't'.
+
+	radius /= sqrt(dx * dx + dy * dy + dz * dz);
+
+	//while (/* ray has not gone past bounds of world */
+	//	(stepX > 0 ? x < wx : x >= 0) &&
+	//	(stepY > 0 ? y < wy : y >= 0) &&
+	//	(stepZ > 0 ? z < wz : z >= 0)) {
+
+	while (/* ray has not gone past bounds of radius */
+		true) {
+
+		// Invoke the callback, unless we are not *yet* within the bounds of the
+		// world.
+		//if (!(x < 0 || y < 0 || z < 0 /*|| x >= wx || y >= wy || z >= wz*/)) {
+
+		//}
+
+		// success, set result values and return
+		if (stop_check({ x, y, z }, face)) {
+			*result_coords = { x, y, z };
+			*result_face = face;
+			return;
+		}
+
+		// tMaxX stores the t-value at which we cross a cube boundary along the
+		// X axis, and similarly for Y and Z. Therefore, choosing the least tMax
+		// chooses the closest cube boundary. Only the first case of the four
+		// has been commented in detail.
+		if (tMaxX < tMaxY) {
+			if (tMaxX < tMaxZ) {
+				if (tMaxX > radius) break;
+				// Update which cube we are now in.
+				x += stepX;
+				// Adjust tMaxX to the next X-oriented boundary crossing.
+				tMaxX += tDeltaX;
+				// Record the normal vector of the cube face we entered.
+				face[0] = -stepX;
+				face[1] = 0;
+				face[2] = 0;
+			}
+			else {
+				if (tMaxZ > radius) break;
+				z += stepZ;
+				tMaxZ += tDeltaZ;
+				face[0] = 0;
+				face[1] = 0;
+				face[2] = -stepZ;
+			}
+		}
+		else {
+			if (tMaxY < tMaxZ) {
+				if (tMaxY > radius) break;
+				y += stepY;
+				tMaxY += tDeltaY;
+				face[0] = 0;
+				face[1] = -stepY;
+				face[2] = 0;
+			}
+			else {
+				// Identical to the second case, repeated for simplicity in
+				// the conditionals.
+				if (tMaxZ > radius) break;
+				z += stepZ;
+				tMaxZ += tDeltaZ;
+				face[0] = 0;
+				face[1] = 0;
+				face[2] = -stepZ;
+			}
+		}
+	}
+	// nothing found, set invalid results and return
+	*result_coords = { 0, -1, 0 }; // invalid
+	*result_face = { 0, 0, 0 }; // invalid
+	return;
+}
+
 WorldCommonPart::WorldCommonPart(zmq::context_t* const ctx_) : ctx(ctx_), bus_in(msg::ctx, zmq::socket_type::pub), bus_out(msg::ctx, zmq::socket_type::sub) {
 	//bus_in.setsockopt(ZMQ_SNDHWM, 1000 * 1000);
 	bus_in.connect(addr::MSG_BUS_IN);
@@ -106,26 +233,23 @@ WorldCommonPart::WorldCommonPart(zmq::context_t* const ctx_) : ctx(ctx_), bus_in
 	bus_out.connect(addr::MSG_BUS_OUT);
 }
 
-WorldRenderPart::WorldRenderPart(zmq::context_t* ctx_) : WorldCommonPart(ctx_) {}
-WorldDataPart::WorldDataPart(zmq::context_t* ctx_) : WorldCommonPart(ctx_) {}
-World::World(zmq::context_t* ctx_) : WorldRenderPart(ctx_), WorldDataPart(ctx_) {}
-
-void World::exit() {
+void WorldCommonPart::exit() {
 	std::vector<zmq::const_buffer> message({
 		zmq::buffer(msg::EXIT)
 		});
 
-	auto ret = zmq::send_multipart(WorldRenderPart::bus_in, message, zmq::send_flags::dontwait);
+	auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
 	assert(ret);
 
 	// TODO: Completely separate mesh-gen and world, so that I can make App
 	//   a non-static variable, so that the destructor is called, so that I
 	//   don't have to call these manually.
-	WorldRenderPart::bus_in.close();
-	WorldRenderPart::bus_out.close();
-	WorldDataPart::bus_in.close();
-	WorldDataPart::bus_out.close();
+	bus_in.close();
+	bus_out.close();
 }
+
+WorldRenderPart::WorldRenderPart(zmq::context_t* ctx_) : WorldCommonPart(ctx_) {}
+WorldDataPart::WorldDataPart(zmq::context_t* ctx_) : WorldCommonPart(ctx_) {}
 
 // update tick to *new_tick*
 void WorldDataPart::update_tick(const int new_tick) {
@@ -981,144 +1105,6 @@ void WorldRenderPart::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* 
 
 void WorldRenderPart::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const vmath::ivec3& xyz) { return highlight_block(glInfo, windowInfo, xyz[0], xyz[1], xyz[2]); }
 
-/**
-* Call the callback with (x,y,z,value,face) of all blocks along the line
-* segment from point 'origin' in vector direction 'direction' of length
-* 'radius'. 'radius' may be infinite.
-*
-* 'face' is the normal vector of the face of that block that was entered.
-* It should not be used after the callback returns.
-*
-* If the callback returns a true value, the traversal will be stopped.
-*/
-// stop_check = function that decides if we stop the raycast or not
-const void WorldDataPart::raycast(const vec4& origin, const vec4& direction, int radius, vmath::ivec3* result_coords, vmath::ivec3* result_face, const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check) {
-	// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
-	// by John Amanatides and Andrew Woo, 1987
-	// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
-	// <http://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.42.3443>
-	// Extensions to the described algorithm:
-	//   • Imposed a distance limit.
-	//   • The face passed through to reach the current cube is provided to
-	//     the callback.
-
-	// The foundation of this algorithm is a parameterized representation of
-	// the provided ray,
-	//                    origin + t * direction,
-	// except that t is not actually stored; rather, at any given point in the
-	// traversal, we keep track of the *greater* t values which we would have
-	// if we took a step sufficient to cross a cube boundary along that axis
-	// (i.e. change the integer part of the coordinate) in the variables
-	// tMaxX, tMaxY, and tMaxZ
-
-	// Cube containing origin point.
-	int x = (int)floorf(origin[0]);
-	int y = (int)floorf(origin[1]);
-	int z = (int)floorf(origin[2]);
-	// Break out direction vector.
-	float dx = direction[0];
-	float dy = direction[1];
-	float dz = direction[2];
-	// Direction to increment x,y,z when stepping.
-	// TODO: Consider case where sgn = 0.
-	int stepX = sgn(dx);
-	int stepY = sgn(dy);
-	int stepZ = sgn(dz);
-	// See description above. The initial values depend on the fractional
-	// part of the origin.
-	float tMaxX = intbound(origin[0], dx);
-	float tMaxY = intbound(origin[1], dy);
-	float tMaxZ = intbound(origin[2], dz);
-	// The change in t when taking a step (always positive).
-	float tDeltaX = stepX / dx;
-	float tDeltaY = stepY / dy;
-	float tDeltaZ = stepZ / dz;
-	// Buffer for reporting faces to the callback.
-	vmath::ivec3 face = { 0, 0, 0 };
-
-	// Avoids an infinite loop.
-	if (dx == 0 && dy == 0 && dz == 0) {
-		throw "Raycast in zero direction!";
-	}
-
-	// Rescale from units of 1 cube-edge to units of 'direction' so we can
-	// compare with 't'.
-
-	radius /= sqrt(dx * dx + dy * dy + dz * dz);
-
-	//while (/* ray has not gone past bounds of world */
-	//	(stepX > 0 ? x < wx : x >= 0) &&
-	//	(stepY > 0 ? y < wy : y >= 0) &&
-	//	(stepZ > 0 ? z < wz : z >= 0)) {
-
-	while (/* ray has not gone past bounds of radius */
-		true) {
-
-		// Invoke the callback, unless we are not *yet* within the bounds of the
-		// world.
-		//if (!(x < 0 || y < 0 || z < 0 /*|| x >= wx || y >= wy || z >= wz*/)) {
-
-		//}
-
-		// success, set result values and return
-		if (stop_check({ x, y, z }, face)) {
-			*result_coords = { x, y, z };
-			*result_face = face;
-			return;
-		}
-
-		// tMaxX stores the t-value at which we cross a cube boundary along the
-		// X axis, and similarly for Y and Z. Therefore, choosing the least tMax
-		// chooses the closest cube boundary. Only the first case of the four
-		// has been commented in detail.
-		if (tMaxX < tMaxY) {
-			if (tMaxX < tMaxZ) {
-				if (tMaxX > radius) break;
-				// Update which cube we are now in.
-				x += stepX;
-				// Adjust tMaxX to the next X-oriented boundary crossing.
-				tMaxX += tDeltaX;
-				// Record the normal vector of the cube face we entered.
-				face[0] = -stepX;
-				face[1] = 0;
-				face[2] = 0;
-			}
-			else {
-				if (tMaxZ > radius) break;
-				z += stepZ;
-				tMaxZ += tDeltaZ;
-				face[0] = 0;
-				face[1] = 0;
-				face[2] = -stepZ;
-			}
-		}
-		else {
-			if (tMaxY < tMaxZ) {
-				if (tMaxY > radius) break;
-				y += stepY;
-				tMaxY += tDeltaY;
-				face[0] = 0;
-				face[1] = -stepY;
-				face[2] = 0;
-			}
-			else {
-				// Identical to the second case, repeated for simplicity in
-				// the conditionals.
-				if (tMaxZ > radius) break;
-				z += stepZ;
-				tMaxZ += tDeltaZ;
-				face[0] = 0;
-				face[1] = 0;
-				face[2] = -stepZ;
-			}
-		}
-	}
-	// nothing found, set invalid results and return
-	*result_coords = { 0, -1, 0 }; // invalid
-	*result_face = { 0, 0, 0 }; // invalid
-	return;
-}
-
 // when a mini updates, update its and its neighbors' meshes, if required.
 // mini: the mini that changed
 // block: the mini-coordinates of the block that was added/deleted
@@ -1664,279 +1650,279 @@ std::unique_ptr<MiniChunkMesh> WorldRenderPart::gen_minichunk_mesh(std::shared_p
 /* PLACING TESTS IN HERE UNTIL I LEARN HOW TO DO IT PROPERLY */
 /*************************************************************/
 
-
-#include "minichunk.h"
-#include <chrono>
-
-namespace WorldTests {
-	void run_all_tests(OpenGLInfo* glInfo) {
-		test_gen_quads();
-		test_mark_as_merged();
-		test_get_max_size();
-		//test_gen_layer();
-		OutputDebugString("WorldTests completed successfully.\n");
-	}
-
-	//void test_gen_layer() {
-	//	// gen chunk at 0,0
-	//	Chunk* chunk = new Chunk({ 0, 0 });
-	//	chunk->generate();
-
-	//	// grab first mini that has stone, grass, and air blocks
-	//	MiniChunk* mini;
-	//	for (auto &mini2 : chunk->minis) {
-	//		bool has_air = false, has_stone = false, has_grass = false;
-	//		for (int i = 0; i < MINICHUNK_SIZE; i++) {
-	//			has_air |= mini2.blocks[i] == BlockType::Air;
-	//			has_stone |= mini2.blocks[i] == BlockType::Stone;
-	//			has_grass |= mini2.blocks[i] == BlockType::Grass;
-	//		}
-
-	//		if (has_air && has_stone && has_grass) {
-	//			mini = &mini2;
-	//		}
-	//	}
-
-	//	if (mini == nullptr) {
-	//		throw "No sufficient minis!";
-	//	}
-
-	//	// grab 2nd layer facing us in z direction
-	//	BlockType result[16][16];
-	//	int z = 1;
-	//	vmath::ivec3 face = { 0, 0, -1 };
-
-	//	for (int x = 0; x < 16; x++) {
-	//		for (int y = 0; y < 16; y++) {
-	//			// set working indices (TODO: move u to outer loop)
-	//			vmath::ivec3 coords = { x, y, z };
-
-	//			// get block at these coordinates
-	//			BlockType block = mini->get_block(coords);
-
-	//			// dgaf about air blocks
-	//			if (block == BlockType::Air) {
-	//				continue;
-	//			}
-
-	//			// get face block
-	//			BlockType face_block = mini->get_block(coords + face);
-
-	//			// if block's face is visible, set it
-	//			if (World::is_face_visible(block, face_block)) {
-	//				result[x][y] = block;
-	//			}
-	//		}
-	//	}
-
-	//	// Do the same with gen_layer_fast
-	//	BlockType expected[16][16];
-	//	World::gen_layer_generalized(mini, mini, 2, 1, face, expected);
-
-	//	// Make sure they're the same
-	//	for (int x = 0; x < 16; x++) {
-	//		for (int y = 0; y < 16; y++) {
-	//			if (result[x][y] != expected[x][y]) {
-	//				throw "It broke!";
-	//			}
-	//		}
-	//	}
-
-	//	// clear
-	//	chunk->clear();
-	//}
-
-	void test_gen_quads() {
-		// create layer of all air
-		BlockType layer[16][16];
-		memset(layer, (uint8_t)BlockType::Air, 16 * 16 * sizeof(BlockType));
-
-		// 1. Add rectangle from (1,3) to (3,6)
-		for (int i = 1; i <= 3; i++) {
-			for (int j = 3; j <= 6; j++) {
-				layer[i][j] = BlockType::Stone;
-			}
-		}
-		// expected result
-		Quad2D q1;
-		q1.block = BlockType::Stone;
-		q1.corners[0] = { 1, 3 };
-		q1.corners[1] = { 4, 7 };
-
-		// 2. Add plus symbol - line from (7,5)->(7,9), and (5,7)->(9,7)
-		for (int i = 7; i <= 7; i++) {
-			for (int j = 5; j <= 9; j++) {
-				layer[i][j] = BlockType::Stone;
-			}
-		}
-		for (int i = 5; i <= 9; i++) {
-			for (int j = 7; j <= 7; j++) {
-				layer[i][j] = BlockType::Stone;
-			}
-		}
-		// expected result
-		vector<Quad2D> vq2;
-		Quad2D q2;
-		q2.block = BlockType::Stone;
-
-		q2.corners[0] = { 5, 7 };
-		q2.corners[1] = { 10, 8 };
-		vq2.push_back(q2);
-
-		q2.corners[0] = { 7, 5 };
-		q2.corners[1] = { 8, 7 };
-		vq2.push_back(q2);
-
-		q2.corners[0] = { 7, 8 };
-		q2.corners[1] = { 8, 10 };
-		vq2.push_back(q2);
-
-		// Finally, add line all along bottom
-		for (int i = 0; i <= 15; i++) {
-			for (int j = 15; j <= 15; j++) {
-				layer[i][j] = BlockType::Grass;
-			}
-		}
-		// expected result
-		Quad2D q3;
-		q3.block = BlockType::Grass;
-		q3.corners[0] = { 0, 15 };
-		q3.corners[1] = { 16, 16 };
-
-		bool merged[16][16];
-		vector<Quad2D> result = World::gen_quads(layer, merged);
-
-		assert(result.size() == 5 && "wrong number of results");
-		assert(find(begin(result), end(result), q1) != end(result) && "q1 not in results list");
-		for (auto q : vq2) {
-			assert(find(begin(result), end(result), q) != end(result) && "q2's element not in results list");
-		}
-		assert(find(begin(result), end(result), q3) != end(result) && "q3 not in results list");
-	}
-
-	void test_mark_as_merged() {
-		bool merged[16][16];
-		memset(merged, 0, 16 * 16 * sizeof(bool));
-
-		vmath::ivec2 start = { 3, 4 };
-		vmath::ivec2 max_size = { 2, 5 };
-
-		World::mark_as_merged(merged, start, max_size);
-
-		for (int i = 0; i < 16; i++) {
-			for (int j = 0; j < 16; j++) {
-				// if in right x-range and y-range
-				if (start[0] <= i && i <= start[0] + max_size[0] - 1 && start[1] <= j && j <= start[1] + max_size[1] - 1) {
-					// make sure merged
-					if (!merged[i][j]) {
-						throw "not merged when should be!";
-					}
-				}
-				// else make sure not merged
-				else {
-					if (merged[i][j]) {
-						throw "merged when shouldn't be!";
-					}
-				}
-			}
-		}
-	}
-
-	void test_get_max_size() {
-		return; // TODO: fix
-
-		// create layer of all air
-		BlockType layer[16][16];
-		memset(layer, (uint8_t)BlockType::Air, 16 * 16 * sizeof(BlockType));
-
-		// let's say nothing is merged yet
-		bool merged[16][16];
-		memset(merged, false, 16 * 16 * sizeof(bool));
-
-		// 1. Add rectangle from (1,3) to (3,6)
-		for (int i = 1; i <= 3; i++) {
-			for (int j = 3; j <= 6; j++) {
-				layer[i][j] = BlockType::Stone;
-			}
-		}
-
-		// 2. Add plus symbol - line from (7,5)->(7,9), and (5,7)->(9,7)
-		for (int i = 7; i <= 7; i++) {
-			for (int j = 5; j <= 9; j++) {
-				layer[i][j] = BlockType::Stone;
-			}
-		}
-		for (int i = 5; i <= 9; i++) {
-			for (int j = 7; j <= 7; j++) {
-				layer[i][j] = BlockType::Stone;
-			}
-		}
-
-		// 3. Add line all along bottom
-		for (int i = 0; i <= 15; i++) {
-			for (int j = 15; j <= 15; j++) {
-				layer[i][j] = BlockType::Grass;
-			}
-		}
-
-		// Get max size for rectangle top-left-corner
-		vmath::ivec2 max_size1 = World::get_max_size(layer, merged, { 1, 3 }, BlockType::Stone);
-		if (max_size1[0] != 3 || max_size1[1] != 4) {
-			throw "wrong max_size1";
-		}
-
-		// Get max size for plus center
-		vmath::ivec2 max_size2 = World::get_max_size(layer, merged, { 7, 7 }, BlockType::Stone);
-		if (max_size2[0] != 3 || max_size2[1] != 1) {
-			throw "wrong max_size2";
-		}
-
-	}
-
-	// given a layer and start point, find its best dimensions
-	vmath::ivec2 get_max_size(BlockType layer[16][16], vmath::ivec2 start_point, BlockType block_type) {
-		assert(block_type != BlockType::Air);
-
-		// TODO: Start max size at {1,1}, and for loops at +1.
-		// TODO: Search width with find() instead of a for loop.
-
-		// "max width and height"
-		vmath::ivec2 max_size = { 0, 0 };
-
-		// maximize width
-		for (int i = start_point[0], j = start_point[1]; i < 16; i++) {
-			// if extended by 1, add 1 to max width
-			if (layer[i][j] == block_type) {
-				max_size[0]++;
-			}
-			// else give up
-			else {
-				break;
-			}
-		}
-
-		assert(max_size[0] > 0 && "WTF? Max width is 0? Doesn't make sense.");
-
-		// now that we've maximized width, need to
-		// maximize height
-
-		// for each height
-		for (int j = start_point[1]; j < 16; j++) {
-			// check if entire width is correct
-			for (int i = start_point[0]; i < start_point[0] + max_size[0]; i++) {
-				// if wrong block type, give up on extending height
-				if (layer[i][j] != block_type) {
-					break;
-				}
-			}
-
-			// yep, entire width is correct! Extend max height and keep going
-			max_size[1]++;
-		}
-
-		assert(max_size[1] > 0 && "WTF? Max height is 0? Doesn't make sense.");
-		return max_size;
-	}
-
-}
-
+//
+//#include "minichunk.h"
+//#include <chrono>
+//
+//namespace WorldTests {
+//	void run_all_tests(OpenGLInfo* glInfo) {
+//		test_gen_quads();
+//		test_mark_as_merged();
+//		test_get_max_size();
+//		//test_gen_layer();
+//		OutputDebugString("WorldTests completed successfully.\n");
+//	}
+//
+//	//void test_gen_layer() {
+//	//	// gen chunk at 0,0
+//	//	Chunk* chunk = new Chunk({ 0, 0 });
+//	//	chunk->generate();
+//
+//	//	// grab first mini that has stone, grass, and air blocks
+//	//	MiniChunk* mini;
+//	//	for (auto &mini2 : chunk->minis) {
+//	//		bool has_air = false, has_stone = false, has_grass = false;
+//	//		for (int i = 0; i < MINICHUNK_SIZE; i++) {
+//	//			has_air |= mini2.blocks[i] == BlockType::Air;
+//	//			has_stone |= mini2.blocks[i] == BlockType::Stone;
+//	//			has_grass |= mini2.blocks[i] == BlockType::Grass;
+//	//		}
+//
+//	//		if (has_air && has_stone && has_grass) {
+//	//			mini = &mini2;
+//	//		}
+//	//	}
+//
+//	//	if (mini == nullptr) {
+//	//		throw "No sufficient minis!";
+//	//	}
+//
+//	//	// grab 2nd layer facing us in z direction
+//	//	BlockType result[16][16];
+//	//	int z = 1;
+//	//	vmath::ivec3 face = { 0, 0, -1 };
+//
+//	//	for (int x = 0; x < 16; x++) {
+//	//		for (int y = 0; y < 16; y++) {
+//	//			// set working indices (TODO: move u to outer loop)
+//	//			vmath::ivec3 coords = { x, y, z };
+//
+//	//			// get block at these coordinates
+//	//			BlockType block = mini->get_block(coords);
+//
+//	//			// dgaf about air blocks
+//	//			if (block == BlockType::Air) {
+//	//				continue;
+//	//			}
+//
+//	//			// get face block
+//	//			BlockType face_block = mini->get_block(coords + face);
+//
+//	//			// if block's face is visible, set it
+//	//			if (World::is_face_visible(block, face_block)) {
+//	//				result[x][y] = block;
+//	//			}
+//	//		}
+//	//	}
+//
+//	//	// Do the same with gen_layer_fast
+//	//	BlockType expected[16][16];
+//	//	World::gen_layer_generalized(mini, mini, 2, 1, face, expected);
+//
+//	//	// Make sure they're the same
+//	//	for (int x = 0; x < 16; x++) {
+//	//		for (int y = 0; y < 16; y++) {
+//	//			if (result[x][y] != expected[x][y]) {
+//	//				throw "It broke!";
+//	//			}
+//	//		}
+//	//	}
+//
+//	//	// clear
+//	//	chunk->clear();
+//	//}
+//
+//	void test_gen_quads() {
+//		// create layer of all air
+//		BlockType layer[16][16];
+//		memset(layer, (uint8_t)BlockType::Air, 16 * 16 * sizeof(BlockType));
+//
+//		// 1. Add rectangle from (1,3) to (3,6)
+//		for (int i = 1; i <= 3; i++) {
+//			for (int j = 3; j <= 6; j++) {
+//				layer[i][j] = BlockType::Stone;
+//			}
+//		}
+//		// expected result
+//		Quad2D q1;
+//		q1.block = BlockType::Stone;
+//		q1.corners[0] = { 1, 3 };
+//		q1.corners[1] = { 4, 7 };
+//
+//		// 2. Add plus symbol - line from (7,5)->(7,9), and (5,7)->(9,7)
+//		for (int i = 7; i <= 7; i++) {
+//			for (int j = 5; j <= 9; j++) {
+//				layer[i][j] = BlockType::Stone;
+//			}
+//		}
+//		for (int i = 5; i <= 9; i++) {
+//			for (int j = 7; j <= 7; j++) {
+//				layer[i][j] = BlockType::Stone;
+//			}
+//		}
+//		// expected result
+//		vector<Quad2D> vq2;
+//		Quad2D q2;
+//		q2.block = BlockType::Stone;
+//
+//		q2.corners[0] = { 5, 7 };
+//		q2.corners[1] = { 10, 8 };
+//		vq2.push_back(q2);
+//
+//		q2.corners[0] = { 7, 5 };
+//		q2.corners[1] = { 8, 7 };
+//		vq2.push_back(q2);
+//
+//		q2.corners[0] = { 7, 8 };
+//		q2.corners[1] = { 8, 10 };
+//		vq2.push_back(q2);
+//
+//		// Finally, add line all along bottom
+//		for (int i = 0; i <= 15; i++) {
+//			for (int j = 15; j <= 15; j++) {
+//				layer[i][j] = BlockType::Grass;
+//			}
+//		}
+//		// expected result
+//		Quad2D q3;
+//		q3.block = BlockType::Grass;
+//		q3.corners[0] = { 0, 15 };
+//		q3.corners[1] = { 16, 16 };
+//
+//		bool merged[16][16];
+//		vector<Quad2D> result = World::gen_quads(layer, merged);
+//
+//		assert(result.size() == 5 && "wrong number of results");
+//		assert(find(begin(result), end(result), q1) != end(result) && "q1 not in results list");
+//		for (auto q : vq2) {
+//			assert(find(begin(result), end(result), q) != end(result) && "q2's element not in results list");
+//		}
+//		assert(find(begin(result), end(result), q3) != end(result) && "q3 not in results list");
+//	}
+//
+//	void test_mark_as_merged() {
+//		bool merged[16][16];
+//		memset(merged, 0, 16 * 16 * sizeof(bool));
+//
+//		vmath::ivec2 start = { 3, 4 };
+//		vmath::ivec2 max_size = { 2, 5 };
+//
+//		World::mark_as_merged(merged, start, max_size);
+//
+//		for (int i = 0; i < 16; i++) {
+//			for (int j = 0; j < 16; j++) {
+//				// if in right x-range and y-range
+//				if (start[0] <= i && i <= start[0] + max_size[0] - 1 && start[1] <= j && j <= start[1] + max_size[1] - 1) {
+//					// make sure merged
+//					if (!merged[i][j]) {
+//						throw "not merged when should be!";
+//					}
+//				}
+//				// else make sure not merged
+//				else {
+//					if (merged[i][j]) {
+//						throw "merged when shouldn't be!";
+//					}
+//				}
+//			}
+//		}
+//	}
+//
+//	void test_get_max_size() {
+//		return; // TODO: fix
+//
+//		// create layer of all air
+//		BlockType layer[16][16];
+//		memset(layer, (uint8_t)BlockType::Air, 16 * 16 * sizeof(BlockType));
+//
+//		// let's say nothing is merged yet
+//		bool merged[16][16];
+//		memset(merged, false, 16 * 16 * sizeof(bool));
+//
+//		// 1. Add rectangle from (1,3) to (3,6)
+//		for (int i = 1; i <= 3; i++) {
+//			for (int j = 3; j <= 6; j++) {
+//				layer[i][j] = BlockType::Stone;
+//			}
+//		}
+//
+//		// 2. Add plus symbol - line from (7,5)->(7,9), and (5,7)->(9,7)
+//		for (int i = 7; i <= 7; i++) {
+//			for (int j = 5; j <= 9; j++) {
+//				layer[i][j] = BlockType::Stone;
+//			}
+//		}
+//		for (int i = 5; i <= 9; i++) {
+//			for (int j = 7; j <= 7; j++) {
+//				layer[i][j] = BlockType::Stone;
+//			}
+//		}
+//
+//		// 3. Add line all along bottom
+//		for (int i = 0; i <= 15; i++) {
+//			for (int j = 15; j <= 15; j++) {
+//				layer[i][j] = BlockType::Grass;
+//			}
+//		}
+//
+//		// Get max size for rectangle top-left-corner
+//		vmath::ivec2 max_size1 = World::get_max_size(layer, merged, { 1, 3 }, BlockType::Stone);
+//		if (max_size1[0] != 3 || max_size1[1] != 4) {
+//			throw "wrong max_size1";
+//		}
+//
+//		// Get max size for plus center
+//		vmath::ivec2 max_size2 = World::get_max_size(layer, merged, { 7, 7 }, BlockType::Stone);
+//		if (max_size2[0] != 3 || max_size2[1] != 1) {
+//			throw "wrong max_size2";
+//		}
+//
+//	}
+//
+//	// given a layer and start point, find its best dimensions
+//	vmath::ivec2 get_max_size(BlockType layer[16][16], vmath::ivec2 start_point, BlockType block_type) {
+//		assert(block_type != BlockType::Air);
+//
+//		// TODO: Start max size at {1,1}, and for loops at +1.
+//		// TODO: Search width with find() instead of a for loop.
+//
+//		// "max width and height"
+//		vmath::ivec2 max_size = { 0, 0 };
+//
+//		// maximize width
+//		for (int i = start_point[0], j = start_point[1]; i < 16; i++) {
+//			// if extended by 1, add 1 to max width
+//			if (layer[i][j] == block_type) {
+//				max_size[0]++;
+//			}
+//			// else give up
+//			else {
+//				break;
+//			}
+//		}
+//
+//		assert(max_size[0] > 0 && "WTF? Max width is 0? Doesn't make sense.");
+//
+//		// now that we've maximized width, need to
+//		// maximize height
+//
+//		// for each height
+//		for (int j = start_point[1]; j < 16; j++) {
+//			// check if entire width is correct
+//			for (int i = start_point[0]; i < start_point[0] + max_size[0]; i++) {
+//				// if wrong block type, give up on extending height
+//				if (layer[i][j] != block_type) {
+//					break;
+//				}
+//			}
+//
+//			// yep, entire width is correct! Extend max height and keep going
+//			max_size[1]++;
+//		}
+//
+//		assert(max_size[1] > 0 && "WTF? Max height is 0? Doesn't make sense.");
+//		return max_size;
+//	}
+//
+//}
+//

@@ -128,7 +128,7 @@ void ChunkGenThread2(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
 				continue;
 			}
-			MeshGenResult* mesh = app->world->gen_minichunk_mesh_from_req(req);
+			MeshGenResult* mesh = app->world_render->gen_minichunk_mesh_from_req(req);
 			if (mesh != nullptr)
 			{
 				// send it
@@ -200,7 +200,8 @@ void App::run() {
 	}
 
 	// Stop all other threads
-	world->exit();
+	world_data->exit();
+	world_render->exit();
 	// TODO: Have app run on separate thread, keep sending EXIT until they all exit.
 	for (auto& fut : chunk_gen_futures) {
 		fut.wait_for(std::chrono::seconds(1));
@@ -214,13 +215,11 @@ void App::startup() {
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
-	world = std::make_unique<World>(&ctx);
+	world_data = std::make_unique<WorldDataPart>(&ctx);
+	world_render = std::make_unique<WorldRenderPart>(&ctx);
 
 	// prepare opengl
 	setup_opengl(&windowInfo, &glInfo);
-
-	// run tests
-	WorldTests::run_all_tests(&glInfo);
 }
 
 void App::render(float time) {
@@ -267,7 +266,7 @@ void App::render(float time) {
 	glClearBufferfv(GL_DEPTH, 0, &one);
 
 	// check if in water
-	const BlockType face_block = world->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
+	const BlockType face_block = world_data->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
 	const GLuint in_water = face_block == BlockType::StillWater || face_block == BlockType::FlowingWater;
 
 	// Update transformation buffer with matrices
@@ -280,8 +279,8 @@ void App::render(float time) {
 	extract_planes_from_projmat(proj_matrix, model_view_matrix, planes);
 
 	// Draw ALL our chunks!
-	world->update_meshes();
-	world->render(&glInfo, &windowInfo, planes, staring_at);
+	world_render->update_meshes();
+	world_render->render(&glInfo, &windowInfo, planes, staring_at);
 
 	// display debug info
 	if (show_debug_info) {
@@ -338,7 +337,7 @@ void App::updateWorld(float time) {
 
 	// change in time
 	const float dt = time - last_render_time;
-	world->update_tick((int)floorf(time * 20));
+	world_data->update_tick((int)floorf(time * 20));
 
 	/* CHANGES IN WORLD */
 
@@ -353,14 +352,14 @@ void App::updateWorld(float time) {
 
 	// generate nearby chunks if required
 	if (should_check_for_nearby_chunks) {
-		world->gen_nearby_chunks(char_position, min_render_distance);
+		world_data->gen_nearby_chunks(char_position, min_render_distance);
 		should_check_for_nearby_chunks = false;
 	}
 
 	// update block that player is staring at
 	const auto direction = staring_direction();
-	world->raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](const ivec3& coords, const ivec3& face) {
-		const auto block = this->world->get_type(coords);
+	raycast(char_position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &staring_at, &staring_at_face, [this](const ivec3& coords, const ivec3& face) {
+		const auto block = this->world_data->get_type(coords);
 		return block.is_solid();
 		});
 
@@ -486,7 +485,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	auto blocks = get_intersecting_blocks(char_position + position_change);
 
 	// if all blocks are non-solid, we done
-	if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
+	if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world_data->get_type(block_coords); return block.is_nonsolid(); })) {
 		return position_change;
 	}
 
@@ -505,7 +504,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are non-solid, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world_data->get_type(block_coords); return block.is_nonsolid(); })) {
 			return position_change_fixed;
 		}
 	}
@@ -530,7 +529,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		blocks = get_intersecting_blocks(char_position + position_change_fixed);
 
 		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->get_type(block_coords); return block.is_nonsolid(); })) {
+		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world_data->get_type(block_coords); return block.is_nonsolid(); })) {
 			return position_change_fixed;
 		}
 	}
@@ -737,7 +736,7 @@ void App::onMouseButton(int button, int action) {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 		// if staring at valid block
 		if (staring_at[1] >= 0) {
-			world->destroy_block(staring_at);
+			world_data->destroy_block(staring_at);
 		}
 	}
 
@@ -756,7 +755,7 @@ void App::onMouseButton(int button, int action) {
 
 			// if we're not in the way, place it
 			if (result == end(intersecting_blocks)) {
-				world->add_block(desired_position, held_block);
+				world_data->add_block(desired_position, held_block);
 			}
 		}
 	}
