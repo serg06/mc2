@@ -8,7 +8,7 @@ set(HEADER_ONLY_LIBS vmath stb cppzmq)
 set(OTHER_LIBS gl3w FastNoise glfw libzmq-static)
 
 set(MSVC_COMPILER_FLAGS "/Oi /Ot /GL")
-set(MSVC_LINKER_FLAGS "")
+set(MSVC_LINKER_FLAGS "/LTCG")
 
 set(ALL_LIBS ${HEADER_ONLY_LIBS} ${OTHER_LIBS})
 
