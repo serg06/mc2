@@ -25,16 +25,30 @@ using namespace vmath;
 
 constexpr int NUM_MESH_GEN_THREADS = 1;
 
-void run_game();
-void MeshingThread(zmq::context_t* ctx, msg::on_ready_fn on_ready);
+void run_game(zmq::context_t* const ctx);
+void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready);
 
 class App {
 public:
 	// zmq
-	zmq::context_t ctx;
+	zmq::context_t* const ctx;
+	BusNode bus;
 
-	App() : ctx(0) {
+	App(zmq::context_t* const ctx_) : ctx(ctx_), bus(ctx_)
+	{
 		std::fill(held_keys, held_keys + (sizeof(held_keys) / sizeof(held_keys[0])), false);
+		bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+	}
+
+	~App()
+	{
+		// Send exit message
+		std::vector<zmq::const_buffer> message({
+			zmq::buffer(msg::EXIT)
+			});
+
+		auto ret = zmq::send_multipart(bus.in, message, zmq::send_flags::dontwait);
+		assert(ret);
 	}
 
 	/* INPUTS */

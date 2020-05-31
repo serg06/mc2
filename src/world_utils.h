@@ -96,20 +96,6 @@ vmath::ivec3 get_chunk_relative_coordinates(const int x, const int y, const int 
 vmath::ivec3 get_mini_relative_coords(const int x, const int y, const int z);
 vmath::ivec3 get_mini_relative_coords(const vmath::ivec3& xyz);
 
-class WorldCommonPart
-{
-public:
-	WorldCommonPart(zmq::context_t* const ctx_);
-
-	void exit();
-
-	// zmq
-	zmq::context_t* const ctx;
-	zmq::socket_t bus_in;
-	zmq::socket_t bus_out;
-};
-
-
 /**
 * Call the callback with (x,y,z,value,face) of all blocks along the line
 * segment from point 'origin' in vector direction 'direction' of length

@@ -30,8 +30,14 @@
 // radius from center of minichunk that must be included in view frustum
 constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
 
-WorldRenderPart::WorldRenderPart(zmq::context_t* const ctx_) : WorldCommonPart(ctx_) {}
-WorldDataPart::WorldDataPart(zmq::context_t* const ctx_) : WorldCommonPart(ctx_) {}
+WorldRenderPart::WorldRenderPart(zmq::context_t* const ctx_) : bus(ctx_)
+{
+	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+}
+WorldDataPart::WorldDataPart(zmq::context_t* const ctx_) : bus(ctx_)
+{
+	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+}
 
 // update tick to *new_tick*
 void WorldDataPart::update_tick(const int new_tick) {
@@ -89,7 +95,7 @@ void WorldDataPart::enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool
 		zmq::buffer(&req, sizeof(req))
 		});
 
-	auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
+	auto ret = zmq::send_multipart(bus.in, message, zmq::send_flags::dontwait);
 	assert(ret);
 
 #ifdef _DEBUG
@@ -402,7 +408,7 @@ void WorldRenderPart::update_meshes()
 {
 	// Receive all mesh-gen results
 	std::vector<zmq::message_t> message;
-	auto ret = zmq::recv_multipart(bus_out, std::back_inserter(message), zmq::recv_flags::dontwait);
+	auto ret = zmq::recv_multipart(bus.out, std::back_inserter(message), zmq::recv_flags::dontwait);
 	while (ret)
 	{
 		// TODO: Filter
@@ -419,7 +425,7 @@ void WorldRenderPart::update_meshes()
 		}
 
 		message.clear();
-		ret = zmq::recv_multipart(bus_out, std::back_inserter(message), zmq::recv_flags::dontwait);
+		ret = zmq::recv_multipart(bus.out, std::back_inserter(message), zmq::recv_flags::dontwait);
 	}
 }
 

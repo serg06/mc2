@@ -3,6 +3,7 @@
 #include "chunk.h"
 #include "world_utils.h"
 
+#include "messaging.h"
 #include "vmath.h"
 #include "zmq.hpp"
 
@@ -17,10 +18,10 @@
 
 using namespace std;
 
-class WorldRenderPart : public WorldCommonPart
+class WorldRenderPart
 {
 public:
-	WorldRenderPart(zmq::context_t* ctx_);
+	WorldRenderPart(zmq::context_t* const ctx_);
 
 	std::unordered_map<vmath::ivec3, std::shared_ptr<MiniRender>, vecN_hash> mesh_map;
 
@@ -44,12 +45,15 @@ public:
 	static inline float intbound(const float s, const float ds);
 	void highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const int x, const int y, const int z);
 	void highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const vmath::ivec3& xyz);
+
+private:
+	BusNode bus;
 };
 
-class WorldDataPart : public WorldCommonPart
+class WorldDataPart
 {
 public:
-	WorldDataPart(zmq::context_t* ctx_);
+	WorldDataPart(zmq::context_t* const ctx_);
 
 	// map of (chunk coordinate) -> chunk
 	contiguous_hashmap<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
@@ -62,13 +66,13 @@ public:
 	// what tick the world is at
 	// TODO: private
 	int current_tick = 0;
-	
+
 	// water propagation min-priority queue
 	// maps <tick to propagate water at> to <coordinate of water>
 	// TODO: uniqueness (have hashtable which maps coords -> tick, and always keep earliest tick when adding)
 	// TODO: If I never add anything else to this queue (like fire/lava/etc), change it to a normal queue.
 	std::priority_queue<std::pair<int, vmath::ivec3>, std::vector<std::pair<int, vmath::ivec3>>, std::greater<std::pair<int, vmath::ivec3>>> water_propagation_queue;
-	
+
 	// update tick to *new_tick*
 	void update_tick(const int new_tick);
 
@@ -168,4 +172,7 @@ public:
 
 	// For a certain corner, get height of flowing water at that corner
 	float get_water_height(const vmath::ivec3& corner);
+
+private:
+	BusNode bus;
 };

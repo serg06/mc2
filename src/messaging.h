@@ -17,8 +17,6 @@ namespace addr
 
 namespace msg
 {
-	extern zmq::context_t ctx;
-
 	using on_ready_fn = std::function<void()>;
 	using notifier_thread = std::function<void(zmq::context_t*, on_ready_fn)>;
 
@@ -85,21 +83,21 @@ namespace msg
 		return out.str();
 	}
 
-	inline std::future<void> launch_thread_wait_until_ready(notifier_thread thread)
+	inline std::future<void> launch_thread_wait_until_ready(zmq::context_t* const ctx, notifier_thread thread)
 	{
 		// Listen to bus start
 		std::string unique_addr = gen_unique_addr();
-		zmq::socket_t pull(ctx, zmq::socket_type::pull);
+		zmq::socket_t pull(*ctx, zmq::socket_type::pull);
 		pull.bind(unique_addr);
 
 		on_ready_fn on_complete = [&]() {
-			zmq::socket_t push(ctx, zmq::socket_type::push);
+			zmq::socket_t push(*ctx, zmq::socket_type::push);
 			push.connect(unique_addr);
 			push.send(zmq::buffer(msg::READY));
 		};
 
 		// Launch
-		std::future<void> result = std::async(std::launch::async, thread, &ctx, on_complete);
+		std::future<void> result = std::async(std::launch::async, thread, ctx, on_complete);
 
 		// Wait for response
 		std::vector<zmq::message_t> recv_msgs;
@@ -113,44 +111,15 @@ namespace msg
 
 	//std::future<void> run_message_bus(zmq::context_t& ctx);
 }
-//
-//int main()
-//{
-//	// Create context
-//	zmq::context_t ctx(0);
-//
-//	// Listen to bus start
-//	zmq::socket_t pull(ctx, zmq::socket_type::pull);
-//	pull.bind("inproc://bus-status");
-//
-//	// Start bus
-//	auto thread1 = std::async(std::launch::async, BusProxy, &ctx);
-//
-//	// Wait for it to start
-//	zmq::message_t msg;
-//	auto ret = pull.recv(msg);
-//	assert(ret && msg.to_string_view() == msg::BUS_CREATED);
-//
-//	// Wew!
-//	OutputDebugString("Successfully launched bus!\n");
-//
-//	// Launch all threads one at a time
-//	std::vector<std::future<void>> meshers;
-//	for (int i = 0; i < 1; i++)
-//	{
-//		meshers.push_back(launch_thread_wait_until_ready(ctx, pull, MeshGenThread));
-//	}
-//
-//	// Create senders and listeners
-//	std::vector<std::future<void>> listeners;
-//	std::vector<std::future<void>> senders;
-//	for (int i = 0; i < 1; i++)
-//	{
-//		listeners.push_back(launch_thread_wait_until_ready(ctx, pull, BusListener));
-//		senders.push_back(launch_thread_wait_until_ready(ctx, pull, BusSender));
-//	}
-//
-//	OutputDebugString("Launched listeners.\n");
-//
-//	return 0;
-//}
+
+class BusNode
+{
+public:
+	BusNode(zmq::context_t* const ctx_);
+	
+	zmq::socket_t in;
+	zmq::socket_t out;
+
+private:
+	zmq::context_t* const ctx;
+};

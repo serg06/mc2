@@ -2,24 +2,6 @@
 
 #include "messaging.h"
 
-WorldCommonPart::WorldCommonPart(zmq::context_t* const ctx_) : ctx(ctx_), bus_in(msg::ctx, zmq::socket_type::pub), bus_out(msg::ctx, zmq::socket_type::sub) {
-	//bus_in.setsockopt(ZMQ_SNDHWM, 1000 * 1000);
-	bus_in.connect(addr::MSG_BUS_IN);
-	bus_out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-	//bus_out.setsockopt(ZMQ_RCVHWM, 1000 * 1000);
-	bus_out.connect(addr::MSG_BUS_OUT);
-}
-
-void WorldCommonPart::exit() {
-	std::vector<zmq::const_buffer> message({
-		zmq::buffer(msg::EXIT)
-		});
-
-	auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
-	assert(ret);
-}
-
-
 float intbound(const float s, const float ds)
 {
 	// Some kind of edge case, see:

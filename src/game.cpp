@@ -28,10 +28,10 @@
 using namespace std;
 using namespace vmath;
 
-void run_game()
+void run_game(zmq::context_t* const ctx)
 {
 	glfwSetErrorCallback(glfw_onError);
-	App app;
+	App app(ctx);
 	app.run();
 }
 
@@ -49,22 +49,18 @@ namespace msg
 }
 
 // thread for generating new chunk meshes
-void MeshingThread(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
+void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	// Connect to bus
-	zmq::socket_t bus_in(*ctx, zmq::socket_type::pub);
-	bus_in.connect(addr::MSG_BUS_IN);
-
-	zmq::socket_t bus_out(*ctx, zmq::socket_type::sub);
+	BusNode bus(ctx);
 #ifdef _DEBUG
-	bus_out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 #else
 	for (const auto& m : msg::meshing_thread_incoming)
 	{
 		// TODO: Upgrade zmq and replace this with .set()
-		bus_out.setsockopt(ZMQ_SUBSCRIBE, m.c_str(), m.size());
+		bus.out.setsockopt(ZMQ_SUBSCRIBE, m.c_str(), m.size());
 	}
 #endif // _DEBUG
-	bus_out.connect(addr::MSG_BUS_OUT);
 
 	// Prove you're connected
 	on_ready();
@@ -80,7 +76,7 @@ void MeshingThread(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 	{
 		// read all messages
 		std::vector<zmq::message_t> msg;
-		auto ret = zmq::recv_multipart(bus_out, std::back_inserter(msg), zmq::recv_flags::dontwait);
+		auto ret = zmq::recv_multipart(bus.out, std::back_inserter(msg), zmq::recv_flags::dontwait);
 		while (ret)
 		{
 			if (msg[0].to_string_view() == msg::EXIT)
@@ -124,7 +120,7 @@ void MeshingThread(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 			}
 
 			msg.clear();
-			ret = zmq::recv_multipart(bus_out, std::back_inserter(msg), zmq::recv_flags::dontwait);
+			ret = zmq::recv_multipart(bus.out, std::back_inserter(msg), zmq::recv_flags::dontwait);
 		}
 
 		if (stop) break;
@@ -149,7 +145,7 @@ void MeshingThread(zmq::context_t* ctx, msg::on_ready_fn on_ready) {
 					zmq::buffer(msg::MESH_GEN_RESPONSE),
 					zmq::buffer(&mesh, sizeof(mesh))
 					});
-				auto ret = zmq::send_multipart(bus_in, result, zmq::send_flags::dontwait);
+				auto ret = zmq::send_multipart(bus.in, result, zmq::send_flags::dontwait);
 				assert(ret);
 
 #ifdef SLEEPS
@@ -216,13 +212,14 @@ void App::run() {
 	}
 
 	// Stop all other threads
-	world_data->exit();
-	world_render->exit();
 	// TODO: Have app run on separate thread, keep sending EXIT until they all exit.
 	for (auto& fut : chunk_gen_futures) {
 		fut.wait_for(std::chrono::seconds(1));
 		OutputDebugString("Still waiting...\n");
 	}
+
+	// Send exit message
+	bus.in.send(zmq::buffer(msg::EXIT));
 
 	shutdown();
 }
@@ -231,8 +228,8 @@ void App::startup() {
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
-	world_data = std::make_unique<WorldDataPart>(&ctx);
-	world_render = std::make_unique<WorldRenderPart>(&ctx);
+	world_data = std::make_unique<WorldDataPart>(ctx);
+	world_render = std::make_unique<WorldRenderPart>(ctx);
 	
 	// prepare opengl
 	setup_opengl(&windowInfo, &glInfo);
