@@ -57,22 +57,48 @@ bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
 		((lc1 == rc1 && lc2 == rc2) || (lc2 == rc1 && lc1 == rc2));
 }
 
-void World::exit() {
-	std::vector<zmq::const_buffer> message({
-		zmq::buffer(msg::EXIT)
-		});
-
-	auto ret = zmq::send_multipart(bus_in, message, zmq::send_flags::dontwait);
-	assert(ret);
-
-	// TODO: Completely separate mesh-gen and world, so that I can make App
-	//   a non-static variable, so that the destructor is called, so that I
-	//   don't have to call these manually.
-	bus_in.close();
-	bus_out.close();
+// get chunk-coordinates of chunk containing the block at (x, _, z)
+vmath::ivec2 get_chunk_coords(const int x, const int z) {
+	return get_chunk_coords((float)x, (float)z);
 }
 
-World::World(zmq::context_t* ctx_) : bus_in(msg::ctx, zmq::socket_type::pub), bus_out(msg::ctx, zmq::socket_type::sub) {
+// get chunk-coordinates of chunk containing the block at (x, _, z)
+vmath::ivec2 get_chunk_coords(const float x, const float z) {
+	return { (int)floorf(x / 16.0f), (int)floorf(z / 16.0f) };
+}
+
+// get minichunk-coordinates of minichunk containing the block at (x, y, z)
+vmath::ivec3 get_mini_coords(const int x, const int y, const int z) {
+	return { (int)floorf((float)x / 16.0f), (y / 16) * 16, (int)floorf((float)z / 16.0f) };
+}
+
+vmath::ivec3 get_mini_coords(const vmath::ivec3& xyz) { return get_mini_coords(xyz[0], xyz[1], xyz[2]); }
+
+// given a block's real-world coordinates, return that block's coordinates relative to its chunk
+vmath::ivec3 get_chunk_relative_coordinates(const int x, const int y, const int z) {
+	return vmath::ivec3(posmod(x, CHUNK_WIDTH), y, posmod(z, CHUNK_DEPTH));
+}
+
+// given a block's real-world coordinates, return that block's coordinates relative to its mini
+vmath::ivec3 get_mini_relative_coords(const int x, const int y, const int z) {
+	return vmath::ivec3(posmod(x, MINICHUNK_WIDTH), y % MINICHUNK_HEIGHT, posmod(z, MINICHUNK_DEPTH));
+}
+
+vmath::ivec3 get_mini_relative_coords(const vmath::ivec3& xyz) { return get_mini_relative_coords(xyz[0], xyz[1], xyz[2]); }
+
+float intbound(const float s, const float ds)
+{
+	// Some kind of edge case, see:
+	// http://gamedev.stackexchange.com/questions/47362/cast-ray-to-select-block-in-voxel-game#comment160436_49423
+	const bool sIsInteger = round(s) == s;
+	if (ds < 0 && sIsInteger) {
+		return 0;
+	}
+
+	return (ds > 0 ? ceil(s) - s : s - floor(s)) / abs(ds);
+}
+
+WorldCommonPart::WorldCommonPart(zmq::context_t* const ctx_) : ctx(ctx_), bus_in(msg::ctx, zmq::socket_type::pub), bus_out(msg::ctx, zmq::socket_type::sub) {
 	//bus_in.setsockopt(ZMQ_SNDHWM, 1000 * 1000);
 	bus_in.connect(addr::MSG_BUS_IN);
 	bus_out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
@@ -80,8 +106,29 @@ World::World(zmq::context_t* ctx_) : bus_in(msg::ctx, zmq::socket_type::pub), bu
 	bus_out.connect(addr::MSG_BUS_OUT);
 }
 
+WorldRenderPart::WorldRenderPart(zmq::context_t* ctx_) : WorldCommonPart(ctx_) {}
+WorldDataPart::WorldDataPart(zmq::context_t* ctx_) : WorldCommonPart(ctx_) {}
+World::World(zmq::context_t* ctx_) : WorldRenderPart(ctx_), WorldDataPart(ctx_) {}
+
+void World::exit() {
+	std::vector<zmq::const_buffer> message({
+		zmq::buffer(msg::EXIT)
+		});
+
+	auto ret = zmq::send_multipart(WorldRenderPart::bus_in, message, zmq::send_flags::dontwait);
+	assert(ret);
+
+	// TODO: Completely separate mesh-gen and world, so that I can make App
+	//   a non-static variable, so that the destructor is called, so that I
+	//   don't have to call these manually.
+	WorldRenderPart::bus_in.close();
+	WorldRenderPart::bus_out.close();
+	WorldDataPart::bus_in.close();
+	WorldDataPart::bus_out.close();
+}
+
 // update tick to *new_tick*
-void World::update_tick(const int new_tick) {
+void WorldDataPart::update_tick(const int new_tick) {
 	// can only grow, not shrink
 	if (new_tick <= current_tick) {
 		return;
@@ -108,7 +155,7 @@ void World::update_tick(const int new_tick) {
 
 // enqueue mesh generation of this mini
 // expects mesh lock
-void World::enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool front_of_queue) {
+void WorldDataPart::enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool front_of_queue) {
 	assert(mini != nullptr && "seriously?");
 
 	// check if mini in set
@@ -153,8 +200,8 @@ void World::enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool front_o
 }
 
 // add chunk to chunk coords (x, z)
-void World::add_chunk(const int x, const int z, Chunk* chunk) {
-	const ivec2 coords = { x, z };
+void WorldDataPart::add_chunk(const int x, const int z, Chunk* chunk) {
+	const vmath::ivec2 coords = { x, z };
 	const auto search = chunk_map.find(coords);
 
 	// if element already exists, error
@@ -172,13 +219,13 @@ void World::add_chunk(const int x, const int z, Chunk* chunk) {
 	for (int i = 0; i < 5; i++) {
 		if (chunk_cache_ivec2[i] == coords) {
 			chunk_cache[i] = nullptr;
-			chunk_cache_ivec2[i] = ivec2(std::numeric_limits<int>::max());
+			chunk_cache_ivec2[i] = vmath::ivec2(std::numeric_limits<int>::max());
 		}
 	}
 }
 
 // get multiple chunks -- much faster than get_chunk_generate_if_required when n > 1
-std::unordered_set<Chunk*, chunk_hash> World::get_chunks_generate_if_required(const vector<vmath::ivec2>& chunk_coords) {
+std::unordered_set<Chunk*, chunk_hash> WorldDataPart::get_chunks_generate_if_required(const vector<vmath::ivec2>& chunk_coords) {
 	// don't wanna get duplicates
 	std::unordered_set<Chunk*, chunk_hash> result;
 
@@ -194,9 +241,9 @@ std::unordered_set<Chunk*, chunk_hash> World::get_chunks_generate_if_required(co
 }
 
 // generate chunks if they don't exist yet
-void World::gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coords) {
+void WorldDataPart::gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coords) {
 	// don't wanna generate duplicates
-	std::unordered_set<ivec2, vecN_hash> to_generate;
+	std::unordered_set<vmath::ivec2, vecN_hash> to_generate;
 
 	for (auto coords : chunk_coords) {
 		const auto search = chunk_map.find(coords);
@@ -213,8 +260,8 @@ void World::gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coords) {
 }
 
 // generate all chunks (much faster than gen_chunk)
-void World::gen_chunks(const vector<ivec2>& to_generate) {
-	std::unordered_set<ivec2, vecN_hash> set;
+void WorldDataPart::gen_chunks(const vector<vmath::ivec2>& to_generate) {
+	std::unordered_set<vmath::ivec2, vecN_hash> set;
 	for (auto coords : to_generate) {
 		set.insert(coords);
 	}
@@ -222,7 +269,7 @@ void World::gen_chunks(const vector<ivec2>& to_generate) {
 }
 
 // generate all chunks (much faster than gen_chunk)
-void World::gen_chunks(const std::unordered_set<ivec2, vecN_hash>& to_generate) {
+void WorldDataPart::gen_chunks(const std::unordered_set<vmath::ivec2, vecN_hash>& to_generate) {
 	// get pointers ready
 	vector<Chunk*> chunks(to_generate.size());
 
@@ -281,8 +328,8 @@ void World::gen_chunks(const std::unordered_set<ivec2, vecN_hash>& to_generate) 
 }
 
 // get chunk or nullptr (using cache) (TODO: LRU?)
-Chunk* World::get_chunk(const int x, const int z) {
-	const ivec2 coords = { x, z };
+Chunk* WorldDataPart::get_chunk(const int x, const int z) {
+	const vmath::ivec2 coords = { x, z };
 
 	// if in cache, return
 	for (int i = 0; i < 5; i++) {
@@ -303,10 +350,10 @@ Chunk* World::get_chunk(const int x, const int z) {
 	return result;
 }
 
-Chunk* World::get_chunk(const ivec2& xz) { return get_chunk(xz[0], xz[1]); }
+Chunk* WorldDataPart::get_chunk(const vmath::ivec2& xz) { return get_chunk(xz[0], xz[1]); }
 
 // get chunk or nullptr (no cache)
-Chunk* World::get_chunk_(const int x, const int z) {
+Chunk* WorldDataPart::get_chunk_(const int x, const int z) {
 	const auto search = chunk_map.find({ x, z });
 
 	// if doesn't exist, return null
@@ -318,7 +365,7 @@ Chunk* World::get_chunk_(const int x, const int z) {
 }
 
 // get mini or nullptr
-std::shared_ptr<MiniChunk> World::get_mini(const int x, const int y, const int z) {
+std::shared_ptr<MiniChunk> WorldDataPart::get_mini(const int x, const int y, const int z) {
 	const auto search = chunk_map.find({ x, z });
 
 	// if chunk doesn't exist, return null
@@ -330,10 +377,10 @@ std::shared_ptr<MiniChunk> World::get_mini(const int x, const int y, const int z
 	return chunk->get_mini_with_y_level((y / 16) * 16); // TODO: Just y % 16?
 }
 
-std::shared_ptr<MiniChunk> World::get_mini(const ivec3& xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
+std::shared_ptr<MiniChunk> WorldDataPart::get_mini(const vmath::ivec3& xyz) { return get_mini(xyz[0], xyz[1], xyz[2]); }
 
 // get mini render component or nullptr
-std::shared_ptr<MiniRender> World::get_mini_render_component(const int x, const int y, const int z) {
+std::shared_ptr<MiniRender> WorldRenderPart::get_mini_render_component(const int x, const int y, const int z) {
 	const auto search = mesh_map.find({ x, y, z });
 
 	// if chunk doesn't exist, return null
@@ -344,10 +391,10 @@ std::shared_ptr<MiniRender> World::get_mini_render_component(const int x, const 
 	return search->second;
 }
 
-std::shared_ptr<MiniRender> World::get_mini_render_component(const ivec3& xyz) { return get_mini_render_component(xyz[0], xyz[1], xyz[2]); }
+std::shared_ptr<MiniRender> WorldRenderPart::get_mini_render_component(const vmath::ivec3& xyz) { return get_mini_render_component(xyz[0], xyz[1], xyz[2]); }
 
 // get mini render component or nullptr
-std::shared_ptr<MiniRender> World::get_mini_render_component_or_generate(const int x, const int y, const int z) {
+std::shared_ptr<MiniRender> WorldRenderPart::get_mini_render_component_or_generate(const int x, const int y, const int z) {
 	std::shared_ptr<MiniRender> result = get_mini_render_component(x, y, z);
 	if (result == nullptr)
 	{
@@ -359,24 +406,24 @@ std::shared_ptr<MiniRender> World::get_mini_render_component_or_generate(const i
 	return result;
 }
 
-std::shared_ptr<MiniRender> World::get_mini_render_component_or_generate(const ivec3& xyz) { return get_mini_render_component_or_generate(xyz[0], xyz[1], xyz[2]); }
+std::shared_ptr<MiniRender> WorldRenderPart::get_mini_render_component_or_generate(const vmath::ivec3& xyz) { return get_mini_render_component_or_generate(xyz[0], xyz[1], xyz[2]); }
 
 // generate chunks near player
-void World::gen_nearby_chunks(const vmath::vec4& position, const int& distance) {
+void WorldDataPart::gen_nearby_chunks(const vmath::vec4& position, const int& distance) {
 	assert(distance >= 0 && "invalid distance");
 
-	const ivec2 chunk_coords = get_chunk_coords(position[0], position[2]);
-	const vector<ivec2> coords = gen_circle(distance, chunk_coords);
+	const vmath::ivec2 chunk_coords = get_chunk_coords(position[0], position[2]);
+	const vector<vmath::ivec2> coords = gen_circle(distance, chunk_coords);
 	gen_chunks_if_required(coords);
 }
 
 // get chunk that contains block at (x, _, z)
-Chunk* World::get_chunk_containing_block(const int x, const int z) {
+Chunk* WorldDataPart::get_chunk_containing_block(const int x, const int z) {
 	return get_chunk((int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f));
 }
 
 // get minichunk that contains block at (x, y, z)
-std::shared_ptr<MiniChunk> World::get_mini_containing_block(const int x, const int y, const int z) {
+std::shared_ptr<MiniChunk> WorldDataPart::get_mini_containing_block(const int x, const int y, const int z) {
 	Chunk* chunk = get_chunk_containing_block(x, z);
 	if (chunk == nullptr) {
 		return nullptr;
@@ -386,12 +433,12 @@ std::shared_ptr<MiniChunk> World::get_mini_containing_block(const int x, const i
 
 
 // get minichunks that touch any face of the block at (x, y, z)
-vector<std::shared_ptr<MiniChunk>> World::get_minis_touching_block(const int x, const int y, const int z) {
+vector<std::shared_ptr<MiniChunk>> WorldDataPart::get_minis_touching_block(const int x, const int y, const int z) {
 	vector<std::shared_ptr<MiniChunk>> result;
-	vector<ivec3> potential_mini_coords;
+	vector<vmath::ivec3> potential_mini_coords;
 
-	const ivec3 mini_coords = get_mini_coords(x, y, z);
-	const ivec3 mini_relative_coords = get_mini_relative_coords(x, y, z);
+	const vmath::ivec3 mini_coords = get_mini_coords(x, y, z);
+	const vmath::ivec3 mini_relative_coords = get_mini_relative_coords(x, y, z);
 
 	potential_mini_coords.push_back(mini_coords);
 
@@ -413,38 +460,9 @@ vector<std::shared_ptr<MiniChunk>> World::get_minis_touching_block(const int x, 
 	return result;
 }
 
-// get chunk-coordinates of chunk containing the block at (x, _, z)
-ivec2 World::get_chunk_coords(const int x, const int z) const {
-	return get_chunk_coords((float)x, (float)z);
-}
-
-// get chunk-coordinates of chunk containing the block at (x, _, z)
-ivec2 World::get_chunk_coords(const float x, const float z) const {
-	return { (int)floorf(x / 16.0f), (int)floorf(z / 16.0f) };
-}
-
-// get minichunk-coordinates of minichunk containing the block at (x, y, z)
-ivec3 World::get_mini_coords(const int x, const int y, const int z) const {
-	return { (int)floorf((float)x / 16.0f), (y / 16) * 16, (int)floorf((float)z / 16.0f) };
-}
-
-ivec3 World::get_mini_coords(const vmath::ivec3& xyz) const { return get_mini_coords(xyz[0], xyz[1], xyz[2]); }
-
-// given a block's real-world coordinates, return that block's coordinates relative to its chunk
-vmath::ivec3 World::get_chunk_relative_coordinates(const int x, const int y, const int z) {
-	return vmath::ivec3(posmod(x, CHUNK_WIDTH), y, posmod(z, CHUNK_DEPTH));
-}
-
-// given a block's real-world coordinates, return that block's coordinates relative to its mini
-vmath::ivec3 World::get_mini_relative_coords(const int x, const int y, const int z) {
-	return vmath::ivec3(posmod(x, MINICHUNK_WIDTH), y % MINICHUNK_HEIGHT, posmod(z, MINICHUNK_DEPTH));
-}
-
-vmath::ivec3 World::get_mini_relative_coords(const vmath::ivec3& xyz) { return get_mini_relative_coords(xyz[0], xyz[1], xyz[2]); }
-
 // get a block's type
 // inefficient when called repeatedly - if you need multiple blocks from one mini/chunk, use get_mini (or get_chunk) and mini.get_block.
-BlockType World::get_type(const int x, const int y, const int z) {
+BlockType WorldDataPart::get_type(const int x, const int y, const int z) {
 	Chunk* chunk = get_chunk_containing_block(x, z);
 
 	if (!chunk) {
@@ -456,12 +474,12 @@ BlockType World::get_type(const int x, const int y, const int z) {
 	return chunk->get_block(chunk_coords);
 }
 
-BlockType World::get_type(const vmath::ivec3& xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
-BlockType World::get_type(const vmath::ivec4& xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
+BlockType WorldDataPart::get_type(const vmath::ivec3& xyz) { return get_type(xyz[0], xyz[1], xyz[2]); }
+BlockType WorldDataPart::get_type(const vmath::ivec4& xyz_) { return get_type(xyz_[0], xyz_[1], xyz_[2]); }
 
 // set a block's type
 // inefficient when called repeatedly
-void World::set_type(const int x, const int y, const int z, const BlockType& val) {
+void WorldDataPart::set_type(const int x, const int y, const int z, const BlockType& val) {
 	Chunk* chunk = get_chunk_containing_block(x, z);
 
 	if (!chunk) {
@@ -472,10 +490,10 @@ void World::set_type(const int x, const int y, const int z, const BlockType& val
 	chunk->set_block(chunk_coords, val);
 }
 
-void World::set_type(const vmath::ivec3& xyz, const BlockType& val) { return set_type(xyz[0], xyz[1], xyz[2], val); }
-void World::set_type(const vmath::ivec4& xyz_, const BlockType& val) { return set_type(xyz_[0], xyz_[1], xyz_[2], val); }
+void WorldDataPart::set_type(const vmath::ivec3& xyz, const BlockType& val) { return set_type(xyz[0], xyz[1], xyz[2], val); }
+void WorldDataPart::set_type(const vmath::ivec4& xyz_, const BlockType& val) { return set_type(xyz_[0], xyz_[1], xyz_[2], val); }
 
-bool World::check_if_covered(std::shared_ptr<MeshGenRequest> req) {
+bool WorldRenderPart::check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 	// if contains any translucent blocks, don't know how to handle that yet
 	// TODO?
 	if (req->data->self->any_translucent()) {
@@ -522,7 +540,7 @@ bool World::check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 	return true;
 }
 
-void World::update_meshes()
+void WorldRenderPart::update_meshes()
 {
 	// Receive all mesh-gen results
 	std::vector<zmq::message_t> message;
@@ -547,7 +565,7 @@ void World::update_meshes()
 	}
 }
 
-void World::render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at) {
+void WorldRenderPart::render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at) {
 	// collect all the minis we're gonna draw
 	vector<MiniRender*> minis_to_draw;
 
@@ -610,13 +628,13 @@ void World::render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&
 }
 
 // check if a mini is visible in a frustum
-bool World::mini_in_frustum(const MiniRender* mini, const vmath::vec4(&planes)[6]) {
+bool WorldRenderPart::mini_in_frustum(const MiniRender* mini, const vmath::vec4(&planes)[6]) {
 	return sphere_in_frustrum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
 }
 
 // convert 2D quads to 3D quads
 // face: for offset
-vector<Quad3D> World::quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const ivec3& face) {
+vector<Quad3D> WorldRenderPart::quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face) {
 	vector<Quad3D> result(quads2d.size());
 
 	// working variable
@@ -653,13 +671,13 @@ vector<Quad3D> World::quads_2d_3d(const vector<Quad2D>& quads2d, const int layer
 }
 
 // generate layer by grabbing face blocks directly from the minichunk
-void World::gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const ivec3 face, BlockType(&result)[16][16]) {
+void WorldRenderPart::gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]) {
 	// most efficient to traverse working_idx_1 then working_idx_2;
 	int working_idx_1, working_idx_2;
 	gen_working_indices(layers_idx, working_idx_1, working_idx_2);
 
 	// coordinates of current block
-	ivec3 coords = { 0, 0, 0 };
+	vmath::ivec3 coords = { 0, 0, 0 };
 	coords[layers_idx] = layer_no;
 
 	// reset all to air
@@ -692,7 +710,7 @@ void World::gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const s
 			// face mini exists
 			else {
 				// get face block
-				ivec3 face_coords = coords + face;
+				vmath::ivec3 face_coords = coords + face;
 				face_coords[layers_idx] = (face_coords[layers_idx] + 16) % 16;
 				const BlockType face_block = face_mini->get_block(face_coords);
 
@@ -705,20 +723,20 @@ void World::gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const s
 	}
 }
 
-bool World::is_face_visible(const BlockType& block, const BlockType& face_block) {
+bool WorldRenderPart::is_face_visible(const BlockType& block, const BlockType& face_block) {
 	return face_block.is_transparent() || (block != BlockType::StillWater && block != BlockType::FlowingWater && face_block.is_translucent()) || (face_block.is_translucent() && !block.is_translucent());
 }
 
-void World::gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const ivec3& face, BlockType(&result)[16][16]) {
+void WorldRenderPart::gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const vmath::ivec3& face, BlockType(&result)[16][16]) {
 	// get coordinates of a random block
-	ivec3 coords = { 0, 0, 0 };
+	vmath::ivec3 coords = { 0, 0, 0 };
 	coords[layers_idx] = layer_no;
-	const ivec3 face_coords = coords + face;
+	const vmath::ivec3 face_coords = coords + face;
 
 	// figure out which mini has our face layer (usually ours)
 	std::shared_ptr<MiniChunk> mini = req->data->self;
 	std::shared_ptr<MiniChunk> face_mini = nullptr;
-	if (in_range(face_coords, ivec3(0, 0, 0), ivec3(15, 15, 15))) {
+	if (in_range(face_coords, vmath::ivec3(0, 0, 0), vmath::ivec3(15, 15, 15))) {
 		face_mini = mini;
 	}
 	else {
@@ -744,7 +762,7 @@ void World::gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layer
 }
 
 // given 2D array of block numbers, generate optimal quads
-vector<Quad2D> World::gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
+vector<Quad2D> WorldRenderPart::gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
 	memset(merged, false, sizeof(merged));
 
 	vector<Quad2D> result;
@@ -760,10 +778,10 @@ vector<Quad2D> World::gen_quads(const BlockType(&layer)[16][16], /* const Metada
 			if (block == BlockType::Air) continue;
 
 			// get max size of this quad
-			const ivec2 max_size = get_max_size(layer, merged, { i, j }, block);
+			const vmath::ivec2 max_size = get_max_size(layer, merged, { i, j }, block);
 
 			// add it to results
-			const ivec2 start = { i, j };
+			const vmath::ivec2 start = { i, j };
 			Quad2D q;
 			q.block = block;
 			q.corners[0] = start;
@@ -783,7 +801,7 @@ vector<Quad2D> World::gen_quads(const BlockType(&layer)[16][16], /* const Metada
 	return result;
 }
 
-void World::mark_as_merged(bool(&merged)[16][16], const ivec2& start, const ivec2& max_size) {
+void WorldRenderPart::mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& start, const vmath::ivec2& max_size) {
 	for (int i = start[0]; i < start[0] + max_size[0]; i++) {
 		for (int j = start[1]; j < start[1] + max_size[1]; j++) {
 			merged[i][j] = true;
@@ -792,14 +810,14 @@ void World::mark_as_merged(bool(&merged)[16][16], const ivec2& start, const ivec
 }
 
 // given a layer and start point, find its best dimensions
-ivec2 World::get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const ivec2& start_point, const BlockType& block_type) {
+vmath::ivec2 WorldRenderPart::get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const vmath::ivec2& start_point, const BlockType& block_type) {
 	assert(block_type != BlockType::Air);
 	assert(!merged[start_point[0]][start_point[1]] && "bruh");
 
 	// TODO: Search width with find() instead of a for loop?
 
 	// max width and height
-	ivec2 max_size = { 1, 1 };
+	vmath::ivec2 max_size = { 1, 1 };
 
 	// no meshing of flowing water -- TODO: allow meshing if max height? (I.e. if it's flowing straight down.)
 	if (block_type == BlockType::FlowingWater) {
@@ -843,26 +861,14 @@ ivec2 World::get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[1
 	return max_size;
 }
 
-float World::intbound(const float s, const float ds)
-{
-	// Some kind of edge case, see:
-	// http://gamedev.stackexchange.com/questions/47362/cast-ray-to-select-block-in-voxel-game#comment160436_49423
-	const bool sIsInteger = round(s) == s;
-	if (ds < 0 && sIsInteger) {
-		return 0;
-	}
-
-	return (ds > 0 ? ceil(s) - s : s - floor(s)) / abs(ds);
-}
-
-void World::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const int x, const int y, const int z) {
+void WorldRenderPart::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const int x, const int y, const int z) {
 	// Figure out mini-relative quads
 	Quad3D quads[6];
 
-	const ivec3 mini_coords = get_mini_coords(x, y, z);
+	const vmath::ivec3 mini_coords = get_mini_coords(x, y, z);
 
-	const ivec3 relative_coords = get_chunk_relative_coordinates(x, y, z);
-	const ivec3 block_coords = { relative_coords[0], y % 16, relative_coords[2] };
+	const vmath::ivec3 relative_coords = get_chunk_relative_coordinates(x, y, z);
+	const vmath::ivec3 block_coords = { relative_coords[0], y % 16, relative_coords[2] };
 
 	for (int i = 0; i < 6; i++) {
 		quads[i].block = BlockType::Outline; // outline
@@ -872,45 +878,45 @@ void World::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo
 
 	// SOUTH
 	//	bottom-left corner
-	quads[0].corner1 = block_coords + ivec3(1, 0, 1);
+	quads[0].corner1 = block_coords + vmath::ivec3(1, 0, 1);
 	//	top-right corner
-	quads[0].corner2 = block_coords + ivec3(0, 1, 1);
-	quads[0].face = ivec3(0, 0, 1);
+	quads[0].corner2 = block_coords + vmath::ivec3(0, 1, 1);
+	quads[0].face = vmath::ivec3(0, 0, 1);
 
 	// NORTH
 	//	bottom-left corner
-	quads[1].corner1 = block_coords + ivec3(0, 0, 0);
+	quads[1].corner1 = block_coords + vmath::ivec3(0, 0, 0);
 	//	top-right corner
-	quads[1].corner2 = block_coords + ivec3(1, 1, 0);
-	quads[1].face = ivec3(0, 0, -1);
+	quads[1].corner2 = block_coords + vmath::ivec3(1, 1, 0);
+	quads[1].face = vmath::ivec3(0, 0, -1);
 
 	// EAST
 	//	bottom-left corner
-	quads[2].corner1 = block_coords + ivec3(1, 1, 1);
+	quads[2].corner1 = block_coords + vmath::ivec3(1, 1, 1);
 	//	top-right corner
-	quads[2].corner2 = block_coords + ivec3(1, 0, 0);
-	quads[2].face = ivec3(1, 0, 0);
+	quads[2].corner2 = block_coords + vmath::ivec3(1, 0, 0);
+	quads[2].face = vmath::ivec3(1, 0, 0);
 
 	// WEST
 	//	bottom-left corner
-	quads[3].corner1 = block_coords + ivec3(0, 1, 0);
+	quads[3].corner1 = block_coords + vmath::ivec3(0, 1, 0);
 	//	top-right corner
-	quads[3].corner2 = block_coords + ivec3(0, 0, 1);
-	quads[3].face = ivec3(-1, 0, 0);
+	quads[3].corner2 = block_coords + vmath::ivec3(0, 0, 1);
+	quads[3].face = vmath::ivec3(-1, 0, 0);
 
 	// UP
 	//	bottom-left corner
-	quads[4].corner1 = block_coords + ivec3(0, 1, 0);
+	quads[4].corner1 = block_coords + vmath::ivec3(0, 1, 0);
 	//	top-right corner
-	quads[4].corner2 = block_coords + ivec3(1, 1, 1);
-	quads[4].face = ivec3(0, 1, 0);
+	quads[4].corner2 = block_coords + vmath::ivec3(1, 1, 1);
+	quads[4].face = vmath::ivec3(0, 1, 0);
 
 	// DOWN
 	//	bottom-left corner
-	quads[5].corner1 = block_coords + ivec3(0, 0, 1);
+	quads[5].corner1 = block_coords + vmath::ivec3(0, 0, 1);
 	//	top-right corner
-	quads[5].corner2 = block_coords + ivec3(1, 0, 0);
-	quads[5].face = ivec3(0, -1, 0);
+	quads[5].corner2 = block_coords + vmath::ivec3(1, 0, 0);
+	quads[5].face = vmath::ivec3(0, -1, 0);
 
 	GLuint quad_data_buf;
 	GLuint mini_coords_buf;
@@ -921,14 +927,14 @@ void World::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo
 
 	// allocate them just enough space
 	glNamedBufferStorage(quad_data_buf, sizeof(Quad3D) * 6, quads, NULL);
-	glNamedBufferStorage(mini_coords_buf, sizeof(ivec3), mini_coords, NULL);
+	glNamedBufferStorage(mini_coords_buf, sizeof(vmath::ivec3), mini_coords, NULL);
 
 	// quad VAO
 	glBindVertexArray(glInfo->vao_quad);
 
 	// bind to quads attribute binding point
 	glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->quad_data_bidx, quad_data_buf, 0, sizeof(Quad3D));
-	glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_base_coords_bidx, mini_coords_buf, 0, sizeof(ivec3));
+	glVertexArrayVertexBuffer(glInfo->vao_quad, glInfo->q_base_coords_bidx, mini_coords_buf, 0, sizeof(vmath::ivec3));
 
 	// save properties before we overwrite them
 	GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
@@ -973,7 +979,7 @@ void World::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo
 	glDeleteBuffers(1, &mini_coords_buf);
 }
 
-void World::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const ivec3& xyz) { return highlight_block(glInfo, windowInfo, xyz[0], xyz[1], xyz[2]); }
+void WorldRenderPart::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo, const vmath::ivec3& xyz) { return highlight_block(glInfo, windowInfo, xyz[0], xyz[1], xyz[2]); }
 
 /**
 * Call the callback with (x,y,z,value,face) of all blocks along the line
@@ -986,7 +992,7 @@ void World::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* windowInfo
 * If the callback returns a true value, the traversal will be stopped.
 */
 // stop_check = function that decides if we stop the raycast or not
-const void World::raycast(const vec4& origin, const vec4& direction, int radius, ivec3* result_coords, ivec3* result_face, const std::function <bool(const ivec3& coords, const ivec3& face)>& stop_check) {
+const void WorldDataPart::raycast(const vec4& origin, const vec4& direction, int radius, vmath::ivec3* result_coords, vmath::ivec3* result_face, const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check) {
 	// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
 	// by John Amanatides and Andrew Woo, 1987
 	// <http://www.cse.yorku.ca/~amana/research/grid.pdf>
@@ -1028,7 +1034,7 @@ const void World::raycast(const vec4& origin, const vec4& direction, int radius,
 	float tDeltaY = stepY / dy;
 	float tDeltaZ = stepZ / dz;
 	// Buffer for reporting faces to the callback.
-	ivec3 face = { 0, 0, 0 };
+	vmath::ivec3 face = { 0, 0, 0 };
 
 	// Avoids an infinite loop.
 	if (dx == 0 && dy == 0 && dz == 0) {
@@ -1117,7 +1123,7 @@ const void World::raycast(const vec4& origin, const vec4& direction, int radius,
 // mini: the mini that changed
 // block: the mini-coordinates of the block that was added/deleted
 // TODO: Use block.
-void World::on_mini_update(std::shared_ptr<MiniChunk> mini, const vmath::ivec3& block) {
+void WorldDataPart::on_mini_update(std::shared_ptr<MiniChunk> mini, const vmath::ivec3& block) {
 	// for now, don't care if something was done in an unloaded mini
 	if (mini == nullptr) {
 		return;
@@ -1141,37 +1147,37 @@ void World::on_mini_update(std::shared_ptr<MiniChunk> mini, const vmath::ivec3& 
 }
 
 // update meshes
-void World::on_block_update(const vmath::ivec3& block) {
+void WorldDataPart::on_block_update(const vmath::ivec3& block) {
 	std::shared_ptr<MiniChunk> mini = get_mini_containing_block(block[0], block[1], block[2]);
-	ivec3 mini_coords = get_mini_relative_coords(block[0], block[1], block[2]);
+	vmath::ivec3 mini_coords = get_mini_relative_coords(block[0], block[1], block[2]);
 	on_mini_update(mini, block);
 }
 
-void World::destroy_block(const int x, const int y, const int z) {
+void WorldDataPart::destroy_block(const int x, const int y, const int z) {
 	// update data
 	std::shared_ptr<MiniChunk> mini = get_mini_containing_block(x, y, z);
-	const ivec3 mini_coords = get_mini_relative_coords(x, y, z);
+	const vmath::ivec3 mini_coords = get_mini_relative_coords(x, y, z);
 	mini->set_block(mini_coords, BlockType::Air);
 
 	// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since >=3 sides of the destroyed block are facing its own mini.)
 	on_mini_update(mini, { x, y, z });
 }
 
-void World::destroy_block(const ivec3& xyz) { return destroy_block(xyz[0], xyz[1], xyz[2]); };
+void WorldDataPart::destroy_block(const vmath::ivec3& xyz) { return destroy_block(xyz[0], xyz[1], xyz[2]); };
 
-void World::add_block(const int x, const int y, const int z, const BlockType& block) {
+void WorldDataPart::add_block(const int x, const int y, const int z, const BlockType& block) {
 	// update data
 	std::shared_ptr<MiniChunk> mini = get_mini_containing_block(x, y, z);
-	const ivec3& mini_coords = get_mini_relative_coords(x, y, z);
+	const vmath::ivec3& mini_coords = get_mini_relative_coords(x, y, z);
 	mini->set_block(mini_coords, block);
 
 	// regenerate textures for all neighboring minis (TODO: This should be a maximum of 3 neighbors, since the block always has at least 3 sides inside its mini.)
 	on_mini_update(mini, { x, y, z });
 }
 
-void World::add_block(const ivec3& xyz, const BlockType& block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
+void WorldDataPart::add_block(const vmath::ivec3& xyz, const BlockType& block) { return add_block(xyz[0], xyz[1], xyz[2], block); };
 
-MeshGenResult* World::gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest> req) {
+MeshGenResult* WorldRenderPart::gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest> req) {
 	// update invisibility
 	bool invisible = req->data->self->all_air() || check_if_covered(req);
 
@@ -1208,7 +1214,7 @@ MeshGenResult* World::gen_minichunk_mesh_from_req(std::shared_ptr<MeshGenRequest
 }
 
 // TODO
-Metadata World::get_metadata(const int x, const int y, const int z) {
+Metadata WorldDataPart::get_metadata(const int x, const int y, const int z) {
 	Chunk* chunk = get_chunk_containing_block(x, z);
 
 	if (!chunk) {
@@ -1219,11 +1225,11 @@ Metadata World::get_metadata(const int x, const int y, const int z) {
 	return chunk->get_metadata(chunk_coords);
 }
 
-Metadata World::get_metadata(const vmath::ivec3& xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
-Metadata World::get_metadata(const vmath::ivec4& xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
+Metadata WorldDataPart::get_metadata(const vmath::ivec3& xyz) { return get_metadata(xyz[0], xyz[1], xyz[2]); }
+Metadata WorldDataPart::get_metadata(const vmath::ivec4& xyz_) { return get_metadata(xyz_[0], xyz_[1], xyz_[2]); }
 
 // TODO
-void World::set_metadata(const int x, const int y, const int z, const Metadata& val) {
+void WorldDataPart::set_metadata(const int x, const int y, const int z, const Metadata& val) {
 	Chunk* chunk = get_chunk_containing_block(x, z);
 
 	if (!chunk) {
@@ -1235,16 +1241,16 @@ void World::set_metadata(const int x, const int y, const int z, const Metadata& 
 	chunk->set_metadata(chunk_coords, val);
 }
 
-void World::set_metadata(const vmath::ivec3& xyz, const Metadata& val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
-void World::set_metadata(const vmath::ivec4& xyz_, const Metadata& val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
+void WorldDataPart::set_metadata(const vmath::ivec3& xyz, const Metadata& val) { return set_metadata(xyz[0], xyz[1], xyz[2], val); }
+void WorldDataPart::set_metadata(const vmath::ivec4& xyz_, const Metadata& val) { return set_metadata(xyz_[0], xyz_[1], xyz_[2], val); }
 
 // TODO
-void World::schedule_water_propagation(const ivec3& xyz) {
+void WorldDataPart::schedule_water_propagation(const vmath::ivec3& xyz) {
 	// push to water propagation priority queue
 	water_propagation_queue.push({ current_tick + 5, xyz });
 }
 
-void World::schedule_water_propagation_neighbors(const ivec3& xyz) {
+void WorldDataPart::schedule_water_propagation_neighbors(const vmath::ivec3& xyz) {
 	auto directions = { INORTH, ISOUTH, IEAST, IWEST, IDOWN };
 	for (const auto& ddir : directions) {
 		schedule_water_propagation(xyz + ddir);
@@ -1252,8 +1258,8 @@ void World::schedule_water_propagation_neighbors(const ivec3& xyz) {
 }
 
 // get liquid at (x, y, z) and propagate it
-void World::propagate_water(int x, int y, int z) {
-	ivec3 coords = { x, y, z };
+void WorldDataPart::propagate_water(int x, int y, int z) {
+	vmath::ivec3 coords = { x, y, z };
 
 	// get chunk which block is in, and if it's unloaded, don't both propagating
 	auto chunk = get_chunk_containing_block(x, z);
@@ -1346,7 +1352,7 @@ void World::propagate_water(int x, int y, int z) {
 // given water at (x, y, z), find all directions which lead to A shortest path down
 // radius = 4
 // TODO
-std::unordered_set<vmath::ivec3, vecN_hash> World::find_shortest_water_path(int x, int y, int z) {
+std::unordered_set<vmath::ivec3, vecN_hash> WorldDataPart::find_shortest_water_path(int x, int y, int z) {
 	vmath::ivec3 coords = { x, y, z };
 	assert(get_type(coords + IDOWN).is_solid() && "block under starter block is non-solid!");
 
@@ -1474,7 +1480,7 @@ std::unordered_set<vmath::ivec3, vecN_hash> World::find_shortest_water_path(int 
 }
 
 // For a certain corner, get height of flowing water at that corner
-float World::get_water_height(const vmath::ivec3& corner) {
+float WorldDataPart::get_water_height(const vmath::ivec3& corner) {
 #ifdef _DEBUG
 	bool any_flowing_water = false;
 #endif
@@ -1582,10 +1588,8 @@ constexpr  float liquid_level_to_height(int liquid_level) {
 }
 */
 
-std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req);
 
-
-std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req) {
+std::unique_ptr<MiniChunkMesh> WorldRenderPart::gen_minichunk_mesh(std::shared_ptr<MeshGenRequest> req) {
 	// got our mesh
 	std::unique_ptr<MiniChunkMesh> mesh = std::make_unique<MiniChunkMesh>();
 
@@ -1599,7 +1603,7 @@ std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGen
 		gen_working_indices(layers_idx, working_idx_1, working_idx_2);
 
 		// generate face variable
-		ivec3 face = { 0, 0, 0 };
+		vmath::ivec3 face = { 0, 0, 0 };
 		// I don't think it matters whether we start with front or back face, as long as we switch halfway through.
 		// BACKFACE => +X/+Y/+Z SIDE. 
 		face[layers_idx] = backface ? -1 : 1;
@@ -1618,7 +1622,7 @@ std::unique_ptr<MiniChunkMesh> World::gen_minichunk_mesh(std::shared_ptr<MeshGen
 			// if -x, -y, or +z, flip triangles around so that we're not drawing them backwards
 			if (face[0] < 0 || face[1] < 0 || face[2] > 0) {
 				for (auto& quad2d : quads2d) {
-					ivec2 diffs = quad2d.corners[1] - quad2d.corners[0];
+					vmath::ivec2 diffs = quad2d.corners[1] - quad2d.corners[0];
 					quad2d.corners[0][0] += diffs[0];
 					quad2d.corners[1][0] -= diffs[0];
 				}
@@ -1700,12 +1704,12 @@ namespace WorldTests {
 	//	// grab 2nd layer facing us in z direction
 	//	BlockType result[16][16];
 	//	int z = 1;
-	//	ivec3 face = { 0, 0, -1 };
+	//	vmath::ivec3 face = { 0, 0, -1 };
 
 	//	for (int x = 0; x < 16; x++) {
 	//		for (int y = 0; y < 16; y++) {
 	//			// set working indices (TODO: move u to outer loop)
-	//			ivec3 coords = { x, y, z };
+	//			vmath::ivec3 coords = { x, y, z };
 
 	//			// get block at these coordinates
 	//			BlockType block = mini->get_block(coords);
@@ -1814,8 +1818,8 @@ namespace WorldTests {
 		bool merged[16][16];
 		memset(merged, 0, 16 * 16 * sizeof(bool));
 
-		ivec2 start = { 3, 4 };
-		ivec2 max_size = { 2, 5 };
+		vmath::ivec2 start = { 3, 4 };
+		vmath::ivec2 max_size = { 2, 5 };
 
 		World::mark_as_merged(merged, start, max_size);
 
@@ -1876,13 +1880,13 @@ namespace WorldTests {
 		}
 
 		// Get max size for rectangle top-left-corner
-		ivec2 max_size1 = World::get_max_size(layer, merged, { 1, 3 }, BlockType::Stone);
+		vmath::ivec2 max_size1 = World::get_max_size(layer, merged, { 1, 3 }, BlockType::Stone);
 		if (max_size1[0] != 3 || max_size1[1] != 4) {
 			throw "wrong max_size1";
 		}
 
 		// Get max size for plus center
-		ivec2 max_size2 = World::get_max_size(layer, merged, { 7, 7 }, BlockType::Stone);
+		vmath::ivec2 max_size2 = World::get_max_size(layer, merged, { 7, 7 }, BlockType::Stone);
 		if (max_size2[0] != 3 || max_size2[1] != 1) {
 			throw "wrong max_size2";
 		}
@@ -1890,14 +1894,14 @@ namespace WorldTests {
 	}
 
 	// given a layer and start point, find its best dimensions
-	ivec2 get_max_size(BlockType layer[16][16], ivec2 start_point, BlockType block_type) {
+	vmath::ivec2 get_max_size(BlockType layer[16][16], vmath::ivec2 start_point, BlockType block_type) {
 		assert(block_type != BlockType::Air);
 
 		// TODO: Start max size at {1,1}, and for loops at +1.
 		// TODO: Search width with find() instead of a for loop.
 
 		// "max width and height"
-		ivec2 max_size = { 0, 0 };
+		vmath::ivec2 max_size = { 0, 0 };
 
 		// maximize width
 		for (int i = start_point[0], j = start_point[1]; i < 16; i++) {

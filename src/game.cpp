@@ -346,7 +346,7 @@ void App::updateWorld(float time) {
 	update_player_movement(dt);
 
 	// update last chunk coords
-	const auto chunk_coords = world->get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
+	const auto chunk_coords = get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
 	if (chunk_coords != get_last_chunk_coords()) {
 		set_last_chunk_coords(chunk_coords);
 	}
