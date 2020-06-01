@@ -107,31 +107,39 @@ public:
 	// for debugging
 	void print_inorder()
 	{
-		std::cout << "[";
+#ifdef _DEBUG
+		std::stringstream s;
+		s << "[";
 		for (auto iter = list.begin(); iter != list.end(); ++iter)
 		{
-			std::cout << iter->second;
+			s << iter->second;
 			if (std::next(iter) != list.end())
 			{
-				std::cout << ", ";
+				s << ", ";
 			}
 		}
-		std::cout << "]\n";
+		s << "]\n";
+		OutputDebugString(s.str().c_str());
+#endif // _DEBUG
 	}
 
 	// for debugging
 	void print_with_keys()
 	{
-		std::cout << "[";
+#ifdef _DEBUG
+		std::stringstream s;
+		s << "[";
 		for (auto iter = map.begin(); iter != map.end(); ++iter)
 		{
-			std::cout << "(" << iter->first << ", " << (*(iter->second)).second << ")";
+			s << "(" << iter->first << ", " << (*(iter->second)).second << ")";
 			if (std::next(iter) != map.end())
 			{
-				std::cout << ", ";
+				s << ", ";
 			}
 		}
-		std::cout << "]\n";
+		s << "]\n";
+		OutputDebugString(s.str().c_str());
+#endif // _DEBUG
 	}
 
 private:

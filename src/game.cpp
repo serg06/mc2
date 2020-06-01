@@ -8,6 +8,7 @@
 #include "unique_queue.h"
 #include "util.h"
 #include "world_meshing.h"
+#include "world_render.h"
 
 #include "zmq.hpp"
 

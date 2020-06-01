@@ -7,6 +7,7 @@
 #include "util.h"
 #include "world.h"
 #include "world_meshing.h"
+#include "world_render.h"
 
 #include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
