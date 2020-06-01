@@ -27,6 +27,8 @@ namespace msg
 	static const std::string START = "START";
 	static const std::string MESH_GEN_REQUEST = "MESH_GEN_REQUEST";
 	static const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
+	static const std::string CHUNK_GEN_REQUEST = "CHUNK_GEN_REQUEST";
+	static const std::string CHUNK_GEN_RESPONSE = "CHUNK_GEN_RESPONSE";
 	static const std::string TEST = "TEST";
 
 	// zmq_proxy_steerable messages BEGIN

@@ -43,9 +43,15 @@ namespace msg
 		msg::MESH_GEN_REQUEST
 	};
 
+	const std::vector<std::string> chunk_gen_thread_incoming = {
+		msg::EXIT,
+		msg::CHUNK_GEN_REQUEST
+	};
+
 	const std::vector<std::string> world_thread_incoming = {
 		msg::EXIT,
-		msg::MESH_GEN_RESPONSE
+		msg::MESH_GEN_RESPONSE,
+		msg::CHUNK_GEN_RESPONSE
 	};
 }
 
@@ -89,21 +95,13 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 			else if (msg[0].to_string_view() == msg::MESH_GEN_REQUEST)
 			{
 				MeshGenRequest* req = *(msg[1].data<MeshGenRequest*>());
-				if (req == nullptr)
-				{
-					OutputDebugString("MeshGen: Received STOP signal\n");
-					stop = true;
-					break;
-				}
-				else
-				{
+				assert(req);
 #ifdef _DEBUG
-					std::stringstream out;
-					out << "MeshGen: Received req for " << vec2str(req->coords) << "\n";
-					OutputDebugString(out.str().c_str());
+				std::stringstream out;
+				out << "MeshGen: Received req for " << vec2str(req->coords) << "\n";
+				OutputDebugString(out.str().c_str());
 #endif // _DEBUG
-					request_queue.push_back({ req->coords, req });
-				}
+				request_queue.push_back({ req->coords, req });
 			}
 #ifdef _DEBUG
 			else if (msg[0].to_string_view() == msg::TEST)
@@ -112,13 +110,13 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 				s << "MeshGen: " << msg::multi_to_str(msg) << "\n";
 				OutputDebugString(s.str().c_str());
 			}
-#endif // _DEBUG
 			else
 			{
 				std::stringstream s;
 				s << "MeshGen: Unknown msg [" << msg[0].to_string_view() << "]" << "\n";
 				OutputDebugString(s.str().c_str());
 			}
+#endif // _DEBUG
 
 			msg.clear();
 			ret = zmq::recv_multipart(bus.out, std::back_inserter(msg), zmq::recv_flags::dontwait);
@@ -154,6 +152,113 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
 #endif // SLEEPS
 			}
+		}
+		// otherwise wait to try again
+		else
+		{
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
+		}
+	}
+}
+
+
+// thread for generating new world chunks
+void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
+	// Connect to bus
+	BusNode bus(ctx);
+#ifdef _DEBUG
+	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+#else
+	for (const auto& m : msg::meshing_thread_incoming)
+	{
+		// TODO: Upgrade zmq and replace this with .set()
+		bus.out.setsockopt(ZMQ_SUBSCRIBE, m.c_str(), m.size());
+	}
+#endif // _DEBUG
+
+	// Prove you're connected
+	on_ready();
+
+	// Keep queue of incoming requests
+	unique_queue<vmath::ivec3, ChunkGenRequest*, vecN_hash> request_queue;
+
+	// TODO: Wait for "START" then unsubscribe and start
+
+	// run thread until stopped
+	bool stop = false;
+	while (!stop)
+	{
+		// read all messages
+		std::vector<zmq::message_t> msg;
+		auto ret = zmq::recv_multipart(bus.out, std::back_inserter(msg), zmq::recv_flags::dontwait);
+		while (ret)
+		{
+			if (msg[0].to_string_view() == msg::EXIT)
+			{
+				OutputDebugString("ChunkGen: Received EXIT signal\n");
+				stop = true;
+				break;
+			}
+			else if (msg[0].to_string_view() == msg::CHUNK_GEN_REQUEST)
+			{
+				ChunkGenRequest* req = *(msg[1].data<ChunkGenRequest*>());
+				assert(req);
+#ifdef _DEBUG
+				std::stringstream out;
+				out << "ChunkGen: Received req for " << vec2str(req->coords) << "\n";
+				OutputDebugString(out.str().c_str());
+#endif // _DEBUG
+				request_queue.push_back({ req->coords, req });
+			}
+#ifdef _DEBUG
+			else if (msg[0].to_string_view() == msg::TEST)
+			{
+				std::stringstream s;
+				s << "ChunkGen: " << msg::multi_to_str(msg) << "\n";
+				OutputDebugString(s.str().c_str());
+			}
+			else
+			{
+				std::stringstream s;
+				s << "ChunkGen: Unknown msg [" << msg[0].to_string_view() << "]" << "\n";
+				OutputDebugString(s.str().c_str());
+			}
+#endif // _DEBUG
+
+			msg.clear();
+			ret = zmq::recv_multipart(bus.out, std::back_inserter(msg), zmq::recv_flags::dontwait);
+		}
+
+		if (stop) break;
+
+		// if requests in queue
+		if (request_queue.size())
+		{
+			// handle one
+			ChunkGenRequest* req_ = request_queue.front().second;
+			std::shared_ptr<ChunkGenRequest> req(req_);
+
+			request_queue.pop();
+
+			assert(req);
+
+			// generate a chunk
+			// TODO: implement
+			//Chunk* chunk = gen_chunk_from_req(req);
+			Chunk* chunk = nullptr;
+
+			// send it
+			std::vector<zmq::const_buffer> result({
+				zmq::buffer(msg::CHUNK_GEN_RESPONSE),
+				zmq::buffer(&chunk, sizeof(chunk))
+				});
+			auto ret = zmq::send_multipart(bus.in, result, zmq::send_flags::dontwait);
+			assert(ret);
+
+#ifdef SLEEPS
+			// JUST IN CASE
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
+#endif // SLEEPS
 		}
 		// otherwise wait to try again
 		else
@@ -231,7 +336,7 @@ void App::startup() {
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 	world_data = std::make_unique<WorldDataPart>(ctx);
 	world_render = std::make_unique<WorldRenderPart>(ctx);
-	
+
 	// prepare opengl
 	setup_opengl(&windowInfo, &glInfo);
 }

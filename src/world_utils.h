@@ -79,6 +79,17 @@ struct MeshGenRequest
 	std::shared_ptr<MeshGenRequestData> data;
 };
 
+struct ChunkGenRequest
+{
+	vmath::ivec3 coords;
+};
+
+struct ChunkGenResponse
+{
+	vmath::ivec3 coords;
+	std::shared_ptr<Chunk> chunk;
+};
+
 // get chunk-coordinates of chunk containing the block at (x, _, z)
 vmath::ivec2 get_chunk_coords(const int x, const int z);
 
