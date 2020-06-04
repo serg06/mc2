@@ -32,7 +32,15 @@ constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
 
 WorldDataPart::WorldDataPart(zmq::context_t* const ctx_) : bus(ctx_)
 {
+#ifdef _DEBUG
 	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+#else
+	for (const auto& m : msg::world_thread_incoming)
+	{
+		// TODO: Upgrade zmq and replace this with .set()
+		bus.out.setsockopt(ZMQ_SUBSCRIBE, m.c_str(), m.size());
+	}
+#endif // _DEBUG
 }
 
 // update tick to *new_tick*
@@ -152,61 +160,24 @@ void WorldDataPart::gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coo
 
 // generate multiple chunks
 void WorldDataPart::gen_chunks(const std::unordered_set<vmath::ivec2, vecN_hash>& to_generate) {
-	// get pointers ready
-	vector<Chunk*> chunks(to_generate.size());
+	// Instead of generating chunks, we request the ChunkGenThread to do it for us.
+	// TODO: Send one request with a vector of coords?
+	// TODO: Instead of having a queue, have mesh and chunk gen threads have a "center" position (player's location),
+	//         then sort the vector when it changes. Can do that with a Priority Heap, where priority = distance to center.
+	for (const vmath::ivec2& coords : to_generate)
+	{
+		ChunkGenRequest* req = new ChunkGenRequest;
+		req->coords = coords;
+		std::vector<zmq::const_buffer> message({
+			zmq::buffer(msg::CHUNK_GEN_REQUEST),
+			zmq::buffer(&req, sizeof(req))
+			});
 
-	// generate chunks and set pointers
-	int i = 0;
-	for (auto coords : to_generate) {
-		// generate it
-		Chunk* c = new Chunk(coords);
-		c->generate();
-
-		// add it to world so that we can use get_type in following code
-		add_chunk(coords[0], coords[1], c);
-
-		// add it to our pointers
-		chunks[i] = c;
-
-		i++;
+		auto ret = zmq::send_multipart(bus.in, message, zmq::send_flags::dontwait);
+		assert(ret);
 	}
 
-	// chunks we need to generate minis for
-	std::unordered_set<Chunk*, chunk_hash> to_generate_minis;
-
-	// for every chunk we just generated
-	for (int i = 0; i < to_generate.size(); i++) {
-		// get chunk
-		Chunk* chunk = chunks[i];
-
-		// need to generate minis for it
-		to_generate_minis.insert(chunk);
-
-		// and need to regenerate minis for its neighbors
-		for (auto coords : chunk->surrounding_chunks()) {
-			// get the neighbor
-			Chunk* neighbor = get_chunk(coords[0], coords[1]);
-
-			// if neighbor exists, add it to lists of chunks we need to regenerate minis in
-			if (neighbor != nullptr) {
-				to_generate_minis.insert(neighbor);
-			}
-		}
-	}
-
-	// figure out all minis to mesh
-	vector<std::shared_ptr<MiniChunk>> minis_to_mesh;
-
-	for (auto chunk : to_generate_minis) {
-		for (auto& mini : chunk->minis) {
-			minis_to_mesh.push_back(mini);
-		}
-	}
-
-	// add them all to queue
-	for (auto& mini : minis_to_mesh) {
-		enqueue_mesh_gen(mini);
-	}
+	return;
 }
 
 // get chunk or nullptr (using cache) (TODO: LRU?)
@@ -267,6 +238,7 @@ void WorldDataPart::gen_nearby_chunks(const vmath::vec4& position, const int& di
 
 	const vmath::ivec2 chunk_coords = get_chunk_coords(position[0], position[2]);
 	const vector<vmath::ivec2> coords = gen_circle(distance, chunk_coords);
+
 	gen_chunks_if_required(coords);
 }
 
@@ -713,6 +685,82 @@ float WorldDataPart::get_water_height(const vmath::ivec3& corner) {
 	assert(!water_height_factors.empty());
 
 	return std::accumulate(water_height_factors.begin(), water_height_factors.end(), 0) / water_height_factors.size();
+}
+
+void WorldDataPart::handle_messages()
+{
+	// Receive all messages
+	std::vector<zmq::message_t> message;
+	auto ret = zmq::recv_multipart(bus.out, std::back_inserter(message), zmq::recv_flags::dontwait);
+	while (ret)
+	{
+		// Get chunk gen response
+		if (message[0].to_string_view() == msg::CHUNK_GEN_RESPONSE)
+		{
+			// Extract result
+			ChunkGenResponse* response_ = *message[1].data<ChunkGenResponse*>();
+			std::unique_ptr<ChunkGenResponse> response(response_);
+
+#ifdef _DEBUG
+			std::stringstream out;
+			out << "WorldData: Received chunk for " << vec2str(response->coords) << "\n";
+			OutputDebugString(out.str().c_str());
+#endif // _DEBUG
+
+			// Update chunk!
+			Chunk* chunk = response->chunk.release();
+
+			// make sure it's not a duplicate
+			if (get_chunk(chunk->coords))
+			{
+				OutputDebugStringA("Warn: Duplicate chunk generated.\n");
+			}
+			else
+			{
+				add_chunk(response->coords[0], response->coords[1], chunk);
+			}
+
+			// Now we must enqueue all minis and neighboring minis for meshing
+			for (int i = 0; i < MINIS_PER_CHUNK; i++)
+			{
+				enqueue_mesh_gen(chunk->minis[i]);
+			}
+
+			Chunk* c;
+#define ENQUEUE(chunk_ivec2)\
+			c = get_chunk(chunk_ivec2);\
+			if (c)\
+			{\
+				for (int i = 0; i < MINIS_PER_CHUNK; i++)\
+				{\
+					enqueue_mesh_gen(c->minis[i]);\
+				}\
+			}
+
+			ENQUEUE(chunk->coords + ivec2(1, 0));
+			ENQUEUE(chunk->coords + ivec2(-1, 0));
+			ENQUEUE(chunk->coords + ivec2(0, 1));
+			ENQUEUE(chunk->coords + ivec2(0, -1));
+#undef ENQUEUE
+		}
+#ifdef _DEBUG
+		else if (message[0].to_string_view() == msg::TEST)
+		{
+			std::stringstream s;
+			s << "WorldData: " << msg::multi_to_str(message) << "\n";
+			OutputDebugString(s.str().c_str());
+		}
+		else
+		{
+			std::stringstream s;
+			s << "WorldData: Unknown msg [" << message[0].to_string_view() << "]" << "\n";
+			OutputDebugString(s.str().c_str());
+		}
+#endif // _DEBUG
+
+		message.clear();
+		ret = zmq::recv_multipart(bus.out, std::back_inserter(message), zmq::recv_flags::dontwait);
+	}
 }
 
 /**

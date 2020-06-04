@@ -120,6 +120,9 @@ int main()
 	// launch mesh gen threads
 	auto mesh_gen_thread = msg::launch_thread_wait_until_ready(&ctx, MeshingThread);
 
+	// launch chunk gen threads
+	auto chunk_gen_thread = msg::launch_thread_wait_until_ready(&ctx, ChunkGenThread);
+
 #ifdef _DEBUG
 	// launch listener
 	auto listener_thread = msg::launch_thread_wait_until_ready(&ctx, ListenerThread);
@@ -134,6 +137,7 @@ int main()
 
 	// Debug
 	mesh_gen_thread.wait();
+	chunk_gen_thread.wait();
 
 #ifdef _DEBUG
 	listener_thread.wait();

@@ -36,32 +36,6 @@ void run_game(zmq::context_t* const ctx)
 	app.run();
 }
 
-namespace msg
-{
-	const std::vector<std::string> meshing_thread_incoming = {
-		msg::EXIT,
-		msg::MESH_GEN_REQUEST,
-		msg::MINI_GET_RESPONSE
-	};
-
-	const std::vector<std::string> chunk_gen_thread_incoming = {
-		msg::EXIT,
-		msg::CHUNK_GEN_REQUEST
-	};
-
-	const std::vector<std::string> world_thread_incoming = {
-		// common
-		msg::EXIT,
-
-		// world
-		msg::MINI_GET_REQUEST,
-		msg::CHUNK_GEN_RESPONSE,
-
-		// render
-		msg::MESH_GEN_RESPONSE
-	};
-}
-
 // thread for generating new chunk meshes
 void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	// Connect to bus
@@ -250,7 +224,7 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 			// generate a chunk
 			ChunkGenResponse* response = new ChunkGenResponse;
 			response->coords = req->coords;
-			response->chunk = std::make_shared<Chunk>(req->coords);
+			response->chunk = std::make_unique<Chunk>(req->coords);
 			response->chunk->generate();
 
 			// send it
@@ -465,6 +439,8 @@ void App::updateWorld(float time) {
 	world_data->update_tick((int)floorf(time * 20));
 
 	/* CHANGES IN WORLD */
+
+	world_data->handle_messages();
 
 	// update player movement
 	update_player_movement(dt);

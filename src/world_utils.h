@@ -87,7 +87,7 @@ struct ChunkGenRequest
 struct ChunkGenResponse
 {
 	vmath::ivec2 coords;
-	std::shared_ptr<Chunk> chunk;
+	std::unique_ptr<Chunk> chunk;
 };
 
 // get chunk-coordinates of chunk containing the block at (x, _, z)

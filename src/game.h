@@ -28,6 +28,7 @@ constexpr int NUM_MESH_GEN_THREADS = 1;
 
 void run_game(zmq::context_t* const ctx);
 void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready);
+void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready);
 
 class App {
 public:

@@ -33,7 +33,15 @@ constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
 
 WorldRenderPart::WorldRenderPart(zmq::context_t* const ctx_) : bus(ctx_)
 {
+#ifdef _DEBUG
 	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+#else
+	for (const auto& m : msg::render_thread_incoming)
+	{
+		// TODO: Upgrade zmq and replace this with .set()
+		bus.out.setsockopt(ZMQ_SUBSCRIBE, m.c_str(), m.size());
+	}
+#endif // _DEBUG
 }
 
 // get mini render component or nullptr

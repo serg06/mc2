@@ -34,6 +34,29 @@ namespace msg
 	static const std::string MINI_GET_RESPONSE = "MINI_GET_RESPONSE";
 	static const std::string TEST = "TEST";
 
+	const std::vector<std::string> meshing_thread_incoming = {
+		msg::EXIT,
+		msg::MESH_GEN_REQUEST,
+		msg::MINI_GET_RESPONSE
+	};
+
+	const std::vector<std::string> chunk_gen_thread_incoming = {
+		msg::EXIT,
+		msg::CHUNK_GEN_REQUEST
+	};
+
+	const std::vector<std::string> world_thread_incoming = {
+		msg::EXIT,
+		msg::MINI_GET_REQUEST,
+		msg::CHUNK_GEN_RESPONSE
+	};
+
+	const std::vector<std::string> render_thread_incoming = {
+		msg::EXIT,
+		msg::MESH_GEN_RESPONSE
+	};
+
+
 	// zmq_proxy_steerable messages BEGIN
 	static const std::string PAUSE = "PAUSE";
 	static const std::string RESUME = "RESUME";
@@ -121,7 +144,7 @@ class BusNode
 {
 public:
 	BusNode(zmq::context_t* const ctx_);
-	
+
 	zmq::socket_t in;
 	zmq::socket_t out;
 

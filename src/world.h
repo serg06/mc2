@@ -135,6 +135,9 @@ public:
 	// For a certain corner, get height of flowing water at that corner
 	float get_water_height(const vmath::ivec3& corner);
 
+	// Handle any messages on the message bus
+	void handle_messages();
+
 private:
 	BusNode bus;
 };
