@@ -33,16 +33,20 @@ namespace msg
 	static const std::string MINI_GET_REQUEST = "MINI_GET_REQUEST";
 	static const std::string MINI_GET_RESPONSE = "MINI_GET_RESPONSE";
 	static const std::string TEST = "TEST";
+	static const std::string EVENT_PLAYER_MOVED_CHUNKS = "EVENT_PLAYER_MOVED_CHUNKS";
+
 
 	const std::vector<std::string> meshing_thread_incoming = {
 		msg::EXIT,
 		msg::MESH_GEN_REQUEST,
-		msg::MINI_GET_RESPONSE
+		msg::MINI_GET_RESPONSE,
+		EVENT_PLAYER_MOVED_CHUNKS
 	};
 
 	const std::vector<std::string> chunk_gen_thread_incoming = {
 		msg::EXIT,
-		msg::CHUNK_GEN_REQUEST
+		msg::CHUNK_GEN_REQUEST,
+		EVENT_PLAYER_MOVED_CHUNKS
 	};
 
 	const std::vector<std::string> world_thread_incoming = {

@@ -53,6 +53,9 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	// Prove you're connected
 	on_ready();
 
+	// Player's current chunk coords, so that we can always generate the closest meshes first. (TODO in future.)
+	vmath::ivec2 player_chunk_coords = { 0, 0 };
+
 	// Keep queue of incoming requests
 	unique_queue<vmath::ivec3, MeshGenRequest*, vecN_hash> request_queue;
 
@@ -83,6 +86,10 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 				OutputDebugString(out.str().c_str());
 #endif // _DEBUG
 				request_queue.push_back({ req->coords, req });
+			}
+			else if (msg[0].to_string_view() == msg::EVENT_PLAYER_MOVED_CHUNKS)
+			{
+				player_chunk_coords = *(msg[1].data<vmath::ivec2>());
 			}
 #ifdef _DEBUG
 			else if (msg[0].to_string_view() == msg::TEST)
@@ -160,6 +167,9 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	// Prove you're connected
 	on_ready();
 
+	// Player's current chunk coords, so that we can always generate the closest chunks first. (TODO in future.)
+	vmath::ivec2 player_chunk_coords = { 0, 0 };
+
 	// Keep queue of incoming requests
 	unique_queue<vmath::ivec2, ChunkGenRequest*, vecN_hash> request_queue;
 
@@ -190,6 +200,10 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 				OutputDebugString(out.str().c_str());
 #endif // _DEBUG
 				request_queue.push_back({ req->coords, req });
+			}
+			else if (msg[0].to_string_view() == msg::EVENT_PLAYER_MOVED_CHUNKS)
+			{
+				player_chunk_coords = *(msg[1].data<vmath::ivec2>());
 			}
 #ifdef _DEBUG
 			else if (msg[0].to_string_view() == msg::TEST)
@@ -449,6 +463,14 @@ void App::updateWorld(float time) {
 	const auto chunk_coords = get_chunk_coords((int)floorf(char_position[0]), (int)floorf(char_position[2]));
 	if (chunk_coords != get_last_chunk_coords()) {
 		set_last_chunk_coords(chunk_coords);
+
+		// notify
+		std::vector<zmq::const_buffer> event({
+			zmq::buffer(msg::EVENT_PLAYER_MOVED_CHUNKS),
+			zmq::buffer(&chunk_coords, sizeof(chunk_coords))
+			});
+		auto ret = zmq::send_multipart(bus.in, event, zmq::send_flags::dontwait);
+		assert(ret);
 	}
 
 	// generate nearby chunks if required
