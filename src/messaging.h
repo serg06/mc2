@@ -20,6 +20,7 @@ namespace msg
 	using on_ready_fn = std::function<void()>;
 	using notifier_thread = std::function<void(zmq::context_t*, on_ready_fn)>;
 
+	// TODO: Shorten all of these since messages use prefix matching. Maybe even just use ints?
 	static const std::string READY = "READY";
 	static const std::string EXIT = "EXIT";
 	static const std::string BUS_CREATED = "BUS_CREATED";
@@ -29,8 +30,8 @@ namespace msg
 	static const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
 	static const std::string CHUNK_GEN_REQUEST = "CHUNK_GEN_REQUEST";
 	static const std::string CHUNK_GEN_RESPONSE = "CHUNK_GEN_RESPONSE";
-	static const std::string CHUNK_GET_REQUEST = "CHUNK_GET_REQUEST";
-	static const std::string CHUNK_GET_RESPONSE = "CHUNK_GET_RESPONSE";
+	static const std::string MINI_GET_REQUEST = "MINI_GET_REQUEST";
+	static const std::string MINI_GET_RESPONSE = "MINI_GET_RESPONSE";
 	static const std::string TEST = "TEST";
 
 	// zmq_proxy_steerable messages BEGIN

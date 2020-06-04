@@ -29,6 +29,46 @@ static inline GLenum get_default_framebuffer_depth_attachment_type() {
 	return result;
 }
 
+static inline void assert_fbo_not_incomplete(GLuint fbo) {
+	GLenum status = glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		OutputDebugString("\nFBO completeness error: ");
+
+		switch (status) {
+		case GL_FRAMEBUFFER_UNDEFINED:
+			OutputDebugString("GL_FRAMEBUFFER_UNDEFINED\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+			OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+			OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n");
+			break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			OutputDebugString("GL_FRAMEBUFFER_UNSUPPORTED\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+			OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+			OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS\n");
+			break;
+		default:
+			OutputDebugString("UNKNOWN ERROR\n");
+			break;
+		}
+
+		OutputDebugString("\n");
+		exit(-1);
+	}
+}
+
 class FBO {
 private:
 	GLsizei width;
@@ -51,6 +91,11 @@ public:
 
 		// Tell FBO to draw into its one color buffer
 		glNamedFramebufferDrawBuffer(fbo, GL_COLOR_ATTACHMENT0);
+
+#ifdef _DEBUG
+		// Make sure it's complete
+		assert_fbo_not_incomplete(fbo);
+#endif // _DEBUG
 	}
 
 	~FBO()

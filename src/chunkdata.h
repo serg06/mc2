@@ -21,7 +21,7 @@ private:
 
 public:
 	Metadata();
-	Metadata(uint8_t data);
+	Metadata(uint8_t data_);
 
 	/* LIQUIDS | LAST 4 BITS | LIQUID LEVEL */
 

@@ -16,7 +16,7 @@
 // stores some extra info depending on block type
 // e.g. flowing water => last 4 bits store water level
 Metadata::Metadata() : data(0) {} // TODO: don't set 0?
-Metadata::Metadata(uint8_t data) : data(data) {}
+Metadata::Metadata(uint8_t data_) : data(data_) {}
 
 /* LIQUIDS | LAST 4 BITS | LIQUID LEVEL */
 

@@ -632,46 +632,6 @@ namespace {
 		glBindTextureUnit(glInfo->font_textures_tunit, glInfo->font_textures);
 	}
 
-	void assert_fbo_not_incomplete(GLuint fbo) {
-		GLenum status = glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER);
-		if (status != GL_FRAMEBUFFER_COMPLETE) {
-			OutputDebugString("\nFBO completeness error: ");
-
-			switch (status) {
-			case GL_FRAMEBUFFER_UNDEFINED:
-				OutputDebugString("GL_FRAMEBUFFER_UNDEFINED\n");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
-				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
-				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n");
-				break;
-			case GL_FRAMEBUFFER_UNSUPPORTED:
-				OutputDebugString("GL_FRAMEBUFFER_UNSUPPORTED\n");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
-				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE\n");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
-				OutputDebugString("GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS\n");
-				break;
-			default:
-				OutputDebugString("UNKNOWN ERROR\n");
-				break;
-			}
-
-			OutputDebugString("\n");
-			exit(-1);
-		}
-	}
-
 	void setup_fbos(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
 		/*
 		Setup FBO:

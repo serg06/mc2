@@ -41,7 +41,7 @@ namespace msg
 	const std::vector<std::string> meshing_thread_incoming = {
 		msg::EXIT,
 		msg::MESH_GEN_REQUEST,
-		msg::CHUNK_GET_RESPONSE
+		msg::MINI_GET_RESPONSE
 	};
 
 	const std::vector<std::string> chunk_gen_thread_incoming = {
@@ -54,7 +54,7 @@ namespace msg
 		msg::EXIT,
 
 		// world
-		msg::CHUNK_GET_REQUEST,
+		msg::MINI_GET_REQUEST,
 		msg::CHUNK_GEN_RESPONSE,
 
 		// render
