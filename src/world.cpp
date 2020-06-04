@@ -150,13 +150,7 @@ void WorldDataPart::gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coo
 	}
 }
 
-// generate all chunks (much faster than gen_chunk)
-void WorldDataPart::gen_chunks(const vector<vmath::ivec2>& to_generate) {
-	std::unordered_set<vmath::ivec2, vecN_hash> set(to_generate.begin(), to_generate.end());
-	return gen_chunks(set);
-}
-
-// generate all chunks (much faster than gen_chunk)
+// generate multiple chunks
 void WorldDataPart::gen_chunks(const std::unordered_set<vmath::ivec2, vecN_hash>& to_generate) {
 	// get pointers ready
 	vector<Chunk*> chunks(to_generate.size());

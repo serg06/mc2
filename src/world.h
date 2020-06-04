@@ -54,10 +54,7 @@ public:
 	// generate chunks if they don't exist yet
 	void gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coords);
 
-	// generate all chunks (much faster than gen_chunk)
-	void gen_chunks(const vector<vmath::ivec2>& to_generate);
-
-	// generate all chunks (much faster than gen_chunk)
+	// generate multiple chunks
 	void gen_chunks(const std::unordered_set<vmath::ivec2, vecN_hash>& to_generate);
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
