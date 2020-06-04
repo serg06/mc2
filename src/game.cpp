@@ -40,7 +40,8 @@ namespace msg
 {
 	const std::vector<std::string> meshing_thread_incoming = {
 		msg::EXIT,
-		msg::MESH_GEN_REQUEST
+		msg::MESH_GEN_REQUEST,
+		msg::CHUNK_GET_RESPONSE
 	};
 
 	const std::vector<std::string> chunk_gen_thread_incoming = {
@@ -49,9 +50,15 @@ namespace msg
 	};
 
 	const std::vector<std::string> world_thread_incoming = {
+		// common
 		msg::EXIT,
-		msg::MESH_GEN_RESPONSE,
-		msg::CHUNK_GEN_RESPONSE
+
+		// world
+		msg::CHUNK_GET_REQUEST,
+		msg::CHUNK_GEN_RESPONSE,
+
+		// render
+		msg::MESH_GEN_RESPONSE
 	};
 }
 
@@ -169,7 +176,7 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 #ifdef _DEBUG
 	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 #else
-	for (const auto& m : msg::meshing_thread_incoming)
+	for (const auto& m : msg::chunk_gen_thread_incoming)
 	{
 		// TODO: Upgrade zmq and replace this with .set()
 		bus.out.setsockopt(ZMQ_SUBSCRIBE, m.c_str(), m.size());
@@ -180,7 +187,7 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	on_ready();
 
 	// Keep queue of incoming requests
-	unique_queue<vmath::ivec3, ChunkGenRequest*, vecN_hash> request_queue;
+	unique_queue<vmath::ivec2, ChunkGenRequest*, vecN_hash> request_queue;
 
 	// TODO: Wait for "START" then unsubscribe and start
 
@@ -237,20 +244,19 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 			// handle one
 			ChunkGenRequest* req_ = request_queue.front().second;
 			std::shared_ptr<ChunkGenRequest> req(req_);
-
 			request_queue.pop();
-
 			assert(req);
 
 			// generate a chunk
-			// TODO: implement
-			//Chunk* chunk = gen_chunk_from_req(req);
-			Chunk* chunk = nullptr;
+			ChunkGenResponse* response = new ChunkGenResponse;
+			response->coords = req->coords;
+			response->chunk = std::make_shared<Chunk>(req->coords);
+			response->chunk->generate();
 
 			// send it
 			std::vector<zmq::const_buffer> result({
 				zmq::buffer(msg::CHUNK_GEN_RESPONSE),
-				zmq::buffer(&chunk, sizeof(chunk))
+				zmq::buffer(&response, sizeof(response))
 				});
 			auto ret = zmq::send_multipart(bus.in, result, zmq::send_flags::dontwait);
 			assert(ret);

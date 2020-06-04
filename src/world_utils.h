@@ -81,12 +81,12 @@ struct MeshGenRequest
 
 struct ChunkGenRequest
 {
-	vmath::ivec3 coords;
+	vmath::ivec2 coords;
 };
 
 struct ChunkGenResponse
 {
-	vmath::ivec3 coords;
+	vmath::ivec2 coords;
 	std::shared_ptr<Chunk> chunk;
 };
 
