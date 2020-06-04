@@ -131,22 +131,6 @@ void WorldDataPart::add_chunk(const int x, const int z, Chunk* chunk) {
 	}
 }
 
-// get multiple chunks -- much faster than get_chunk_generate_if_required when n > 1
-std::unordered_set<Chunk*, chunk_hash> WorldDataPart::get_chunks_generate_if_required(const vector<vmath::ivec2>& chunk_coords) {
-	// don't wanna get duplicates
-	std::unordered_set<Chunk*, chunk_hash> result;
-
-	// gen if required
-	gen_chunks_if_required(chunk_coords);
-
-	// fetch
-	for (auto coords : chunk_coords) {
-		result.insert(chunk_map[coords]);
-	}
-
-	return result;
-}
-
 // generate chunks if they don't exist yet
 void WorldDataPart::gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coords) {
 	// don't wanna generate duplicates

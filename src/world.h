@@ -51,9 +51,6 @@ public:
 	// add chunk to chunk coords (x, z)
 	void add_chunk(const int x, const int z, Chunk* chunk);
 
-	// get multiple chunks -- much faster than get_chunk_generate_if_required when n > 1
-	std::unordered_set<Chunk*, chunk_hash> get_chunks_generate_if_required(const vector<vmath::ivec2>& chunk_coords);
-
 	// generate chunks if they don't exist yet
 	void gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coords);
 
