@@ -361,7 +361,7 @@ void App::startup()
 	//ImGui::StyleColorsClassic();
 
 	// Load Fonts
-	io.Fonts->AddFontFromFileTTF("font/minecraft.otf", 7.0f * 5);
+	io.Fonts->AddFontFromFileTTF("font/minecraft.otf", 7.0f * 4);
 
 	// Setup Platform/Renderer bindings
 	ImGui_ImplOpenGL3_Init();
