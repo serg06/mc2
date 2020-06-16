@@ -37,3 +37,7 @@ add_subdirectory("libzmq-4.3.2")
 
 # add cppzmq
 add_subdirectory("cppzmq-4.6.0")
+
+# add imgui
+add_subdirectory("imgui-1.76")
+target_link_libraries(imgui glfw gl3w)

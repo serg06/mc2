@@ -5,7 +5,7 @@ set(SOLUTION_NAME mc2)
 set(TARGET_NAME ${SOLUTION_NAME})
 
 set(HEADER_ONLY_LIBS vmath stb cppzmq)
-set(OTHER_LIBS gl3w FastNoise glfw libzmq-static)
+set(OTHER_LIBS gl3w FastNoise glfw libzmq-static imgui)
 
 set(MSVC_COMPILER_FLAGS "/Oi /Ot /GL")
 set(MSVC_LINKER_FLAGS "/LTCG")
@@ -84,3 +84,5 @@ target_include_directories(${TARGET_NAME} PUBLIC src)
 # set to C++20 (we doin this hardcore)
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# TODO: Enable MSVC static linking so that it runs without needing VC redist?
