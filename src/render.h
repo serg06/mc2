@@ -36,23 +36,15 @@ struct GlfwInfo {
 	float mouseY_Sensitivity = 0.25f;
 };
 
-const enum TextAlignment : GLuint {
-	BOTTOM_LEFT = 0x0,
-	TOP_LEFT = 0x1,
-	BOTTOM_RIGHT = 0x2,
-	TOP_RIGHT = 0x3
-};
-
 // all the OpenGL info for our game
 struct OpenGLInfo {
 	// programs
 	GLuint game_rendering_program = 0;
-	GLuint text_rendering_program = 0;
 	GLuint tjunction_fixing_program = 0;
 	GLuint fbo_merging_program = 0;
 
 	// VAOs
-	GLuint vao_empty = 0, vao_cube = 0, vao_quad = 0, vao_text = 0;
+	GLuint vao_empty = 0, vao_cube = 0, vao_quad = 0;
 
 	// FBOs
 	FBO fbo_out;
@@ -67,8 +59,6 @@ struct OpenGLInfo {
 
 	// render input buffers
 	GLuint trans_uni_buf = 0; // transformations uniform buffer - for game rendering 
-	GLuint text_buf = 0; // text input buffer - for text rendering
-	GLuint text_uni_buf = 0; // text uniform buffer - for text rendering
 
 	// textures
 	GLuint top_textures;
@@ -97,16 +87,12 @@ struct OpenGLInfo {
 	const GLuint quad_data_bidx = 2;
 	const GLuint q_base_coords_bidx = 6;
 
-	// TEXT VAO binding points
-	const GLuint text_char_code_bidx = 0;
-
 	// uniform binding points
 	const GLuint trans_buf_uni_bidx = 0; // transformation uniform for QUAD VAO
-	const GLuint text_uni_bidx = 1; // text uniform info
 
 	// uniform locations relative to current program
-	const GLuint fix_tjunc_uni_width_loc = 0; // text uniform info
-	const GLuint fix_tjunc_uni_height_loc = 1; // text uniform info
+	const GLuint fix_tjunc_uni_width_loc = 0;
+	const GLuint fix_tjunc_uni_height_loc = 1;
 
 	// attribute indices for QUAD VAO
 	const GLuint position_attr_idx = 0; // index of 'position' attribute
@@ -119,9 +105,6 @@ struct OpenGLInfo {
 	const GLuint q_base_coords_attr_idx = 6;
 	const GLuint q_lighting_attr_idx = 7;
 	const GLuint q_metadata_attr_idx = 8;
-
-	// attribute indices for TEXT VAO
-	const GLuint text_char_code_attr_idx = 0;
 };
 
 // packed so that quads match quads on GPU
@@ -138,7 +121,6 @@ struct Quad3D {
 
 void setup_glfw(GlfwInfo*, GLFWwindow**);
 void setup_opengl(GlfwInfo*, OpenGLInfo*);
-void render_text(OpenGLInfo* glInfo, const vmath::ivec2 start_pos, const vmath::ivec2 screen_dimensions, const char* text, const unsigned size);
 void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in);
 void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in);
 void opengl_on_resize(OpenGLInfo& glInfo, int width, int height);

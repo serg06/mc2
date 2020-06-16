@@ -89,18 +89,6 @@ namespace {
 		glInfo->game_rendering_program = compile_shaders(shader_fnames);
 	}
 
-	void setup_text_rendering_program(OpenGLInfo* glInfo) {
-		// list of shaders to create program with
-		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
-			{ "shaders/render_text.vs.glsl", GL_VERTEX_SHADER },
-			{ "shaders/render_text.gs.glsl", GL_GEOMETRY_SHADER },
-			{ "shaders/render_text.fs.glsl", GL_FRAGMENT_SHADER },
-		};
-
-		// create program
-		glInfo->text_rendering_program = compile_shaders(shader_fnames);
-	}
-
 	void setup_tjunction_fixing_program(OpenGLInfo* glInfo) {
 		// list of shaders to create program with
 		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
@@ -167,29 +155,6 @@ namespace {
 		glBindVertexArray(0);
 	}
 
-	void setup_opengl_vao_text(OpenGLInfo* glInfo) {
-		// vao: create VAO for text, so we can tell OpenGL how to use it when it's bound
-		glCreateVertexArrays(1, &glInfo->vao_text);
-
-		// vao: enable all text's attributes, 1 at a time
-		glEnableVertexArrayAttrib(glInfo->vao_text, glInfo->text_char_code_attr_idx);
-
-		// vao: set up formats for text's attributes, 1 at a time
-		glVertexArrayAttribIFormat(glInfo->vao_text, glInfo->text_char_code_attr_idx, 1, GL_UNSIGNED_BYTE, 0);
-
-		// vao: match attributes to binding indices
-		glVertexArrayAttribBinding(glInfo->vao_text, glInfo->text_char_code_attr_idx, glInfo->text_char_code_bidx);
-
-		// buffers: create
-		glCreateBuffers(1, &glInfo->text_buf);
-
-		// buffers: allocate
-		glNamedBufferStorage(glInfo->text_buf, sizeof(char) * MAX_CHARS_HORIZONTAL, NULL, GL_MAP_WRITE_BIT);
-
-		// buffers: bind once and for all
-		glVertexArrayVertexBuffer(glInfo->vao_text, glInfo->text_char_code_bidx, glInfo->text_buf, 0, sizeof(char));
-	}
-
 	// set up empty (dummy) vao
 	void setup_opengl_vao_empty(OpenGLInfo* glInfo) {
 		glCreateVertexArrays(1, &glInfo->vao_empty);
@@ -198,7 +163,6 @@ namespace {
 	void setup_opengl_uniforms(OpenGLInfo* glInfo) {
 		// create buffers
 		glCreateBuffers(1, &glInfo->trans_uni_buf);
-		glCreateBuffers(1, &glInfo->text_uni_buf);
 
 		// bind them
 		// bind transform buffer to transform uniform
@@ -210,7 +174,6 @@ namespace {
 		// allocate enough space for 2 transform matrices + current chunk coords + bool in_water
 		// todo: use map, then invalidate range when writing
 		glNamedBufferStorage(glInfo->trans_uni_buf, 2 * sizeof(mat4) + sizeof(GLuint), NULL, GL_DYNAMIC_STORAGE_BIT);
-		glNamedBufferStorage(glInfo->text_uni_buf, 2 * sizeof(ivec2) + 2 * sizeof(GLuint), NULL, GL_MAP_WRITE_BIT);
 	}
 
 	void setup_opengl_extra_props(OpenGLInfo* glInfo) {
@@ -653,14 +616,12 @@ namespace {
 void setup_opengl(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
 	// setup shaders
 	setup_game_rendering_program(glInfo);
-	setup_text_rendering_program(glInfo);
 	setup_tjunction_fixing_program(glInfo);
 	setup_fbo_merging_program(glInfo);
 
 	// setup VAOs
 	setup_opengl_vao_empty(glInfo);
 	setup_opengl_vao_quad(glInfo);
-	setup_opengl_vao_text(glInfo);
 
 	// setup uniforms
 	setup_opengl_uniforms(glInfo);
@@ -674,49 +635,6 @@ void setup_opengl(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
 	// set up textures
 	setup_block_textures(glInfo);
 	setup_font_textures(glInfo);
-}
-
-// render text right here and now, bam!
-void render_text(OpenGLInfo* glInfo, const ivec2 start_pos, const ivec2 screen_dimensions, const char* text, const unsigned size) {
-	if (size == 0) return;
-	assert((start_pos[0] + size) <= MAX_CHARS_HORIZONTAL && "bro your text is gonna leave the screen bro");
-
-	// bind program/VAO
-	glUseProgram(glInfo->text_rendering_program);
-	glBindVertexArray(glInfo->vao_text);
-	glBindBufferBase(GL_UNIFORM_BUFFER, glInfo->text_uni_bidx, glInfo->text_uni_buf);
-
-	// update uniform buffer
-	char* uni = (char*)glMapNamedBufferRange(glInfo->text_uni_buf, 0, 2 * sizeof(ivec2) + 2 * sizeof(GLuint), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-	*((ivec2*)(uni + 0)) = start_pos;
-	*((ivec2*)(uni + sizeof(ivec2))) = screen_dimensions;
-	*((GLuint*)(uni + 2 * sizeof(ivec2))) = TOP_LEFT; // orientation
-	*((GLuint*)(uni + 2 * sizeof(ivec2) + sizeof(GLuint))) = size; // string size
-
-	glFlushMappedNamedBufferRange(glInfo->text_uni_buf, 0, 2 * sizeof(ivec2) + 2 * sizeof(GLuint));
-	glUnmapNamedBuffer(glInfo->text_uni_buf);
-
-	// update text buffer
-	char* buftext = (char*)glMapNamedBufferRange(glInfo->text_buf, 0, sizeof(char) * MAX_CHARS_HORIZONTAL, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-	std::copy(text, text + size, buftext);
-
-	glFlushMappedNamedBufferRange(glInfo->text_buf, 0, sizeof(char) * MAX_CHARS_HORIZONTAL);
-	glUnmapNamedBuffer(glInfo->text_buf);
-
-	// save properties
-	GLint blend = glIsEnabled(GL_BLEND);
-
-	// set properties
-	glEnable(GL_BLEND);
-
-	// draw!
-	glDrawArrays(GL_POINTS, 0, size);
-
-	// restore properties
-	if (blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
-
-	// unbind VAO jic
-	glBindVertexArray(0);
 }
 
 // fix the tjunctions in DEPTH/COLOR0 of fbo
