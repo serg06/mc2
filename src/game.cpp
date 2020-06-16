@@ -292,9 +292,6 @@ void App::run() {
 
 	// Spawn mesh generation threads
 	vector<std::future<void>> chunk_gen_futures;
-	//for (int i = 0; i < NUM_MESH_GEN_THREADS; i++) {
-	//	chunk_gen_futures.push_back(std::async(std::launch::async, ChunkGenThread, &ctx));
-	//}
 
 	// run until user presses ESC or tries to close window
 	last_render_time = (float)glfwGetTime(); // updated in render()
