@@ -380,12 +380,13 @@ void App::render(float time) {
 
 	// check if in water
 	const BlockType face_block = world_data->get_type(vec2ivec(char_position + vec4(0, CAMERA_HEIGHT, 0, 0)));
-	const GLuint in_water = face_block == BlockType::StillWater || face_block == BlockType::FlowingWater;
+	in_water = face_block == BlockType::StillWater || face_block == BlockType::FlowingWater;
+	const GLuint in_water_gluint = static_cast<GLuint>(in_water);
 
 	// Update transformation buffer with matrices
 	glNamedBufferSubData(glInfo.trans_uni_buf, 0, sizeof(model_view_matrix), model_view_matrix);
 	glNamedBufferSubData(glInfo.trans_uni_buf, sizeof(model_view_matrix), sizeof(proj_matrix), proj_matrix); // proj matrix
-	glNamedBufferSubData(glInfo.trans_uni_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(GLuint), &in_water); // proj matrix
+	glNamedBufferSubData(glInfo.trans_uni_buf, sizeof(model_view_matrix) + sizeof(proj_matrix), sizeof(GLuint), &in_water_gluint); // proj matrix
 
 	// extract projection matrix planes
 	vec4 planes[6];
@@ -397,27 +398,7 @@ void App::render(float time) {
 
 	// display debug info
 	if (show_debug_info) {
-		char buf[256];
-		const ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
-		int y_offset = 0;
-
-		sprintf(buf, "FPS: %-4.1f (%d ms) (%d distance)", fps, (int)(dt * 1000), min_render_distance);
-		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
-
-		sprintf(buf, "Position: (%6.1f, %6.1f, %6.1f)", char_position[0], char_position[1], char_position[2]);
-		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
-
-		sprintf(buf, "Facing:   (%6.1f, %6.1f, %6.1f)", direction[0], direction[1], direction[2]);
-		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
-
-		sprintf(buf, "Looking at block: (%d, %d, %d)", staring_at[0], staring_at[1], staring_at[2]);
-		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
-
-		sprintf(buf, "Face in water: %d", (int)in_water);
-		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
-
-		sprintf(buf, "Held block: %d (%s)", (int)held_block, held_block.side_texture().c_str());
-		render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+		render_debug_info(dt);
 	}
 
 	// get polygon mode
@@ -443,6 +424,33 @@ void App::render(float time) {
 		OutputDebugString(buf.str().c_str());
 	}
 #endif // _DEBUG
+}
+
+void App::render_debug_info(float dt)
+{
+	char buf[256];
+	const ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
+	int y_offset = 0;
+
+	const auto direction = staring_direction();
+
+	sprintf(buf, "FPS: %-4.1f (%d ms) (%d distance)", fps, (int)(dt * 1000), min_render_distance);
+	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+
+	sprintf(buf, "Position: (%6.1f, %6.1f, %6.1f)", char_position[0], char_position[1], char_position[2]);
+	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+
+	sprintf(buf, "Facing:   (%6.1f, %6.1f, %6.1f)", direction[0], direction[1], direction[2]);
+	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+
+	sprintf(buf, "Looking at block: (%d, %d, %d)", staring_at[0], staring_at[1], staring_at[2]);
+	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+
+	sprintf(buf, "Face in water: %s", in_water ? "true" : "false");
+	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+
+	sprintf(buf, "Held block: %d (%s)", (int)held_block, held_block.side_texture().c_str());
+	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
 }
 
 void App::updateWorld(float time) {

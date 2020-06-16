@@ -84,6 +84,7 @@ public:
 
 	// funcs
 	void render(float time);
+	void render_debug_info(float dt);
 
 	bool show_debug_info = false;
 	bool should_fix_tjunctions = true;
@@ -109,6 +110,7 @@ public:
 	ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
 	bool should_check_for_nearby_chunks = true;
 	bool noclip = false;
+	bool in_water = false;
 
 	// funcs
 	void updateWorld(float time);
