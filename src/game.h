@@ -90,6 +90,7 @@ public:
 	bool should_fix_tjunctions = true;
 	unsigned min_render_distance = 0;
 	double fps = 0;
+	bool capture_mouse = true;
 
 	/* WORLD PART */
 
@@ -148,7 +149,7 @@ public:
 	// funcs
 	void run();
 	void startup();
-	void shutdown() { /* TODO: Maybe some day. */ }
+	void shutdown();
 
 	inline void set_min_render_distance(int min_render_distance) {
 		if (min_render_distance > this->min_render_distance) {

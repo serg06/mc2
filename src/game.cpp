@@ -10,6 +10,9 @@
 #include "world_meshing.h"
 #include "world_render.h"
 
+#include "examples/imgui_impl_opengl3.h"
+#include "examples/imgui_impl_glfw.h"
+#include "imgui.h"
 #include "zmq.hpp"
 
 #include <algorithm>
@@ -262,7 +265,8 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	}
 }
 
-void App::run() {
+void App::run()
+{
 	// create glfw window
 	setup_glfw(&windowInfo, &window);
 
@@ -321,7 +325,8 @@ void App::run() {
 	shutdown();
 }
 
-void App::startup() {
+void App::startup()
+{
 	// set vars
 	memset(held_keys, false, sizeof(held_keys));
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
@@ -330,9 +335,47 @@ void App::startup() {
 
 	// prepare opengl
 	setup_opengl(&windowInfo, &glInfo);
+
+	/* IMGUI */
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.94f);
+	//style.Colors[ImGuiCol_PopupBg] = ImVec4(1, 0, 0, 0.94f);
+	//style.Colors[ImGuiCol_FrameBg] = ImVec4(1, 0, 0, 0.54f);
+	style.Colors[ImGuiCol_Border] = ImVec4(0, 0, 0, 0);
+	style.WindowRounding = 0.0f;
+	//style.ChildRounding = 0.0f;
+	//style.FrameRounding = 0.0f;
+	//style.GrabRounding = 0.0f;
+	//style.PopupRounding = 0.0f;
+	//style.ScrollbarRounding = 0.0f;
+	//ImGui::StyleColorsClassic();
+
+	// Load Fonts
+	io.Fonts->AddFontFromFileTTF("font/minecraft.otf", 7.0f * 5);
+
+	// Setup Platform/Renderer bindings
+	ImGui_ImplOpenGL3_Init();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
 }
 
-void App::render(float time) {
+void App::shutdown()
+{
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+}
+
+void App::render(float time)
+{
 	// FBO: BIND
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, glInfo.fbo_out.get_fbo());
 
@@ -425,29 +468,58 @@ void App::render(float time) {
 
 void App::render_debug_info(float dt)
 {
-	char buf[256];
-	const ivec2 screen_dimensions = { windowInfo.width, windowInfo.height };
-	int y_offset = 0;
+	// Prep debug info string
+	std::string debugInfo;
+	debugInfo.reserve(500);
 
+	char lineBuf[256];
 	const auto direction = staring_direction();
 
-	sprintf(buf, "FPS: %-4.1f (%d ms) (%d distance)", fps, (int)(dt * 1000), min_render_distance);
-	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+	sprintf(lineBuf, "FPS: %-4.1f (%d ms) (%d distance)\n", fps, (int)(dt * 1000), min_render_distance);
+	debugInfo += lineBuf;
 
-	sprintf(buf, "Position: (%6.1f, %6.1f, %6.1f)", char_position[0], char_position[1], char_position[2]);
-	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+	sprintf(lineBuf, "Position: (%6.1f, %6.1f, %6.1f)\n", char_position[0], char_position[1], char_position[2]);
+	debugInfo += lineBuf;
 
-	sprintf(buf, "Facing:   (%6.1f, %6.1f, %6.1f)", direction[0], direction[1], direction[2]);
-	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+	sprintf(lineBuf, "Facing:   (%6.1f, %6.1f, %6.1f)\n", direction[0], direction[1], direction[2]);
+	debugInfo += lineBuf;
 
-	sprintf(buf, "Looking at block: (%d, %d, %d)", staring_at[0], staring_at[1], staring_at[2]);
-	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+	sprintf(lineBuf, "Looking at block: (%d, %d, %d)\n", staring_at[0], staring_at[1], staring_at[2]);
+	debugInfo += lineBuf;
 
-	sprintf(buf, "Face in water: %s", in_water ? "true" : "false");
-	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+	sprintf(lineBuf, "Face in water: %s\n", in_water ? "true" : "false");
+	debugInfo += lineBuf;
 
-	sprintf(buf, "Held block: %d (%s)", (int)held_block, held_block.side_texture().c_str());
-	render_text(&glInfo, { 0, y_offset++ }, screen_dimensions, buf, strlen(buf));
+	sprintf(lineBuf, "Held block: %d (%s)\n", (int)held_block, held_block.side_texture().c_str());
+	debugInfo += lineBuf;
+
+	// Start the Dear ImGui frame
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	// Show debug info
+	const float DISTANCE = 10.0f;
+	static int corner = 0;
+	ImGuiIO& io = ImGui::GetIO();
+	if (corner != -1)
+	{
+		ImVec2 window_pos = ImVec2((corner & 1) ? io.DisplaySize.x - DISTANCE : DISTANCE, (corner & 2) ? io.DisplaySize.y - DISTANCE : DISTANCE);
+		ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
+		ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+	}
+	ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background
+	if (ImGui::Begin("Debug info", nullptr, (corner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+	{
+		ImGui::Text(debugInfo.c_str());
+	}
+	ImGui::End();
+
+	// Rendering
+	ImGui::Render();
+	int display_w, display_h;
+	glfwGetFramebufferSize(window, &display_w, &display_h);
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void App::updateWorld(float time) {
@@ -683,7 +755,7 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 			noclip = !noclip;
 		}
 
-		// p = cycle poylgon mode
+		// P = cycle poylgon mode
 		if (key == GLFW_KEY_P) {
 			GLint polygon_mode;
 			glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
@@ -700,7 +772,7 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 			}
 		}
 
-		// c = toggle face culling
+		// C = toggle face culling
 		if (key == GLFW_KEY_C) {
 			GLboolean is_enabled = glIsEnabled(GL_CULL_FACE);
 			if (is_enabled) {
@@ -757,6 +829,16 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 				glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, !raw_motion);
 			}
 		}
+
+		// M = toggle mouse cursor
+		if (key == GLFW_KEY_M)
+		{
+			if (capture_mouse)
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			else
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			capture_mouse = !capture_mouse;
+		}
 	}
 
 	// handle optionally-repeatable key presses
@@ -783,22 +865,25 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 
 void App::onMouseMove(GLFWwindow* window, double x, double y)
 {
-	// bonus of using deltas for yaw/pitch:
-	// - can cap easily -- if we cap without deltas, and we move 3000x past the cap, we'll have to move 3000x back before mouse moves!
-	// - easy to do mouse sensitivity
-	double delta_x = x - last_mouse_x;
-	double delta_y = y - last_mouse_y;
+	if (capture_mouse)
+	{
+		// bonus of using deltas for yaw/pitch:
+		// - can cap easily -- if we cap without deltas, and we move 3000x past the cap, we'll have to move 3000x back before mouse moves!
+		// - easy to do mouse sensitivity
+		double delta_x = x - last_mouse_x;
+		double delta_y = y - last_mouse_y;
 
-	// update pitch/yaw
-	char_yaw += (float)(windowInfo.mouseX_Sensitivity * delta_x);
-	char_pitch += (float)(windowInfo.mouseY_Sensitivity * delta_y);
+		// update pitch/yaw
+		char_yaw += (float)(windowInfo.mouseX_Sensitivity * delta_x);
+		char_pitch += (float)(windowInfo.mouseY_Sensitivity * delta_y);
 
-	// cap pitch
-	char_pitch = clamp(char_pitch, -90.0f, 90.0f);
+		// cap pitch
+		char_pitch = clamp(char_pitch, -90.0f, 90.0f);
 
-	// update old values
-	last_mouse_x = x;
-	last_mouse_y = y;
+		// update old values
+		last_mouse_x = x;
+		last_mouse_y = y;
+	}
 }
 
 void App::onResize(GLFWwindow* window, int width, int height) {
