@@ -7,8 +7,9 @@ set(TARGET_NAME ${SOLUTION_NAME})
 set(HEADER_ONLY_LIBS vmath stb cppzmq)
 set(OTHER_LIBS gl3w FastNoise glfw libzmq-static imgui)
 
-set(MSVC_COMPILER_FLAGS "/Oi /Ot /GL")
-set(MSVC_LINKER_FLAGS "/LTCG")
+# hyper-optimize Release build (so should stick to RelWithDebInfo when debugging)
+set(MSVC_COMPILER_FLAGS_RELEASE /MT /Oi /Ot /GL) # static linking, speed
+set(MSVC_LINKER_FLAGS_RELEASE /LTCG) # speed
 
 set(ALL_LIBS ${HEADER_ONLY_LIBS} ${OTHER_LIBS})
 
@@ -23,10 +24,12 @@ project(${SOLUTION_NAME}
 	DESCRIPTION "Minecraft V2"
 	LANGUAGES C CXX)
 
-# set compilation flags
+# set compiler/linker flags
 if (MSVC)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_COMPILER_FLAGS}")
-	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MSVC_LINKER_FLAGS}")
+	foreach (FLAG IN LISTS MSVC_COMPILER_FLAGS_RELEASE)
+		add_compile_options("$<$<CONFIG:Release>:${FLAG}>")
+	endforeach(FLAG)
+	SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${MSVC_LINKER_FLAGS_RELEASE}")
 endif()
 
 # set libraries dir
@@ -84,5 +87,3 @@ target_include_directories(${TARGET_NAME} PUBLIC src)
 # set to C++20 (we doin this hardcore)
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-# TODO: Enable MSVC static linking so that it runs without needing VC redist?
