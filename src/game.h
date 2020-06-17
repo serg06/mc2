@@ -85,6 +85,7 @@ public:
 	// funcs
 	void render(float time);
 	void render_debug_info(float dt);
+	void render_main_menu();
 
 	bool show_debug_info = false;
 	bool should_fix_tjunctions = true;

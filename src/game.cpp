@@ -348,10 +348,11 @@ void App::startup()
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
 	ImGuiStyle& style = ImGui::GetStyle();
-	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.94f);
+	ImVec4* colors = style.Colors;
+	colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.94f);
 	//style.Colors[ImGuiCol_PopupBg] = ImVec4(1, 0, 0, 0.94f);
 	//style.Colors[ImGuiCol_FrameBg] = ImVec4(1, 0, 0, 0.54f);
-	style.Colors[ImGuiCol_Border] = ImVec4(0, 0, 0, 0);
+	colors[ImGuiCol_Border] = ImVec4(0, 0, 0, 0);
 	style.WindowRounding = 0.0f;
 	//style.ChildRounding = 0.0f;
 	//style.FrameRounding = 0.0f;
@@ -359,6 +360,16 @@ void App::startup()
 	//style.PopupRounding = 0.0f;
 	//style.ScrollbarRounding = 0.0f;
 	//ImGui::StyleColorsClassic();
+
+	colors[ImGuiCol_Button] = ImVec4(111/255.0f, 111/255.0f, 111/255.0f, 1);
+
+	// TODO: instead of this, write custom button renderer that changes border on highlight (like MC)
+	//   (Need to override ButtonBehaviour or something?)
+	if constexpr (true)
+	{
+		colors[ImGuiCol_ButtonHovered] = ImVec4(131 / 255.0f, 131 / 255.0f, 131 / 255.0f, 1);
+		colors[ImGuiCol_ButtonActive] = ImVec4(151 / 255.0f, 151 / 255.0f, 151 / 255.0f, 1);
+	}
 
 	// Load Fonts
 	io.Fonts->AddFontFromFileTTF("font/minecraft.otf", 7.0f * 4);
@@ -512,6 +523,51 @@ void App::render_debug_info(float dt)
 	if (ImGui::Begin("Debug info", nullptr, (corner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
 	{
 		ImGui::Text(debugInfo.c_str());
+	}
+	ImGui::End();
+
+	// Rendering
+	ImGui::Render();
+	int display_w, display_h;
+	glfwGetFramebufferSize(window, &display_w, &display_h);
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+
+void App::render_main_menu()
+{
+	// Start the Dear ImGui frame
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	// Create window in center of screen
+	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x/2, ImGui::GetIO().DisplaySize.y/2 };
+	ImVec2 window_pos_pivot = {0.5f, 0.5f};
+	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+	if (ImGui::Begin("Main menu", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing))
+	{
+		// Calculate button sizes/spacing
+		float xSpacing = ImGui::GetStyle().ItemSpacing.x + 10.0f;
+		float bottomButtonWidth = 140;
+		float topButtonWidth = 2 * bottomButtonWidth + xSpacing;
+		float buttonHeight = 44;
+
+#ifdef _DEBUG
+		float minBottomButtonWidth = ImGui::CalcTextSize("Options\nQuit Game").x + ImGui::GetStyle().ItemInnerSpacing.x * 2;
+		float minTopButtonWidth = ImGui::CalcTextSize("Single Player").x + ImGui::GetStyle().ItemInnerSpacing.x * 2;
+		float minButtonHeight = ImGui::CalcTextSize("Single Player").y + ImGui::GetStyle().ItemInnerSpacing.y * 2;
+		assert(bottomButtonWidth >= minBottomButtonWidth);
+		assert(topButtonWidth >= minTopButtonWidth);
+		assert(buttonHeight >= minButtonHeight);
+#endif
+
+		// Draw buttons
+		ImGui::Button("Single Player", { topButtonWidth, buttonHeight });
+		ImGui::Dummy(ImVec2(0.0f, 16.0f));
+		ImGui::Button("Options", { bottomButtonWidth, buttonHeight });
+		ImGui::SameLine(0, xSpacing);
+		ImGui::Button("Quit Game", { bottomButtonWidth, buttonHeight });
 	}
 	ImGui::End();
 
