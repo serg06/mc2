@@ -297,10 +297,10 @@ void App::run()
 	vector<std::future<void>> chunk_gen_futures;
 
 	// run until user presses ESC or tries to close window
-	last_render_time = (float)glfwGetTime(); // updated in render()
+	last_render_time = static_cast<float>(glfwGetTime()); // updated in render()
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
 		// run rendering function
-		float time = (float)glfwGetTime();
+		float time = static_cast<float>(glfwGetTime());
 		updateWorld(time);
 		render(time);
 
@@ -415,8 +415,8 @@ void App::render(float time)
 	// Update projection matrix too, in case if width/height changed
 	// NOTE: Careful, if (nearplane/farplane) ratio is too small, things get fucky.
 	const mat4 proj_matrix = perspective(
-		(float)windowInfo.vfov, // virtual fov
-		(float)windowInfo.width / (float)windowInfo.height, // aspect ratio
+		static_cast<float>(windowInfo.vfov), // virtual fov
+		static_cast<float>(windowInfo.width) / static_cast<float>(windowInfo.height), // aspect ratio
 		(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // see blocks no matter how close they are
 		64 * CHUNK_WIDTH // only support 64 chunks for now
 	);
@@ -636,14 +636,14 @@ void App::update_player_movement(const float dt) {
 
 	//   TODO: Handle walking on blocks, in water, etc. Maybe do it based on friction.
 	//   TODO: Tweak values.
-	player.velocity *= (float)pow(0.5, dt);
+	player.velocity *= static_cast<float>(pow(0.5, dt));
 	vec4 norm = normalize(player.velocity);
 	for (int i = 0; i < 4; i++) {
 		if (player.velocity[i] > 0.0f) {
-			player.velocity[i] = (float)fmaxf(0.0f, player.velocity[i] - (10.0f * norm[i] * dt));
+			player.velocity[i] = static_cast<float>(fmaxf(0.0f, player.velocity[i] - (10.0f * norm[i] * dt)));
 		}
 		else if (player.velocity[i] < 0.0f) {
-			player.velocity[i] = (float)fmin(0.0f, player.velocity[i] - (10.0f * norm[i] * dt));
+			player.velocity[i] = static_cast<float>(fmin(0.0f, player.velocity[i] - (10.0f * norm[i] * dt)));
 		}
 	}
 
@@ -725,7 +725,7 @@ void App::update_player_movement(const float dt) {
 	// down
 	if (position_change[1] < fixed_position_change[1]) {
 		player.velocity[1] = 0;
-		player.position[1] = fmaxf(player.position[1], (float)ipos[1]); // RESET DOWN
+		player.position[1] = fmaxf(player.position[1], static_cast<float>(ipos[1])); // RESET DOWN
 	}
 
 	// Update position

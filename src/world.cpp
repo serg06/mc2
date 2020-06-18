@@ -244,7 +244,7 @@ void WorldDataPart::gen_nearby_chunks(const vmath::vec4& position, const int& di
 
 // get chunk that contains block at (x, _, z)
 Chunk* WorldDataPart::get_chunk_containing_block(const int x, const int z) {
-	return get_chunk((int)floorf((float)x / 16.0f), (int)floorf((float)z / 16.0f));
+	return get_chunk((int)floorf(static_cast<float>(x) / 16.0f), (int)floorf(static_cast<float>(z) / 16.0f));
 }
 
 // get minichunk that contains block at (x, y, z)
@@ -823,6 +823,6 @@ constexpr  float liquid_level_to_height(int liquid_level) {
 		}
 	}
 
-	return 1.0F - heightSum / (float)sumDivisor;
+	return 1.0F - heightSum / static_cast<float>(sumDivisor);
 }
 */

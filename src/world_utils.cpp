@@ -158,7 +158,7 @@ bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
 
 // get chunk-coordinates of chunk containing the block at (x, _, z)
 vmath::ivec2 get_chunk_coords(const int x, const int z) {
-	return get_chunk_coords((float)x, (float)z);
+	return get_chunk_coords(static_cast<float>(x), static_cast<float>(z));
 }
 
 // get chunk-coordinates of chunk containing the block at (x, _, z)
@@ -168,7 +168,7 @@ vmath::ivec2 get_chunk_coords(const float x, const float z) {
 
 // get minichunk-coordinates of minichunk containing the block at (x, y, z)
 vmath::ivec3 get_mini_coords(const int x, const int y, const int z) {
-	return { (int)floorf((float)x / 16.0f), (y / 16) * 16, (int)floorf((float)z / 16.0f) };
+	return { (int)floorf(static_cast<float>(x) / 16.0f), (y / 16) * 16, (int)floorf(static_cast<float>(z) / 16.0f) };
 }
 
 vmath::ivec3 get_mini_coords(const vmath::ivec3& xyz) { return get_mini_coords(xyz[0], xyz[1], xyz[2]); }

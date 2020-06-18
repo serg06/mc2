@@ -247,8 +247,8 @@ void WorldRenderPart::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* 
 
 	// Update projection matrix (increase near distance a bit, to fix z-fighting)
 	vmath::mat4 proj_matrix = vmath::perspective(
-		(float)windowInfo->vfov,
-		(float)windowInfo->width / (float)windowInfo->height,
+		static_cast<float>(windowInfo->vfov),
+		static_cast<float>(windowInfo->width) / static_cast<float>(windowInfo->height),
 		(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1.001f / sqrtf(2.0f), // render outline a tiny bit closer than actual block, to prevent z-fighting
 		64 * CHUNK_WIDTH
 	);
@@ -268,8 +268,8 @@ void WorldRenderPart::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* 
 	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 
 	proj_matrix = vmath::perspective(
-		(float)windowInfo->vfov,
-		(float)windowInfo->width / (float)windowInfo->height,
+		static_cast<float>(windowInfo->vfov),
+		static_cast<float>(windowInfo->width) / static_cast<float>(windowInfo->height),
 		(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // back to normal
 		64 * CHUNK_WIDTH
 	);

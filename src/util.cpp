@@ -131,6 +131,7 @@ GLuint compile_shaders(const std::vector<std::tuple<std::string, GLenum>>& shade
 	return program;
 }
 
+// TODO: REMOVE ASAP
 // create a (deterministic) 2D random gradient
 vec2 rand_grad(int seed, int x, int y) {
 	vec2 result;
