@@ -22,9 +22,6 @@
 #include <unordered_map>
 #include <utility>
 
-using namespace std;
-using namespace vmath;
-
 constexpr int NUM_MESH_GEN_THREADS = 1;
 
 void run_game(zmq::context_t* const ctx);
@@ -104,20 +101,20 @@ public:
 	std::unique_ptr<WorldRenderPart> world_render;
 
 	BlockType held_block = BlockType::StillWater; // TODO: Instead, remembering which inventory slot
-	ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
+	vmath::ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
 	bool should_check_for_nearby_chunks = true;
 	bool noclip = false;
 
 	// funcs
 	void updateWorld(float time);
 	void update_player_movement(const float dt);
-	vec4 prevent_collisions(const vec4 position_change);
+	vmath::vec4 prevent_collisions(const vmath::vec4 position_change);
 
 	const inline auto& get_last_chunk_coords() const {
 		return last_chunk_coords;
 	}
 
-	inline void set_last_chunk_coords(const ivec2& last_chunk_coords) {
+	inline void set_last_chunk_coords(const vmath::ivec2& last_chunk_coords) {
 		if (last_chunk_coords != this->last_chunk_coords) {
 			this->last_chunk_coords = last_chunk_coords;
 			should_check_for_nearby_chunks = true;

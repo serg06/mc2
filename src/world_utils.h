@@ -13,8 +13,6 @@
 #include "minichunkmesh.h"
 #include "render.h"
 
-using namespace std;
-
 struct Quad2D {
 	BlockType block;
 	vmath::ivec2 corners[2];

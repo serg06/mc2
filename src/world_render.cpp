@@ -100,7 +100,7 @@ void WorldRenderPart::update_meshes()
 
 void WorldRenderPart::render(OpenGLInfo* glInfo, GlfwInfo* windowInfo, const vmath::vec4(&planes)[6], const vmath::ivec3& staring_at) {
 	// collect all the minis we're gonna draw
-	vector<MiniRender*> minis_to_draw;
+	std::vector<MiniRender*> minis_to_draw;
 
 	for (auto& [coords, mini] : mesh_map)
 	{

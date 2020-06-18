@@ -1,11 +1,11 @@
 #include "world_meshing.h"
 
 // Private functions
-vector<Quad3D> quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face);
+std::vector<Quad3D> quads_2d_3d(const std::vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face);
 void gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]);
 bool is_face_visible(const BlockType& block, const BlockType& face_block);
 void gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, const int layer_no, const vmath::ivec3& face, BlockType(&result)[16][16]);
-vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]);
+std::vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]);
 void mark_as_merged(bool(&merged)[16][16], const vmath::ivec2& start, const vmath::ivec2& max_size);
 vmath::ivec2 get_max_size(const BlockType(&layer)[16][16], const bool(&merged)[16][16], const vmath::ivec2& start_point, const BlockType& block_type);
 bool check_if_covered(std::shared_ptr<MeshGenRequest> req);
@@ -77,8 +77,8 @@ bool check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 
 // convert 2D quads to 3D quads
 // face: for offset
-vector<Quad3D> quads_2d_3d(const vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face) {
-	vector<Quad3D> result(quads2d.size());
+std::vector<Quad3D> quads_2d_3d(const std::vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face) {
+	std::vector<Quad3D> result(quads2d.size());
 
 	// working variable
 
@@ -205,10 +205,10 @@ void gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, 
 }
 
 // given 2D array of block numbers, generate optimal quads
-vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
+std::vector<Quad2D> gen_quads(const BlockType(&layer)[16][16], /* const Metadata(&metadata_layer)[16][16], */ bool(&merged)[16][16]) {
 	memset(merged, false, sizeof(merged));
 
-	vector<Quad2D> result;
+	std::vector<Quad2D> result;
 
 	for (int i = 0; i < 16; i++) {
 		for (int j = 0; j < 16; j++) {
@@ -368,7 +368,7 @@ std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MeshGenRequest
 			gen_layer(req, layers_idx, i, face, layer);
 
 			// get quads from layer
-			vector<Quad2D> quads2d = gen_quads(layer, merged);
+			std::vector<Quad2D> quads2d = gen_quads(layer, merged);
 
 			// if -x, -y, or +z, flip triangles around so that we're not drawing them backwards
 			if (face[0] < 0 || face[1] < 0 || face[2] > 0) {
@@ -383,7 +383,7 @@ std::unique_ptr<MiniChunkMesh> gen_minichunk_mesh(std::shared_ptr<MeshGenRequest
 			// -> Or alternatively, can just rotate texture lmao.
 
 			// convert quads back to 3D coordinates
-			vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
+			std::vector<Quad3D> quads = quads_2d_3d(quads2d, layers_idx, i, face);
 
 			// if not backface (i.e. not facing (0,0,0)), move 1 forwards
 			if (face[0] > 0 || face[1] > 0 || face[2] > 0) {
