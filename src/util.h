@@ -6,6 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <map>
 #include <memory>
@@ -303,8 +304,6 @@ static inline std::vector<int> argsort(const int size, const T* data) {
 	return indices;
 }
 
-double noise2d(double x, double y);
-
 // super fast x^p using Exponentiation by Squaring
 // works for ints, doubles, you name it
 // succeptible to overflows when used with ints/similar
@@ -349,13 +348,25 @@ static constexpr inline void extract_from_atlas(float* atlas, unsigned atlas_wid
 // In C++, -1 % 16 == -1. Want it to be 15 instead.
 template<typename T>
 static constexpr T posmod(const T &x, const T &m) {
-	return ((x % m) + m) % m;
+	if constexpr (std::is_integral_v<T>)
+	{
+		return ((x % m) + m) % m;
+	}
+	else if constexpr (std::is_floating_point_v<T>)
+	{
+		return fmod(fmod(x, m) + m, m);
+	}
+	else
+	{
+		// Not supported
+		static_assert(1 != 0);
+	}
 }
 
 // Thread-safe random number generator.
 // Each thread's generator is guaranteed to get a unique seed.
 template<typename T = int32_t>
-T rand_32(const T& min = std::numeric_limits<T>::min(), const T& max = std::numeric_limits<T>::max())
+T rand_32(const T& min = (std::numeric_limits<T>::min)(), const T& max = (std::numeric_limits<T>::max)())
 {
 	static thread_local std::mt19937* generator = nullptr;
 	if (!generator)
@@ -381,7 +392,7 @@ T rand_32(const T& min = std::numeric_limits<T>::min(), const T& max = std::nume
 // Thread-safe random number generator.
 // Each thread's generator is guaranteed to get a unique seed.
 template<typename T = int64_t>
-T rand_64(const T& min = std::numeric_limits<T>::min(), const T& max = std::numeric_limits<T>::max())
+T rand_64(const T& min = (std::numeric_limits<T>::min)(), const T& max = (std::numeric_limits<T>::max)())
 {
 	static thread_local std::mt19937_64* generator = nullptr;
 	if (!generator)

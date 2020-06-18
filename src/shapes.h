@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util.h"
+#include "GL/glcorearb.h"
 #include "vmath.h"
 
 // player dimensions
@@ -239,10 +239,10 @@ namespace shapes {
 }
 
 // given a player's position, what blocks does he intersect with?
-static inline std::vector<vmath::ivec4> get_intersecting_blocks(const vec4& player_position) {
+static inline std::vector<vmath::ivec4> get_intersecting_blocks(const vmath::vec4& player_position) {
 	// get x/y/z min/max
-	const ivec3 xyzMin = { (int)floorf(player_position[0] - PLAYER_RADIUS), (int)floorf(player_position[1]), (int)floorf(player_position[2] - PLAYER_RADIUS) };
-	const ivec3 xyzMax = { (int)floorf(player_position[0] + PLAYER_RADIUS), (int)floorf(player_position[1] + PLAYER_HEIGHT), (int)floorf(player_position[2] + PLAYER_RADIUS) };
+	const vmath::ivec3 xyzMin = { (int)floorf(player_position[0] - PLAYER_RADIUS), (int)floorf(player_position[1]), (int)floorf(player_position[2] - PLAYER_RADIUS) };
+	const vmath::ivec3 xyzMax = { (int)floorf(player_position[0] + PLAYER_RADIUS), (int)floorf(player_position[1] + PLAYER_HEIGHT), (int)floorf(player_position[2] + PLAYER_RADIUS) };
 
 	// get all blocks that our player intersects with
 	std::vector<vmath::ivec4> blocks;

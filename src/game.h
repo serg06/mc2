@@ -3,6 +3,7 @@
 #include "chunk.h"
 #include "chunkdata.h"
 #include "messaging.h"
+#include "player.h"
 #include "render.h"
 #include "util.h"
 #include "world.h"
@@ -95,44 +96,22 @@ public:
 
 	/* WORLD PART */
 
-	// movement
-	vec4 char_position = { 8.0f, 73.0f, 8.0f, 1.0f };
-	vec4 char_velocity = { 0.0f };
-
-	// rotation
-	float char_pitch = 0.0f; //   up/down  angle;    capped to [-90.0, 90.0]
-	float char_yaw = 0.0f;   // left/right angle; un-capped (TODO: Reset it if it gets too high?)
+	// player
+	Player player;
 
 	// misc
 	std::unique_ptr<WorldDataPart> world_data;
 	std::unique_ptr<WorldRenderPart> world_render;
-	ivec3 staring_at = { 0, -1, 0 }; // the block you're staring at (invalid by default)
-	ivec3 staring_at_face; // the face you're staring at on the block you're staring at
-	BlockType held_block = BlockType::StillWater;
+
+	BlockType held_block = BlockType::StillWater; // TODO: Instead, remembering which inventory slot
 	ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
 	bool should_check_for_nearby_chunks = true;
 	bool noclip = false;
-	bool in_water = false;
 
 	// funcs
 	void updateWorld(float time);
 	void update_player_movement(const float dt);
 	vec4 prevent_collisions(const vec4 position_change);
-
-	// get direction player's staring at
-	inline auto staring_direction() {
-		return rotate_pitch_yaw(char_pitch, char_yaw) * NORTH_0;
-	}
-
-	// get direction straight up from player
-	inline auto up_direction() {
-		return rotate_pitch_yaw(char_pitch, char_yaw) * UP_0;
-	}
-
-	// get direction straight right from player
-	inline auto right_direction() {
-		return rotate_pitch_yaw(char_pitch, char_yaw) * EAST_0;
-	}
 
 	const inline auto& get_last_chunk_coords() const {
 		return last_chunk_coords;
