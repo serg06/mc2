@@ -737,10 +737,10 @@ void WorldDataPart::handle_messages()
 				}\
 			}
 
-			ENQUEUE(chunk->coords + ivec2(1, 0));
-			ENQUEUE(chunk->coords + ivec2(-1, 0));
-			ENQUEUE(chunk->coords + ivec2(0, 1));
-			ENQUEUE(chunk->coords + ivec2(0, -1));
+			ENQUEUE(chunk->coords + vmath::ivec2(1, 0));
+			ENQUEUE(chunk->coords + vmath::ivec2(-1, 0));
+			ENQUEUE(chunk->coords + vmath::ivec2(0, 1));
+			ENQUEUE(chunk->coords + vmath::ivec2(0, -1));
 #undef ENQUEUE
 		}
 #ifdef _DEBUG

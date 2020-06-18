@@ -117,7 +117,9 @@ vmath::ivec3 get_mini_relative_coords(const vmath::ivec3& xyz);
 *
 * If the callback returns a true value, the traversal will be stopped.
 */
-void raycast(const vec4& origin, const vec4& direction, int radius, vmath::ivec3* result_coords, vmath::ivec3* result_face, const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check);
+void raycast(const vmath::vec4& origin, const vmath::vec4& direction, int radius,
+	vmath::ivec3* result_coords, vmath::ivec3* result_face,
+	const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check);
 
 // get chunk-coordinates of chunk containing the block at (x, _, z)
 vmath::ivec2 get_chunk_coords(const int x, const int z);

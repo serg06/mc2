@@ -246,7 +246,7 @@ void WorldRenderPart::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* 
 	const GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
 
 	// Update projection matrix (increase near distance a bit, to fix z-fighting)
-	mat4 proj_matrix = perspective(
+	vmath::mat4 proj_matrix = vmath::perspective(
 		(float)windowInfo->vfov,
 		(float)windowInfo->width / (float)windowInfo->height,
 		(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1.001f / sqrtf(2.0f), // render outline a tiny bit closer than actual block, to prevent z-fighting
@@ -267,7 +267,7 @@ void WorldRenderPart::highlight_block(const OpenGLInfo* glInfo, const GlfwInfo* 
 	if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 
-	proj_matrix = perspective(
+	proj_matrix = vmath::perspective(
 		(float)windowInfo->vfov,
 		(float)windowInfo->width / (float)windowInfo->height,
 		(PLAYER_HEIGHT - CAMERA_HEIGHT) * 1 / sqrtf(2.0f), // back to normal

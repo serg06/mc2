@@ -14,7 +14,9 @@ float intbound(const float s, const float ds)
 	return (ds > 0 ? ceil(s) - s : s - floor(s)) / abs(ds);
 }
 
-void raycast(const vec4& origin, const vec4& direction, int radius, vmath::ivec3* result_coords, vmath::ivec3* result_face, const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check) {
+void raycast(const vmath::vec4& origin, const vmath::vec4& direction, int radius,
+	vmath::ivec3* result_coords, vmath::ivec3* result_face,
+	const std::function <bool(const vmath::ivec3& coords, const vmath::ivec3& face)>& stop_check) {
 	// From "A Fast Voxel Traversal Algorithm for Ray Tracing"
 	// by John Amanatides and Andrew Woo, 1987
 	// <http://www.cse.yorku.ca/~amana/research/grid.pdf>

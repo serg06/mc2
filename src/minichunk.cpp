@@ -221,7 +221,7 @@ void MiniRender::update_quads_buf(const OpenGLInfo* glInfo) {
 	for (int i = 0; i < quads.size(); i++) {
 		// error check:
 		// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
-		ivec3 diffs = quads[i].corner2 - quads[i].corner1;
+		vmath::ivec3 diffs = quads[i].corner2 - quads[i].corner1;
 
 		int num_diffs_0 = 0;
 		int zero_idx = 0;
@@ -242,7 +242,7 @@ void MiniRender::update_quads_buf(const OpenGLInfo* glInfo) {
 	for (int i = 0; i < water_quads.size(); i++) {
 		// error check:
 		// make sure at least one dimension is killed - i.e. it's a flat quad ( todo. make sure other 2 dimensions are >= 1 size.)
-		ivec3 diffs = water_quads[i].corner2 - water_quads[i].corner1;
+		vmath::ivec3 diffs = water_quads[i].corner2 - water_quads[i].corner1;
 
 		int num_diffs_0 = 0;
 		int zero_idx = 0;
@@ -352,7 +352,7 @@ char* MiniChunk::print_layer(int face, int layer) {
 		tmp += sprintf(tmp, "[ ");
 
 		for (int v = 0; v < 16; v++) {
-			ivec3 coords = { 0, 0, 0 };
+			vmath::ivec3 coords = { 0, 0, 0 };
 			coords[face] = layer;
 			coords[working_idx_1] = u;
 			coords[working_idx_2] = v;

@@ -48,8 +48,6 @@ static constexpr vmath::ivec3 IWEST = vmath::ivec3(-1, 0, 0);
 static constexpr vmath::ivec3 IUP = vmath::ivec3(0, 1, 0);
 static constexpr vmath::ivec3 IDOWN = vmath::ivec3(0, -1, 0);
 
-using namespace vmath;
-
 // simple pair hash function
 struct pair_hash
 {
@@ -91,7 +89,7 @@ GLuint compile_shaders(const std::vector<std::tuple<std::string, GLenum>>& shade
 GLuint link_program(GLuint);
 
 // Create rotation matrix given pitch and yaw
-inline mat4 rotate_pitch_yaw(float pitch, float yaw) {
+inline vmath::mat4 rotate_pitch_yaw(float pitch, float yaw) {
 	return
 		rotate(pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
 		rotate(yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw   around Y
@@ -107,7 +105,7 @@ inline vmath::vecN<int, len> vec2ivec(const vmath::vecN<float, len>& v) {
 }
 
 template <typename T, const int len>
-static inline bool in_range(const vecN<T, len> &vec, const vecN<T, len> &min, const vecN<T, len> &max) {
+static inline bool in_range(const vmath::vecN<T, len> &vec, const vmath::vecN<T, len> &min, const vmath::vecN<T, len> &max) {
 	for (int i = 0; i < len; i++) {
 		if (vec[i] < min[i] || vec[i] > max[i]) {
 			return false;
@@ -117,7 +115,7 @@ static inline bool in_range(const vecN<T, len> &vec, const vecN<T, len> &min, co
 }
 
 template <typename T, const int len>
-inline std::string vec2str(vecN<T, len> vec) {
+inline std::string vec2str(vmath::vecN<T, len> vec) {
 	std::stringstream out;
 	out << "(";
 	for (int i = 0; i < len; i++) {
@@ -139,7 +137,7 @@ inline void hash_combine(std::size_t& seed, const T& v)
 }
 
 // check if sphere is inside frustrum planes
-static inline bool sphere_in_frustrum(const vec3 &pos, const float radius, const vmath::vec4(&frustum_planes)[6]) {
+static inline bool sphere_in_frustrum(const vmath::vec3 &pos, const float radius, const vmath::vec4(&frustum_planes)[6]) {
 	bool res = true;
 	for (auto &plane : frustum_planes) {
 		if (plane[0] * pos[0] + plane[1] * pos[1] + plane[2] * pos[2] + plane[3] <= -radius) {
@@ -268,8 +266,8 @@ public:
 // generate all points in a circle a center
 // TODO: cache
 // TODO: return std::array using -> to specify return type?
-static inline std::vector<ivec2> gen_circle(const int radius, const ivec2 center = { 0, 0 }) {
-	std::vector<ivec2> result;
+static inline std::vector<vmath::ivec2> gen_circle(const int radius, const vmath::ivec2 center = { 0, 0 }) {
+	std::vector<vmath::ivec2> result;
 	result.reserve(4 * radius * radius + 4 * radius + 1); // always makes <= (2r+1)^2 = 4r^2 + 4r + 1 elements
 
 	CircleGenerator cg(radius);
@@ -280,13 +278,13 @@ static inline std::vector<ivec2> gen_circle(const int radius, const ivec2 center
 	return result;
 }
 
-static inline std::vector<ivec2> gen_diamond(const int radius, const vmath::ivec2 center = { 0, 0 }) {
-	std::vector<ivec2> result(2 * radius * radius + 2 * radius + 1); // always makes 2r^2 + 2r + 1 elements
+static inline std::vector<vmath::ivec2> gen_diamond(const int radius, const vmath::ivec2 center = { 0, 0 }) {
+	std::vector<vmath::ivec2> result(2 * radius * radius + 2 * radius + 1); // always makes 2r^2 + 2r + 1 elements
 
 	int total_idx = 0;
 	for (int i = -radius; i <= radius; i++) {
 		for (int j = -(radius - abs(i)); j <= radius - abs(i); j++) {
-			result[total_idx++] = center + ivec2(i, j);
+			result[total_idx++] = center + vmath::ivec2(i, j);
 		}
 	}
 	return result;
