@@ -216,10 +216,17 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 				if (new_player_chunk_coords != player_chunk_coords)
 				{
 					// Adjust priority queue priorities
-					// TODO: Create new priority queue.
-					// TODO: Iterate through previous pq's elements, adjust their priorities, and stick them into the new one.
-					// TODO: Swap pq's.
+					// TODO: Speed this up by making a vector of values and passing that to priority_queue's constructor
 					decltype(request_queue) pq2;
+					for (const decltype(request_queue)::value_type& v : request_queue)
+					{
+						std::remove_cv_t<std::remove_reference_t<decltype(v)>> v2 = v;
+						auto& key = v2.first;
+						auto& priority = v2.second.first;
+						priority = vmath::distance(key, player_chunk_coords);
+						pq2.push(v2);
+					}
+					request_queue.swap(pq2);
 				}
 			}
 #ifdef _DEBUG

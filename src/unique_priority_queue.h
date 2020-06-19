@@ -48,22 +48,19 @@ template<
 	class KeyEqual = std::equal_to<Key>,
 	class Compare = std::less<T>
 >
-class unique_priority_queue
+// Extend priority_queue so we can iterate over its protected container
+class unique_priority_queue : private std::priority_queue<typename std::pair<Key, T>, std::vector<std::pair<Key, T>>, SecondComparator<Key, T, Compare>>
 {
-public:
-	using value_type = std::pair<Key, T>;
-	using reference = value_type&;
-	using const_reference = const value_type&;
-
 private:
-	// The priority queue
-	std::priority_queue<typename value_type, std::vector<value_type>, SecondComparator<Key, T, Compare>> pq;
-
-	// A set so that they're unique
-	std::unordered_set<Key, Hash, KeyEqual> set;
+	using base_class = typename std::priority_queue<typename std::pair<Key, T>, std::vector<std::pair<Key, T>>, SecondComparator<Key, T, Compare>>;
 
 public:
-	using size_type = typename decltype(pq)::size_type;
+	using typename base_class::value_type;
+	using typename base_class::const_reference;
+	using typename base_class::size_type;
+
+	using base_class::top;
+	using base_class::size;
 
 	unique_priority_queue() = default;
 	virtual ~unique_priority_queue() = default;
@@ -75,13 +72,8 @@ public:
 	// You can swap though
 	void swap(unique_priority_queue& other)
 	{
-		std::swap(pq, other.pq);
+		base_class::swap(other);
 		std::swap(set, other.set);
-	}
-
-	const_reference top() const
-	{
-		return pq.top();
 	}
 
 	void push(const value_type& pair)
@@ -96,24 +88,27 @@ public:
 		{
 			// Insert
 			set.insert(key);
-			pq.push(pair); // TODO: FIX
+			base_class::push(pair);
 		}
 	}
 
-	// TODO: implement when original is more stable
-	void push(value_type&& pair) { push_back(pair); };
-
 	void pop()
 	{
-		const Key& key = pq.top().first;
+		const Key& key = base_class::top().first;
 		set.erase(key);
-		pq.pop();
+		base_class::pop();
 	}
 
-	size_type size() const
+	typename decltype(base_class::c)::const_iterator begin() noexcept
 	{
-		return pq.size();
+		return base_class::c.begin();
 	}
+
+	typename decltype(base_class::c)::const_iterator end() noexcept
+	{
+		return base_class::c.end();
+	}
+
 
 //	// for debugging
 //	void print_inorder()
@@ -152,4 +147,8 @@ public:
 //		OutputDebugString(s.str().c_str());
 //#endif // _DEBUG
 //	}
+
+private:
+	// A set so that they're unique
+	std::unordered_set<Key, Hash, KeyEqual> set;
 };
