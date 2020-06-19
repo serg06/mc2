@@ -60,7 +60,11 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	vmath::ivec2 player_chunk_coords = { 0, 0 };
 
 	// Keep queue of incoming requests
-	unique_queue<vmath::ivec3, MeshGenRequest*, vecN_hash> request_queue;
+	using key_t = vmath::ivec3;
+	using priority_t = float;
+	using pq_T = std::pair<priority_t, MeshGenRequest*>;
+	unique_priority_queue<key_t, pq_T, vecN_hash, std::equal_to<key_t>, FirstComparator<priority_t, MeshGenRequest*, std::greater<priority_t>>> request_queue;
+
 
 	// TODO: Wait for "START" then unsubscribe and start
 
@@ -81,6 +85,7 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 			}
 			else if (msg[0].to_string_view() == msg::MESH_GEN_REQUEST)
 			{
+				// TODO: Delete req!
 				MeshGenRequest* req = *(msg[1].data<MeshGenRequest*>());
 				assert(req);
 #ifdef _DEBUG
@@ -88,11 +93,32 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 				out << "MeshGen: Received req for " << vec2str(req->coords) << "\n";
 				OutputDebugString(out.str().c_str());
 #endif // _DEBUG
-				request_queue.push_back({ req->coords, req });
+				vmath::ivec2 chunk_coords = { req->coords[0], req->coords[2] };
+				float priority = vmath::distance(chunk_coords, player_chunk_coords);
+				decltype(request_queue)::value_type v = { req->coords, { priority, req } };
+				request_queue.push(v);
 			}
 			else if (msg[0].to_string_view() == msg::EVENT_PLAYER_MOVED_CHUNKS)
 			{
-				player_chunk_coords = *(msg[1].data<vmath::ivec2>());
+				vmath::ivec2 new_player_chunk_coords = *(msg[1].data<vmath::ivec2>());
+				if (new_player_chunk_coords != player_chunk_coords)
+				{
+					player_chunk_coords = new_player_chunk_coords;
+
+					// Adjust priority queue priorities
+					// TODO: Speed this up by making a vector of values and passing that to priority_queue's constructor
+					decltype(request_queue) pq2;
+					for (const decltype(request_queue)::value_type& v : request_queue)
+					{
+						std::remove_cv_t<std::remove_reference_t<decltype(v)>> v2 = v;
+						auto& coords = v2.first;
+						vmath::ivec2 chunk_coords = { coords[0], coords[2] };
+						auto& priority = v2.second.first;
+						priority = vmath::distance(chunk_coords, player_chunk_coords);
+						pq2.push(v2);
+					}
+					request_queue.swap(pq2);
+				}
 			}
 #ifdef _DEBUG
 			else if (msg[0].to_string_view() == msg::TEST)
@@ -119,12 +145,11 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 		if (request_queue.size())
 		{
 			// handle one
-			MeshGenRequest* req_ = request_queue.front().second;
-			std::shared_ptr<MeshGenRequest> req(req_);
-
+			MeshGenRequest* req_ = request_queue.top().second.second;
+			assert(req_);
 			request_queue.pop();
 
-			assert(req);
+			std::shared_ptr<MeshGenRequest> req(req_);
 
 			// generate a mesh if possible
 			MeshGenResult* mesh = gen_minichunk_mesh_from_req(req);
@@ -178,7 +203,7 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	using key_t = vmath::ivec2;
 	using priority_t = float;
 	using pq_T = std::pair<priority_t, ChunkGenRequest*>;
-	unique_priority_queue<key_t, pq_T, vecN_hash, std::equal_to<key_t>, FirstComparator<priority_t, ChunkGenRequest*>> request_queue;
+	unique_priority_queue<key_t, pq_T, vecN_hash, std::equal_to<key_t>, FirstComparator<priority_t, ChunkGenRequest*, std::greater<priority_t>>> request_queue;
 
 	// TODO: Wait for "START" then unsubscribe and start
 
@@ -215,6 +240,8 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 				vmath::ivec2 new_player_chunk_coords = *(msg[1].data<vmath::ivec2>());
 				if (new_player_chunk_coords != player_chunk_coords)
 				{
+					player_chunk_coords = new_player_chunk_coords;
+
 					// Adjust priority queue priorities
 					// TODO: Speed this up by making a vector of values and passing that to priority_queue's constructor
 					decltype(request_queue) pq2;
@@ -254,11 +281,11 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 		if (request_queue.size())
 		{
 			// handle one
-			ChunkGenRequest* req_2 = request_queue.top().second.second;
-			assert(req_2);
+			ChunkGenRequest* req_ = request_queue.top().second.second;
+			assert(req_);
 			request_queue.pop();
 
-			std::shared_ptr<ChunkGenRequest> req(req_2);
+			std::shared_ptr<ChunkGenRequest> req(req_);
 
 			// generate a chunk
 			ChunkGenResponse* response = new ChunkGenResponse;
