@@ -85,7 +85,6 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 			}
 			else if (msg[0].to_string_view() == msg::MESH_GEN_REQUEST)
 			{
-				// TODO: Delete req!
 				MeshGenRequest* req = *(msg[1].data<MeshGenRequest*>());
 				assert(req);
 #ifdef _DEBUG
