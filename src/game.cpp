@@ -5,6 +5,7 @@
 #include "messaging.h"
 #include "render.h"
 #include "shapes.h"
+#include "unique_priority_queue.h"
 #include "unique_queue.h"
 #include "util.h"
 #include "world_meshing.h"
@@ -169,11 +170,15 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	// Prove you're connected
 	on_ready();
 
-	// Player's current chunk coords, so that we can always generate the closest chunks first. (TODO in future.)
+	// Keep some data on player (namely their chunk coords) so that we can always generate the closest chunks
+	// TODO: When game starts, have it send player chunk changed.
 	vmath::ivec2 player_chunk_coords = { 0, 0 };
 
 	// Keep queue of incoming requests
-	unique_queue<vmath::ivec2, ChunkGenRequest*, vecN_hash> request_queue;
+	using key_t = vmath::ivec2;
+	using priority_t = float;
+	using pq_T = std::pair<priority_t, ChunkGenRequest*>;
+	unique_priority_queue<key_t, pq_T, vecN_hash, std::equal_to<key_t>, FirstComparator<priority_t, ChunkGenRequest*>> request_queue;
 
 	// TODO: Wait for "START" then unsubscribe and start
 
@@ -201,11 +206,21 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 				out << "ChunkGen: Received req for " << vec2str(req->coords) << "\n";
 				OutputDebugString(out.str().c_str());
 #endif // _DEBUG
-				request_queue.push_back({ req->coords, req });
+				float priority = vmath::distance(req->coords, player_chunk_coords);
+				decltype(request_queue)::value_type v = { req->coords, { priority, req } };
+				request_queue.push(v);
 			}
 			else if (msg[0].to_string_view() == msg::EVENT_PLAYER_MOVED_CHUNKS)
 			{
-				player_chunk_coords = *(msg[1].data<vmath::ivec2>());
+				vmath::ivec2 new_player_chunk_coords = *(msg[1].data<vmath::ivec2>());
+				if (new_player_chunk_coords != player_chunk_coords)
+				{
+					// Adjust priority queue priorities
+					// TODO: Create new priority queue.
+					// TODO: Iterate through previous pq's elements, adjust their priorities, and stick them into the new one.
+					// TODO: Swap pq's.
+					decltype(request_queue) pq2;
+				}
 			}
 #ifdef _DEBUG
 			else if (msg[0].to_string_view() == msg::TEST)
@@ -232,10 +247,11 @@ void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 		if (request_queue.size())
 		{
 			// handle one
-			ChunkGenRequest* req_ = request_queue.front().second;
-			std::shared_ptr<ChunkGenRequest> req(req_);
+			ChunkGenRequest* req_2 = request_queue.top().second.second;
+			assert(req_2);
 			request_queue.pop();
-			assert(req);
+
+			std::shared_ptr<ChunkGenRequest> req(req_2);
 
 			// generate a chunk
 			ChunkGenResponse* response = new ChunkGenResponse;
@@ -595,14 +611,6 @@ void App::updateWorld(float time) {
 	const auto chunk_coords = get_chunk_coords((int)floorf(player.position[0]), (int)floorf(player.position[2]));
 	if (chunk_coords != get_last_chunk_coords()) {
 		set_last_chunk_coords(chunk_coords);
-
-		// notify
-		std::vector<zmq::const_buffer> event({
-			zmq::buffer(msg::EVENT_PLAYER_MOVED_CHUNKS),
-			zmq::buffer(&chunk_coords, sizeof(chunk_coords))
-			});
-		auto ret = zmq::send_multipart(bus.in, event, zmq::send_flags::dontwait);
-		assert(ret);
 	}
 
 	// generate nearby chunks if required
@@ -792,6 +800,25 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	// after all this we still can't fix it? Frick, just don't move player then.
 	OutputDebugString("Holy fuck it's literally unfixable.\n");
 	return { 0 };
+}
+
+const vmath::ivec2& App::get_last_chunk_coords() const {
+	return last_chunk_coords;
+}
+
+void App::set_last_chunk_coords(const vmath::ivec2& last_chunk_coords_) {
+	if (last_chunk_coords_ != last_chunk_coords) {
+		last_chunk_coords = last_chunk_coords_;
+		should_check_for_nearby_chunks = true;
+
+		// Notify listeners that last chunk coords have changed
+		std::vector<zmq::const_buffer> result({
+			zmq::buffer(msg::EVENT_PLAYER_MOVED_CHUNKS),
+			zmq::buffer(&last_chunk_coords, sizeof(last_chunk_coords))
+			});
+		auto ret = zmq::send_multipart(bus.in, result, zmq::send_flags::dontwait);
+		assert(ret);
+	}
 }
 
 void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)

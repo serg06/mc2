@@ -20,19 +20,28 @@ namespace msg
 	using on_ready_fn = std::function<void()>;
 	using notifier_thread = std::function<void(zmq::context_t*, on_ready_fn)>;
 
-	// TODO: Shorten all of these since messages use prefix matching. Maybe even just use ints?
+	// TODO: Shorten all messages since ZMQ uses prefix matching? Or even just use ints!
+
+#ifdef _DEBUG
+	static const std::string TEST = "TEST";
+#endif
+
+	// Connection messages - no data
 	static const std::string READY = "READY";
 	static const std::string EXIT = "EXIT";
 	static const std::string BUS_CREATED = "BUS_CREATED";
 	static const std::string CONNECTED_TO_BUS = "CONNECTED_TO_BUS";
 	static const std::string START = "START";
+
+	// Messages with exactly one receiver (usually comes with some heap data)
 	static const std::string MESH_GEN_REQUEST = "MESH_GEN_REQUEST";
 	static const std::string MESH_GEN_RESPONSE = "MESH_GEN_RESPONSE";
 	static const std::string CHUNK_GEN_REQUEST = "CHUNK_GEN_REQUEST";
 	static const std::string CHUNK_GEN_RESPONSE = "CHUNK_GEN_RESPONSE";
 	static const std::string MINI_GET_REQUEST = "MINI_GET_REQUEST";
 	static const std::string MINI_GET_RESPONSE = "MINI_GET_RESPONSE";
-	static const std::string TEST = "TEST";
+
+	// Messages with multiple receivers (every recipent gets a copy of the data)
 	static const std::string EVENT_PLAYER_MOVED_CHUNKS = "EVENT_PLAYER_MOVED_CHUNKS";
 
 

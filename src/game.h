@@ -110,16 +110,8 @@ public:
 	void update_player_movement(const float dt);
 	vmath::vec4 prevent_collisions(const vmath::vec4 position_change);
 
-	const inline auto& get_last_chunk_coords() const {
-		return last_chunk_coords;
-	}
-
-	inline void set_last_chunk_coords(const vmath::ivec2& last_chunk_coords) {
-		if (last_chunk_coords != this->last_chunk_coords) {
-			this->last_chunk_coords = last_chunk_coords;
-			should_check_for_nearby_chunks = true;
-		}
-	}
+	const vmath::ivec2& get_last_chunk_coords() const;
+	void set_last_chunk_coords(const vmath::ivec2& last_chunk_coords);
 
 	/* GAME STATE PART */
 
