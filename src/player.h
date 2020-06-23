@@ -28,6 +28,7 @@ public:
 	Inventory inventory;
 
 	bool in_water = false;
+	bool noclip = false;
 
 	// Both. Update in renderer then reflect in world
 	float pitch = 0;

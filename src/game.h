@@ -93,17 +93,12 @@ public:
 
 	// misc
 	std::unique_ptr<WorldRenderPart> world_render;
+	bool should_check_for_nearby_chunks = true;
 
 	/* WORLD PART */
 
-	// player
-	Player player;
-
 	// misc
-	std::unique_ptr<WorldDataPart> world_data;
-
-	bool should_check_for_nearby_chunks = true;
-	bool noclip = false;
+	std::unique_ptr<World> world;
 
 	// funcs
 	void update_world(float time);

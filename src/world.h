@@ -135,10 +135,12 @@ private:
 	BusNode bus;
 };
 
-// TODO: Use
 class World
 {
+public:
+	World(zmq::context_t* const ctx_);
+
+public:
 	WorldDataPart data;
 	Player player;
-
 };

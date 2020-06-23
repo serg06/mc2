@@ -794,3 +794,7 @@ constexpr  float liquid_level_to_height(int liquid_level) {
 	return 1.0F - heightSum / static_cast<float>(sumDivisor);
 }
 */
+
+World::World(zmq::context_t* const ctx_) : data(ctx_)
+{
+}
