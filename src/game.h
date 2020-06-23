@@ -101,9 +101,6 @@ public:
 	// funcs
 	void update_player_actions();
 
-	const vmath::ivec2& get_last_chunk_coords() const;
-	void set_last_chunk_coords(const vmath::ivec2& last_chunk_coords);
-
 	/* GAME STATE PART */
 
 	// funcs

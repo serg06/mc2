@@ -637,25 +637,6 @@ void App::update_player_actions()
 	// TODO: Mining
 }
 
-const vmath::ivec2& App::get_last_chunk_coords() const {
-	return world->player.chunk_coords;
-}
-
-void App::set_last_chunk_coords(const vmath::ivec2& last_chunk_coords_) {
-	if (last_chunk_coords_ != world->player.chunk_coords) {
-		world->player.chunk_coords = last_chunk_coords_;
-		world->player.should_check_for_nearby_chunks = true;
-
-		// Notify listeners that last chunk coords have changed
-		std::vector<zmq::const_buffer> result({
-			zmq::buffer(msg::EVENT_PLAYER_MOVED_CHUNKS),
-			zmq::buffer(&world->player.chunk_coords, sizeof(world->player.chunk_coords))
-			});
-		auto ret = zmq::send_multipart(bus.in, result, zmq::send_flags::dontwait);
-		assert(ret);
-	}
-}
-
 void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	// ignore unknown keys
