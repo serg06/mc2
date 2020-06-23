@@ -73,14 +73,13 @@ std::shared_ptr<MiniRender> WorldRenderPart::get_mini_render_component_or_genera
 
 std::shared_ptr<MiniRender> WorldRenderPart::get_mini_render_component_or_generate(const vmath::ivec3& xyz) { return get_mini_render_component_or_generate(xyz[0], xyz[1], xyz[2]); }
 
-void WorldRenderPart::update_meshes()
+void WorldRenderPart::handle_messages()
 {
-	// Receive all mesh-gen results
 	std::vector<zmq::message_t> message;
 	auto ret = zmq::recv_multipart(bus.out, std::back_inserter(message), zmq::recv_flags::dontwait);
 	while (ret)
 	{
-		// TODO: Filter
+		// Handle generated meshes
 		if (message[0].to_string_view() == msg::MESH_GEN_RESPONSE)
 		{
 			// Extract result
@@ -91,6 +90,10 @@ void WorldRenderPart::update_meshes()
 			std::shared_ptr<MiniRender> mini = get_mini_render_component_or_generate(mesh->coords);
 			mini->set_mesh(std::move(mesh->mesh));
 			mini->set_water_mesh(std::move(mesh->water_mesh));
+		}
+		else if (message[0].to_string_view() == msg::EVENT_PLAYER_MOVED_CHUNKS)
+		{
+			// TODO: Pop meshes that are too far away, request meshes for chunks that are nearby
 		}
 
 		message.clear();

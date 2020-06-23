@@ -4,6 +4,18 @@
 
 #include "vmath.h"
 
+// Actions a player can be performing
+struct Actions
+{
+	bool forwards = false;
+	bool backwards = false;
+	bool right = false;
+	bool left = false;
+	bool jumping = false;
+	bool shifting = false;
+	bool mining = false;
+};
+
 class Player
 {
 public:
@@ -18,6 +30,9 @@ public:
 public:
 	// World only
 	vmath::vec4 velocity = { 0.0f };
+
+	// Both.
+	Actions actions;
 
 	// Both. Update in world then reflect in renderer
 	vmath::vec4 coords = { 8.0f, 73.0f, 8.0f, 1.0f };
@@ -34,4 +49,8 @@ public:
 	float pitch = 0;
 	float yaw = 0;
 	BlockType held_block = BlockType::StillWater; // TODO: Instead, remembering which inventory slot
+
+	// TODO: Remove?
+	int render_distance = 1;
+	bool should_check_for_nearby_chunks = true;
 };

@@ -349,7 +349,8 @@ void App::run()
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
 		// run rendering function
 		float time = static_cast<float>(glfwGetTime());
-		update_world(time);
+		update_player_actions();
+		world->update_world(time);
 		render(time);
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -491,7 +492,7 @@ void App::render(float time)
 	extract_planes_from_projmat(proj_matrix, model_view_matrix, planes);
 
 	// Draw ALL our chunks!
-	world_render->update_meshes();
+	world_render->handle_messages();
 	world_render->render(&glInfo, &windowInfo, planes, world->player.staring_at);
 
 	// display debug info
@@ -533,7 +534,7 @@ void App::render_debug_info(float dt)
 	char lineBuf[256];
 	const auto direction = world->player.staring_direction();
 
-	sprintf(lineBuf, "FPS: %-4.1f (%d ms) (%d distance)\n", fps, static_cast<int>(dt * 1000), min_render_distance);
+	sprintf(lineBuf, "FPS: %-4.1f (%d ms) (%d distance)\n", fps, static_cast<int>(dt * 1000), world->player.render_distance);
 	debugInfo += lineBuf;
 
 	sprintf(lineBuf, "Position: (%6.1f, %6.1f, %6.1f)\n", world->player.coords[0], world->player.coords[1], world->player.coords[2]);
@@ -625,213 +626,15 @@ void App::render_main_menu()
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void App::update_world(float time) {
-	const auto start_of_fn = std::chrono::high_resolution_clock::now();
-
-	// change in time
-	const float dt = time - last_render_time;
-	world->data.update_tick((int)floorf(time * 20));
-
-	/* CHANGES IN WORLD */
-
-	world->data.handle_messages();
-
-	// update player movement
-	update_player_movement(dt);
-
-	// update last chunk coords
-	const auto chunk_coords = get_chunk_coords((int)floorf(world->player.coords[0]), (int)floorf(world->player.coords[2]));
-	if (chunk_coords != get_last_chunk_coords()) {
-		set_last_chunk_coords(chunk_coords);
-	}
-
-	// generate nearby chunks if required
-	if (should_check_for_nearby_chunks) {
-		world->data.gen_nearby_chunks(world->player.coords, min_render_distance);
-		should_check_for_nearby_chunks = false;
-	}
-
-	// update block that player is staring at
-	const auto direction = world->player.staring_direction();
-	raycast(world->player.coords + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &world->player.staring_at, &world->player.staring_at_face, [this](const ivec3& coords, const ivec3& face) {
-		const auto block = this->world->data.get_type(coords);
-		return block.is_solid();
-		});
-
-	// make sure rendering didn't take too long
-	const auto end_of_fn = std::chrono::high_resolution_clock::now();
-	const long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
-#ifdef _DEBUG
-	if (result_total / 1000.0f > 50) {
-		std::stringstream buf;
-		buf << "TOTAL GAME::update_world TIME: " << result_total / 1000.0f << "ms\n";
-		OutputDebugString(buf.str().c_str());
-	}
-#endif // _DEBUG
-}
-
-// update player's movement based on how much time has passed since we last did it
-void App::update_player_movement(const float dt) {
-	/* VELOCITY FALLOFF */
-
-	//   TODO: Handle walking on blocks, in water, etc. Maybe do it based on friction.
-	//   TODO: Tweak values.
-	world->player.velocity *= static_cast<float>(pow(0.5, dt));
-	vec4 norm = normalize(world->player.velocity);
-	for (int i = 0; i < 4; i++) {
-		if (world->player.velocity[i] > 0.0f) {
-			world->player.velocity[i] = static_cast<float>(fmaxf(0.0f, world->player.velocity[i] - (10.0f * norm[i] * dt)));
-		}
-		else if (world->player.velocity[i] < 0.0f) {
-			world->player.velocity[i] = static_cast<float>(fmin(0.0f, world->player.velocity[i] - (10.0f * norm[i] * dt)));
-		}
-	}
-
-	/* ACCELERATION */
-
-	// character's horizontal rotation
-	mat4 dir_rotation = rotate_pitch_yaw(0.0f, world->player.yaw);
-
-	// calculate acceleration
-	vec4 acceleration = { 0.0f };
-
-	if (held_keys[GLFW_KEY_W]) {
-		acceleration += dir_rotation * vec4(0.0f, 0.0f, -1.0f, 0.0f);
-	}
-	if (held_keys[GLFW_KEY_S]) {
-		acceleration += dir_rotation * vec4(0.0f, 0.0f, 1.0f, 0.0f);
-	}
-	if (held_keys[GLFW_KEY_A]) {
-		acceleration += dir_rotation * vec4(-1.0f, 0.0f, 0.0f, 0.0f);
-	}
-	if (held_keys[GLFW_KEY_D]) {
-		acceleration += dir_rotation * vec4(1.0f, 0.0f, 0.0f, 0.0f);
-	}
-	if (held_keys[GLFW_KEY_SPACE]) {
-		acceleration += vec4(0.0f, 1.0f, 0.0f, 0.0f);
-	}
-	if (held_keys[GLFW_KEY_LEFT_SHIFT]) {
-		acceleration += dir_rotation * vec4(0.0f, -1.0f, 0.0f, 0.0f);
-	}
-
-	/* VELOCITY INCREASE */
-
-	world->player.velocity += acceleration * dt * 50.0f;
-	if (length(world->player.velocity) > 10.0f) {
-		world->player.velocity = 10.0f * normalize(world->player.velocity);
-	}
-	world->player.velocity[3] = 0.0f; // Just in case
-
-	/* POSITION CHANGE */
-
-	// Calculate our change-in-position
-	vec4 position_change = world->player.velocity * dt;
-
-	// Adjust it to avoid collisions
-	vec4 fixed_position_change = position_change;
-	if (!world->player.noclip) {
-		fixed_position_change = prevent_collisions(position_change);
-	}
-
-	/* SNAP TO WALLS */
-
-	ivec4 ipos = vec2ivec(world->player.coords);
-
-	// if removed east, snap to east wall
-	if (position_change[0] > fixed_position_change[0]) {
-		world->player.velocity[0] = 0;
-		world->player.coords[0] = fmin(world->player.coords[0], ipos[0] + 1.0f - PLAYER_RADIUS); // RESET EAST
-	}
-	// west
-	if (position_change[0] < fixed_position_change[0]) {
-		world->player.velocity[0] = 0;
-		world->player.coords[0] = fmaxf(world->player.coords[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
-	}
-	// north
-	if (position_change[2] < fixed_position_change[2]) {
-		world->player.velocity[2] = 0;
-		world->player.coords[2] = fmaxf(world->player.coords[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
-	}
-	// south
-	if (position_change[2] > fixed_position_change[2]) {
-		world->player.velocity[2] = 0;
-		world->player.coords[2] = fmin(world->player.coords[2], ipos[2] + 1.0f - PLAYER_RADIUS); // RESET SOUTH
-	}
-	// up
-	if (position_change[1] > fixed_position_change[1]) {
-		world->player.velocity[1] = 0;
-		world->player.coords[1] = fmin(world->player.coords[1], ipos[1] + 2.0f - PLAYER_HEIGHT); // RESET UP
-	}
-	// down
-	if (position_change[1] < fixed_position_change[1]) {
-		world->player.velocity[1] = 0;
-		world->player.coords[1] = fmaxf(world->player.coords[1], static_cast<float>(ipos[1])); // RESET DOWN
-	}
-
-	// Update position
-	world->player.coords += fixed_position_change;
-}
-
-// given a player's change-in-position, modify the change to optimally prevent collisions
-vmath::vec4 App::prevent_collisions(const vmath::vec4& position_change) {
-	// TODO: prioritize removing velocity that won't change our position when snapping.
-
-	// Get all blocks we might be intersecting with
-	auto blocks = get_intersecting_blocks(world->player.coords + position_change);
-
-	// if all blocks are non-solid, we done
-	if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->data.get_type(block_coords); return block.is_nonsolid(); })) {
-		return position_change;
-	}
-
-	// indices of position-change array
-	vector<int> indices = argsort(3, &position_change[0]);
-
-	// TODO: Instead of removing 1 or 2 separately, group them together, and remove the ones with smallest length.
-	// E.g. if velocity is (2, 2, 10), and have to either remove (2,2) or (10), remove (2,2) because sqrt(2^2+2^2) = sqrt(8) < 10.
-
-	assert(indices[0] + indices[1] + indices[2] == 3);
-
-	// try removing just one velocity
-	for (int i = 0; i < 3; i++) {
-		vec4 position_change_fixed = position_change;
-		position_change_fixed[indices[i]] = 0.0f;
-		blocks = get_intersecting_blocks(world->player.coords + position_change_fixed);
-
-		// if all blocks are non-solid, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->data.get_type(block_coords); return block.is_nonsolid(); })) {
-			return position_change_fixed;
-		}
-	}
-
-	// indices for pairs of velocities
-	ivec2 pair_indices[3] = {
-		{0, 1},
-		{0, 2},
-		{1, 2},
-	};
-
-	// sort again, this time based on 2d-vector length
-	sort(begin(pair_indices), end(pair_indices), [position_change](const auto pair1, const auto pair2) {
-		return length(vec2(position_change[pair1[0]], position_change[pair1[1]])) < length(vec2(position_change[pair2[0]], position_change[pair2[1]]));
-		});
-
-	// try removing two velocities
-	for (int i = 0; i < 3; i++) {
-		vec4 position_change_fixed = position_change;
-		position_change_fixed[pair_indices[i][0]] = 0.0f;
-		position_change_fixed[pair_indices[i][1]] = 0.0f;
-		blocks = get_intersecting_blocks(world->player.coords + position_change_fixed);
-
-		// if all blocks are air, we done
-		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world->data.get_type(block_coords); return block.is_nonsolid(); })) {
-			return position_change_fixed;
-		}
-	}
-
-	// after all this we still can't fix it? Frick, just don't move player then.
-	OutputDebugString("Holy fuck it's literally unfixable.\n");
-	return { 0 };
+void App::update_player_actions()
+{
+	world->player.actions.forwards = held_keys[GLFW_KEY_W];
+	world->player.actions.backwards = held_keys[GLFW_KEY_S];
+	world->player.actions.left = held_keys[GLFW_KEY_A];
+	world->player.actions.right = held_keys[GLFW_KEY_D];
+	world->player.actions.jumping = held_keys[GLFW_KEY_SPACE];
+	world->player.actions.shifting = held_keys[GLFW_KEY_LEFT_SHIFT];
+	// TODO: Mining
 }
 
 const vmath::ivec2& App::get_last_chunk_coords() const {
@@ -841,7 +644,7 @@ const vmath::ivec2& App::get_last_chunk_coords() const {
 void App::set_last_chunk_coords(const vmath::ivec2& last_chunk_coords_) {
 	if (last_chunk_coords_ != world->player.chunk_coords) {
 		world->player.chunk_coords = last_chunk_coords_;
-		should_check_for_nearby_chunks = true;
+		world->player.should_check_for_nearby_chunks = true;
 
 		// Notify listeners that last chunk coords have changed
 		std::vector<zmq::const_buffer> result({
@@ -959,14 +762,14 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
 		// + = increase render distance
 		if (key == GLFW_KEY_KP_ADD || key == GLFW_KEY_EQUAL) {
-			min_render_distance++;
-			should_check_for_nearby_chunks = true;
+			world->player.render_distance++;
+			world->player.should_check_for_nearby_chunks = true;
 		}
 
 		// - = decrease render distance
 		if (key == GLFW_KEY_KP_SUBTRACT || key == GLFW_KEY_MINUS) {
-			if (min_render_distance > 0) {
-				min_render_distance--;
+			if (world->player.render_distance > 0) {
+				world->player.render_distance--;
 			}
 		}
 	}

@@ -795,6 +795,236 @@ constexpr  float liquid_level_to_height(int liquid_level) {
 }
 */
 
-World::World(zmq::context_t* const ctx_) : data(ctx_)
+World::World(zmq::context_t* const ctx_) : data(ctx_), last_update_time(0), bus(ctx_)
 {
+	// TODO: Move bus out of WorldDataPart
+#ifdef _DEBUG
+	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+#else
+	for (const auto& m : msg::world_thread_incoming)
+	{
+		// TODO: Upgrade zmq and replace this with .set()
+		bus.out.setsockopt(ZMQ_SUBSCRIBE, m.c_str(), m.size());
+	}
+#endif // _DEBUG
+}
+
+void World::update_world(float time) {
+	const auto start_of_fn = std::chrono::high_resolution_clock::now();
+
+	// change in time
+	const float dt = time - last_update_time;
+	last_update_time = time;
+	data.update_tick((int)floorf(time * 20));
+
+	/* CHANGES IN WORLD */
+	data.handle_messages();
+
+	// update player movement
+	update_player_movement(dt);
+
+	// update last chunk coords
+	const auto chunk_coords = get_chunk_coords((int)floorf(player.coords[0]), (int)floorf(player.coords[2]));
+	if (chunk_coords != player.chunk_coords) {
+		player.chunk_coords = chunk_coords;
+
+		// Notify listeners that last chunk coords have changed
+		std::vector<zmq::const_buffer> result({
+			zmq::buffer(msg::EVENT_PLAYER_MOVED_CHUNKS),
+			zmq::buffer(&player.chunk_coords, sizeof(player.chunk_coords))
+			});
+		auto ret = zmq::send_multipart(bus.in, result, zmq::send_flags::dontwait);
+		assert(ret);
+
+		// Remember to generate nearby chunks
+		player.should_check_for_nearby_chunks = true;
+	}
+
+	// generate nearby chunks if required
+	if (player.should_check_for_nearby_chunks) {
+		data.gen_nearby_chunks(player.coords, player.render_distance);
+		player.should_check_for_nearby_chunks = false;
+	}
+
+	// update block that player is staring at
+	const auto direction = player.staring_direction();
+	raycast(player.coords + vmath::vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &player.staring_at, &player.staring_at_face, [this](const vmath::ivec3& coords, const vmath::ivec3& face) {
+		const auto block = this->data.get_type(coords);
+		return block.is_solid();
+		});
+
+	// make sure rendering didn't take too long
+	const auto end_of_fn = std::chrono::high_resolution_clock::now();
+	const long result_total = std::chrono::duration_cast<std::chrono::microseconds>(end_of_fn - start_of_fn).count();
+#ifdef _DEBUG
+	if (result_total / 1000.0f > 50) {
+		std::stringstream buf;
+		buf << "TOTAL GAME::update_world TIME: " << result_total / 1000.0f << "ms\n";
+		OutputDebugString(buf.str().c_str());
+	}
+#endif // _DEBUG
+}
+
+// update player's movement based on how much time has passed since we last did it
+void World::update_player_movement(const float dt) {
+	/* VELOCITY FALLOFF */
+
+	//   TODO: Handle walking on blocks, in water, etc. Maybe do it based on friction.
+	//   TODO: Tweak values.
+	player.velocity *= static_cast<float>(pow(0.5, dt));
+	vmath::vec4 norm = normalize(player.velocity);
+	for (int i = 0; i < 4; i++) {
+		if (player.velocity[i] > 0.0f) {
+			player.velocity[i] = static_cast<float>(fmaxf(0.0f, player.velocity[i] - (10.0f * norm[i] * dt)));
+		}
+		else if (player.velocity[i] < 0.0f) {
+			player.velocity[i] = static_cast<float>(fmin(0.0f, player.velocity[i] - (10.0f * norm[i] * dt)));
+		}
+	}
+
+	/* ACCELERATION */
+
+	// character's horizontal rotation
+	vmath::mat4 dir_rotation = rotate_pitch_yaw(0.0f, player.yaw);
+
+	// calculate acceleration
+	vmath::vec4 acceleration = { 0.0f };
+
+	if (player.actions.forwards) {
+		acceleration += dir_rotation * vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+	}
+	if (player.actions.backwards) {
+		acceleration += dir_rotation * vmath::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+	}
+	if (player.actions.left) {
+		acceleration += dir_rotation * vmath::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+	}
+	if (player.actions.right) {
+		acceleration += dir_rotation * vmath::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+	}
+	if (player.actions.jumping) {
+		acceleration += vmath::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+	}
+	if (player.actions.shifting) {
+		acceleration += dir_rotation * vmath::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+	}
+
+	/* VELOCITY INCREASE */
+
+	player.velocity += acceleration * dt * 50.0f;
+	if (length(player.velocity) > 10.0f) {
+		player.velocity = 10.0f * normalize(player.velocity);
+	}
+	player.velocity[3] = 0.0f; // Just in case
+
+	/* POSITION CHANGE */
+
+	// Calculate our change-in-position
+	vmath::vec4 position_change = player.velocity * dt;
+
+	// Adjust it to avoid collisions
+	vmath::vec4 fixed_position_change = position_change;
+	if (!player.noclip) {
+		fixed_position_change = prevent_collisions(position_change);
+	}
+
+	/* SNAP TO WALLS */
+
+	vmath::ivec4 ipos = vec2ivec(player.coords);
+
+	// if removed east, snap to east wall
+	if (position_change[0] > fixed_position_change[0]) {
+		player.velocity[0] = 0;
+		player.coords[0] = fmin(player.coords[0], ipos[0] + 1.0f - PLAYER_RADIUS); // RESET EAST
+	}
+	// west
+	if (position_change[0] < fixed_position_change[0]) {
+		player.velocity[0] = 0;
+		player.coords[0] = fmaxf(player.coords[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
+	}
+	// north
+	if (position_change[2] < fixed_position_change[2]) {
+		player.velocity[2] = 0;
+		player.coords[2] = fmaxf(player.coords[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
+	}
+	// south
+	if (position_change[2] > fixed_position_change[2]) {
+		player.velocity[2] = 0;
+		player.coords[2] = fmin(player.coords[2], ipos[2] + 1.0f - PLAYER_RADIUS); // RESET SOUTH
+	}
+	// up
+	if (position_change[1] > fixed_position_change[1]) {
+		player.velocity[1] = 0;
+		player.coords[1] = fmin(player.coords[1], ipos[1] + 2.0f - PLAYER_HEIGHT); // RESET UP
+	}
+	// down
+	if (position_change[1] < fixed_position_change[1]) {
+		player.velocity[1] = 0;
+		player.coords[1] = fmaxf(player.coords[1], static_cast<float>(ipos[1])); // RESET DOWN
+	}
+
+	// Update position
+	player.coords += fixed_position_change;
+}
+
+// given a player's change-in-position, modify the change to optimally prevent collisions
+vmath::vec4 World::prevent_collisions(const vmath::vec4& position_change) {
+	// TODO: prioritize removing velocity that won't change our position when snapping.
+
+	// Get all blocks we might be intersecting with
+	auto blocks = get_intersecting_blocks(player.coords + position_change);
+
+	// if all blocks are non-solid, we done
+	if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = data.get_type(block_coords); return block.is_nonsolid(); })) {
+		return position_change;
+	}
+
+	// indices of position-change array
+	vector<int> indices = argsort(3, &position_change[0]);
+
+	// TODO: Instead of removing 1 or 2 separately, group them together, and remove the ones with smallest length.
+	// E.g. if velocity is (2, 2, 10), and have to either remove (2,2) or (10), remove (2,2) because sqrt(2^2+2^2) = sqrt(8) < 10.
+
+	assert(indices[0] + indices[1] + indices[2] == 3);
+
+	// try removing just one velocity
+	for (int i = 0; i < 3; i++) {
+		vmath::vec4 position_change_fixed = position_change;
+		position_change_fixed[indices[i]] = 0.0f;
+		blocks = get_intersecting_blocks(player.coords + position_change_fixed);
+
+		// if all blocks are non-solid, we done
+		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = data.get_type(block_coords); return block.is_nonsolid(); })) {
+			return position_change_fixed;
+		}
+	}
+
+	// indices for pairs of velocities
+	vmath::ivec2 pair_indices[3] = {
+		{0, 1},
+		{0, 2},
+		{1, 2},
+	};
+
+	// sort again, this time based on 2d-vector length
+	std::sort(std::begin(pair_indices), std::end(pair_indices), [position_change](const auto pair1, const auto pair2) {
+		return length(vmath::vec2(position_change[pair1[0]], position_change[pair1[1]])) < vmath::length(vmath::vec2(position_change[pair2[0]], position_change[pair2[1]]));
+		});
+
+	// try removing two velocities
+	for (int i = 0; i < 3; i++) {
+		vmath::vec4 position_change_fixed = position_change;
+		position_change_fixed[pair_indices[i][0]] = 0.0f;
+		position_change_fixed[pair_indices[i][1]] = 0.0f;
+		blocks = get_intersecting_blocks(player.coords + position_change_fixed);
+
+		// if all blocks are air, we done
+		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = data.get_type(block_coords); return block.is_nonsolid(); })) {
+			return position_change_fixed;
+		}
+	}
+
+	// after all this we still can't fix it? Frick, just don't move player then.
+	OutputDebugString("Holy fuck it's literally unfixable.\n");
+	return { 0 };
 }

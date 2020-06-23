@@ -87,13 +87,11 @@ public:
 
 	bool show_debug_info = false;
 	bool should_fix_tjunctions = true;
-	unsigned min_render_distance = 0;
 	double fps = 0;
 	bool capture_mouse = true;
 
 	// misc
 	std::unique_ptr<WorldRenderPart> world_render;
-	bool should_check_for_nearby_chunks = true;
 
 	/* WORLD PART */
 
@@ -101,9 +99,7 @@ public:
 	std::unique_ptr<World> world;
 
 	// funcs
-	void update_world(float time);
-	void update_player_movement(const float dt);
-	vmath::vec4 prevent_collisions(const vmath::vec4& position_change);
+	void update_player_actions();
 
 	const vmath::ivec2& get_last_chunk_coords() const;
 	void set_last_chunk_coords(const vmath::ivec2& last_chunk_coords);
@@ -116,10 +112,10 @@ public:
 	void shutdown();
 
 	inline void set_min_render_distance(int min_render_distance) {
-		if (min_render_distance > this->min_render_distance) {
-			should_check_for_nearby_chunks = true;
+		if (min_render_distance > world->player.render_distance) {
+			world->player.should_check_for_nearby_chunks = true;
 		}
-		this->min_render_distance = min_render_distance;
+		world->player.render_distance = min_render_distance;
 	}
 };
 

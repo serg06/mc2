@@ -140,7 +140,15 @@ class World
 public:
 	World(zmq::context_t* const ctx_);
 
+	void update_world(float time);
+	void update_player_movement(const float dt);
+	vmath::vec4 prevent_collisions(const vmath::vec4& position_change);
+
 public:
 	WorldDataPart data;
 	Player player;
+
+private:
+	float last_update_time;
+	BusNode bus;
 };
