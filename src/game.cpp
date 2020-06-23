@@ -349,7 +349,7 @@ void App::run()
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
 		// run rendering function
 		float time = static_cast<float>(glfwGetTime());
-		updateWorld(time);
+		update_world(time);
 		render(time);
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -455,7 +455,7 @@ void App::render(float time)
 	// Create World->View matrix
 	const mat4 world_view_matrix =
 		rotate_pitch_yaw(player.pitch, player.yaw) *
-		translate(-player.position[0], -player.position[1], -player.position[2]); // move relative to you
+		translate(-player.coords[0], -player.coords[1], -player.coords[2]); // move relative to you
 
 	// Combine them into Model->View matrix
 	const mat4 model_view_matrix = world_view_matrix * model_world_matrix;
@@ -477,7 +477,7 @@ void App::render(float time)
 	glClearBufferfv(GL_DEPTH, 0, &one);
 
 	// check if in water
-	const BlockType face_block = world_data->get_type(vec2ivec(player.position + vec4(0, CAMERA_HEIGHT, 0, 0)));
+	const BlockType face_block = world_data->get_type(vec2ivec(player.coords + vec4(0, CAMERA_HEIGHT, 0, 0)));
 	player.in_water = face_block == BlockType::StillWater || face_block == BlockType::FlowingWater;
 	const GLuint in_water_gluint = static_cast<GLuint>(player.in_water);
 
@@ -533,10 +533,10 @@ void App::render_debug_info(float dt)
 	char lineBuf[256];
 	const auto direction = player.staring_direction();
 
-	sprintf(lineBuf, "FPS: %-4.1f (%d ms) (%d distance)\n", fps, (int)(dt * 1000), min_render_distance);
+	sprintf(lineBuf, "FPS: %-4.1f (%d ms) (%d distance)\n", fps, static_cast<int>(dt * 1000), min_render_distance);
 	debugInfo += lineBuf;
 
-	sprintf(lineBuf, "Position: (%6.1f, %6.1f, %6.1f)\n", player.position[0], player.position[1], player.position[2]);
+	sprintf(lineBuf, "Position: (%6.1f, %6.1f, %6.1f)\n", player.coords[0], player.coords[1], player.coords[2]);
 	debugInfo += lineBuf;
 
 	sprintf(lineBuf, "Facing:   (%6.1f, %6.1f, %6.1f)\n", direction[0], direction[1], direction[2]);
@@ -548,7 +548,7 @@ void App::render_debug_info(float dt)
 	sprintf(lineBuf, "Face in water: %s\n", player.in_water ? "true" : "false");
 	debugInfo += lineBuf;
 
-	sprintf(lineBuf, "Held block: %d (%s)\n", (int)held_block, held_block.side_texture().c_str());
+	sprintf(lineBuf, "Held block: %d (%s)\n", static_cast<int>(player.held_block), player.held_block.side_texture().c_str());
 	debugInfo += lineBuf;
 
 	// Start the Dear ImGui frame
@@ -625,7 +625,7 @@ void App::render_main_menu()
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void App::updateWorld(float time) {
+void App::update_world(float time) {
 	const auto start_of_fn = std::chrono::high_resolution_clock::now();
 
 	// change in time
@@ -640,20 +640,20 @@ void App::updateWorld(float time) {
 	update_player_movement(dt);
 
 	// update last chunk coords
-	const auto chunk_coords = get_chunk_coords((int)floorf(player.position[0]), (int)floorf(player.position[2]));
+	const auto chunk_coords = get_chunk_coords((int)floorf(player.coords[0]), (int)floorf(player.coords[2]));
 	if (chunk_coords != get_last_chunk_coords()) {
 		set_last_chunk_coords(chunk_coords);
 	}
 
 	// generate nearby chunks if required
 	if (should_check_for_nearby_chunks) {
-		world_data->gen_nearby_chunks(player.position, min_render_distance);
+		world_data->gen_nearby_chunks(player.coords, min_render_distance);
 		should_check_for_nearby_chunks = false;
 	}
 
 	// update block that player is staring at
 	const auto direction = player.staring_direction();
-	raycast(player.position + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &player.staring_at, &player.staring_at_face, [this](const ivec3& coords, const ivec3& face) {
+	raycast(player.coords + vec4(0, CAMERA_HEIGHT, 0, 0), direction, 40, &player.staring_at, &player.staring_at_face, [this](const ivec3& coords, const ivec3& face) {
 		const auto block = this->world_data->get_type(coords);
 		return block.is_solid();
 		});
@@ -664,7 +664,7 @@ void App::updateWorld(float time) {
 #ifdef _DEBUG
 	if (result_total / 1000.0f > 50) {
 		std::stringstream buf;
-		buf << "TOTAL GAME::updateWorld TIME: " << result_total / 1000.0f << "ms\n";
+		buf << "TOTAL GAME::update_world TIME: " << result_total / 1000.0f << "ms\n";
 		OutputDebugString(buf.str().c_str());
 	}
 #endif // _DEBUG
@@ -735,49 +735,49 @@ void App::update_player_movement(const float dt) {
 
 	/* SNAP TO WALLS */
 
-	ivec4 ipos = vec2ivec(player.position);
+	ivec4 ipos = vec2ivec(player.coords);
 
 	// if removed east, snap to east wall
 	if (position_change[0] > fixed_position_change[0]) {
 		player.velocity[0] = 0;
-		player.position[0] = fmin(player.position[0], ipos[0] + 1.0f - PLAYER_RADIUS); // RESET EAST
+		player.coords[0] = fmin(player.coords[0], ipos[0] + 1.0f - PLAYER_RADIUS); // RESET EAST
 	}
 	// west
 	if (position_change[0] < fixed_position_change[0]) {
 		player.velocity[0] = 0;
-		player.position[0] = fmaxf(player.position[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
+		player.coords[0] = fmaxf(player.coords[0], ipos[0] + PLAYER_RADIUS); // RESET WEST
 	}
 	// north
 	if (position_change[2] < fixed_position_change[2]) {
 		player.velocity[2] = 0;
-		player.position[2] = fmaxf(player.position[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
+		player.coords[2] = fmaxf(player.coords[2], ipos[2] + PLAYER_RADIUS); // RESET NORTH
 	}
 	// south
 	if (position_change[2] > fixed_position_change[2]) {
 		player.velocity[2] = 0;
-		player.position[2] = fmin(player.position[2], ipos[2] + 1.0f - PLAYER_RADIUS); // RESET SOUTH
+		player.coords[2] = fmin(player.coords[2], ipos[2] + 1.0f - PLAYER_RADIUS); // RESET SOUTH
 	}
 	// up
 	if (position_change[1] > fixed_position_change[1]) {
 		player.velocity[1] = 0;
-		player.position[1] = fmin(player.position[1], ipos[1] + 2.0f - PLAYER_HEIGHT); // RESET UP
+		player.coords[1] = fmin(player.coords[1], ipos[1] + 2.0f - PLAYER_HEIGHT); // RESET UP
 	}
 	// down
 	if (position_change[1] < fixed_position_change[1]) {
 		player.velocity[1] = 0;
-		player.position[1] = fmaxf(player.position[1], static_cast<float>(ipos[1])); // RESET DOWN
+		player.coords[1] = fmaxf(player.coords[1], static_cast<float>(ipos[1])); // RESET DOWN
 	}
 
 	// Update position
-	player.position += fixed_position_change;
+	player.coords += fixed_position_change;
 }
 
 // given a player's change-in-position, modify the change to optimally prevent collisions
-vec4 App::prevent_collisions(const vec4 position_change) {
+vmath::vec4 App::prevent_collisions(const vmath::vec4& position_change) {
 	// TODO: prioritize removing velocity that won't change our position when snapping.
 
 	// Get all blocks we might be intersecting with
-	auto blocks = get_intersecting_blocks(player.position + position_change);
+	auto blocks = get_intersecting_blocks(player.coords + position_change);
 
 	// if all blocks are non-solid, we done
 	if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world_data->get_type(block_coords); return block.is_nonsolid(); })) {
@@ -796,7 +796,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 	for (int i = 0; i < 3; i++) {
 		vec4 position_change_fixed = position_change;
 		position_change_fixed[indices[i]] = 0.0f;
-		blocks = get_intersecting_blocks(player.position + position_change_fixed);
+		blocks = get_intersecting_blocks(player.coords + position_change_fixed);
 
 		// if all blocks are non-solid, we done
 		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world_data->get_type(block_coords); return block.is_nonsolid(); })) {
@@ -821,7 +821,7 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 		vec4 position_change_fixed = position_change;
 		position_change_fixed[pair_indices[i][0]] = 0.0f;
 		position_change_fixed[pair_indices[i][1]] = 0.0f;
-		blocks = get_intersecting_blocks(player.position + position_change_fixed);
+		blocks = get_intersecting_blocks(player.coords + position_change_fixed);
 
 		// if all blocks are air, we done
 		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = world_data->get_type(block_coords); return block.is_nonsolid(); })) {
@@ -835,18 +835,18 @@ vec4 App::prevent_collisions(const vec4 position_change) {
 }
 
 const vmath::ivec2& App::get_last_chunk_coords() const {
-	return last_chunk_coords;
+	return player.chunk_coords;
 }
 
 void App::set_last_chunk_coords(const vmath::ivec2& last_chunk_coords_) {
-	if (last_chunk_coords_ != last_chunk_coords) {
-		last_chunk_coords = last_chunk_coords_;
+	if (last_chunk_coords_ != player.chunk_coords) {
+		player.chunk_coords = last_chunk_coords_;
 		should_check_for_nearby_chunks = true;
 
 		// Notify listeners that last chunk coords have changed
 		std::vector<zmq::const_buffer> result({
 			zmq::buffer(msg::EVENT_PLAYER_MOVED_CHUNKS),
-			zmq::buffer(&last_chunk_coords, sizeof(last_chunk_coords))
+			zmq::buffer(&player.chunk_coords, sizeof(player.chunk_coords))
 			});
 		auto ret = zmq::send_multipart(bus.in, result, zmq::send_flags::dontwait);
 		assert(ret);
@@ -1080,14 +1080,14 @@ void App::onMouseButton(int button, int action) {
 				ivec3 desired_position = player.staring_at + player.staring_at_face;
 
 				// check if we're in the way
-				vector<ivec4> intersecting_blocks = get_intersecting_blocks(player.position);
+				vector<ivec4> intersecting_blocks = get_intersecting_blocks(player.coords);
 				auto result = find_if(begin(intersecting_blocks), end(intersecting_blocks), [desired_position](const auto& ipos) {
 					return desired_position == ivec3(ipos[0], ipos[1], ipos[2]);
 					});
 
 				// if we're not in the way, place it
 				if (result == end(intersecting_blocks)) {
-					world_data->add_block(desired_position, held_block);
+					world_data->add_block(desired_position, player.held_block);
 				}
 			}
 		}
@@ -1103,7 +1103,7 @@ void App::onMouseWheel(double scroll_direction) {
 
 		// increment/decrement block type
 		int scroll_offset = scroll_direction > 0 ? 1 : -1;
-		held_block = BlockType((int)held_block + scroll_offset);
+		player.held_block = BlockType(static_cast<int>(player.held_block) + scroll_offset);
 	}
 }
 

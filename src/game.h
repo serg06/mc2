@@ -102,15 +102,13 @@ public:
 	// misc
 	std::unique_ptr<WorldDataPart> world_data;
 
-	BlockType held_block = BlockType::StillWater; // TODO: Instead, remembering which inventory slot
-	vmath::ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
 	bool should_check_for_nearby_chunks = true;
 	bool noclip = false;
 
 	// funcs
-	void updateWorld(float time);
+	void update_world(float time);
 	void update_player_movement(const float dt);
-	vmath::vec4 prevent_collisions(const vmath::vec4 position_change);
+	vmath::vec4 prevent_collisions(const vmath::vec4& position_change);
 
 	const vmath::ivec2& get_last_chunk_coords() const;
 	void set_last_chunk_coords(const vmath::ivec2& last_chunk_coords);
