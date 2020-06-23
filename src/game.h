@@ -91,6 +91,9 @@ public:
 	double fps = 0;
 	bool capture_mouse = true;
 
+	// misc
+	std::unique_ptr<WorldRenderPart> world_render;
+
 	/* WORLD PART */
 
 	// player
@@ -98,7 +101,6 @@ public:
 
 	// misc
 	std::unique_ptr<WorldDataPart> world_data;
-	std::unique_ptr<WorldRenderPart> world_render;
 
 	BlockType held_block = BlockType::StillWater; // TODO: Instead, remembering which inventory slot
 	vmath::ivec2 last_chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };

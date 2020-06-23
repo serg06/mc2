@@ -115,7 +115,7 @@ void WorldDataPart::enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool
 }
 
 // add chunk to chunk coords (x, z)
-void WorldDataPart::add_chunk(const int x, const int z, Chunk* chunk) {
+void WorldDataPart::add_chunk(const int x, const int z, std::shared_ptr<Chunk> chunk) {
 	const vmath::ivec2 coords = { x, z };
 	const auto search = chunk_map.find(coords);
 
@@ -152,10 +152,8 @@ void WorldDataPart::gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coo
 
 // generate multiple chunks
 void WorldDataPart::gen_chunks(const std::unordered_set<vmath::ivec2, vecN_hash>& to_generate) {
-	// Instead of generating chunks, we request the ChunkGenThread to do it for us.
+	// Instead of generating chunks ourselves, we request the ChunkGenThread to do it for us.
 	// TODO: Send one request with a vector of coords?
-	// TODO: Instead of having a queue, have mesh and chunk gen threads have a "center" position (player's location),
-	//         then sort the vector when it changes. Can do that with a Priority Heap, where priority = distance to center.
 	for (const vmath::ivec2& coords : to_generate)
 	{
 		ChunkGenRequest* req = new ChunkGenRequest;
@@ -173,7 +171,7 @@ void WorldDataPart::gen_chunks(const std::unordered_set<vmath::ivec2, vecN_hash>
 }
 
 // get chunk or nullptr (using cache) (TODO: LRU?)
-Chunk* WorldDataPart::get_chunk(const int x, const int z) {
+std::shared_ptr<Chunk> WorldDataPart::get_chunk(const int x, const int z) {
 	const auto search = chunk_map.find({ x, z });
 
 	// if doesn't exist, return null
@@ -184,7 +182,7 @@ Chunk* WorldDataPart::get_chunk(const int x, const int z) {
 	return search->second;
 }
 
-Chunk* WorldDataPart::get_chunk(const vmath::ivec2& xz) { return get_chunk(xz[0], xz[1]); }
+std::shared_ptr<Chunk> WorldDataPart::get_chunk(const vmath::ivec2& xz) { return get_chunk(xz[0], xz[1]); }
 
 // get mini or nullptr
 std::shared_ptr<MiniChunk> WorldDataPart::get_mini(const int x, const int y, const int z) {
@@ -195,7 +193,7 @@ std::shared_ptr<MiniChunk> WorldDataPart::get_mini(const int x, const int y, con
 		return nullptr;
 	}
 
-	Chunk* chunk = search->second;
+	std::shared_ptr<Chunk> chunk = search->second;
 	return chunk->get_mini_with_y_level((y / 16) * 16); // TODO: Just y % 16?
 }
 
@@ -212,13 +210,13 @@ void WorldDataPart::gen_nearby_chunks(const vmath::vec4& position, const int& di
 }
 
 // get chunk that contains block at (x, _, z)
-Chunk* WorldDataPart::get_chunk_containing_block(const int x, const int z) {
+std::shared_ptr<Chunk> WorldDataPart::get_chunk_containing_block(const int x, const int z) {
 	return get_chunk((int)floorf(static_cast<float>(x) / 16.0f), (int)floorf(static_cast<float>(z) / 16.0f));
 }
 
 // get minichunk that contains block at (x, y, z)
 std::shared_ptr<MiniChunk> WorldDataPart::get_mini_containing_block(const int x, const int y, const int z) {
-	Chunk* chunk = get_chunk_containing_block(x, z);
+	std::shared_ptr<Chunk> chunk = get_chunk_containing_block(x, z);
 	if (chunk == nullptr) {
 		return nullptr;
 	}
@@ -257,7 +255,7 @@ std::vector<std::shared_ptr<MiniChunk>> WorldDataPart::get_minis_touching_block(
 // get a block's type
 // inefficient when called repeatedly - if you need multiple blocks from one mini/chunk, use get_mini (or get_chunk) and mini.get_block.
 BlockType WorldDataPart::get_type(const int x, const int y, const int z) {
-	Chunk* chunk = get_chunk_containing_block(x, z);
+	std::shared_ptr<Chunk> chunk = get_chunk_containing_block(x, z);
 
 	if (!chunk) {
 		return BlockType::Air;
@@ -274,7 +272,7 @@ BlockType WorldDataPart::get_type(const vmath::ivec4& xyz_) { return get_type(xy
 // set a block's type
 // inefficient when called repeatedly
 void WorldDataPart::set_type(const int x, const int y, const int z, const BlockType& val) {
-	Chunk* chunk = get_chunk_containing_block(x, z);
+	std::shared_ptr<Chunk> chunk = get_chunk_containing_block(x, z);
 
 	if (!chunk) {
 		return;
@@ -347,7 +345,7 @@ void WorldDataPart::add_block(const vmath::ivec3& xyz, const BlockType& block) {
 
 // TODO
 Metadata WorldDataPart::get_metadata(const int x, const int y, const int z) {
-	Chunk* chunk = get_chunk_containing_block(x, z);
+	std::shared_ptr<Chunk> chunk = get_chunk_containing_block(x, z);
 
 	if (!chunk) {
 		return 0;
@@ -362,7 +360,7 @@ Metadata WorldDataPart::get_metadata(const vmath::ivec4& xyz_) { return get_meta
 
 // TODO
 void WorldDataPart::set_metadata(const int x, const int y, const int z, const Metadata& val) {
-	Chunk* chunk = get_chunk_containing_block(x, z);
+	std::shared_ptr<Chunk> chunk = get_chunk_containing_block(x, z);
 
 	if (!chunk) {
 		OutputDebugString("Warning: Set metadata for unloaded chunk.\n");
@@ -676,8 +674,9 @@ void WorldDataPart::handle_messages()
 			OutputDebugString(out.str().c_str());
 #endif // _DEBUG
 
-			// Update chunk!
-			Chunk* chunk = response->chunk.release();
+			// Get the chunk
+			std::shared_ptr<Chunk> chunk = std::move(response->chunk);
+			assert(chunk);
 
 			// make sure it's not a duplicate
 			if (get_chunk(chunk->coords))
@@ -695,7 +694,7 @@ void WorldDataPart::handle_messages()
 				enqueue_mesh_gen(chunk->minis[i]);
 			}
 
-			Chunk* c;
+			std::shared_ptr<Chunk> c;
 #define ENQUEUE(chunk_ivec2)\
 			c = get_chunk(chunk_ivec2);\
 			if (c)\

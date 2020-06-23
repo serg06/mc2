@@ -25,7 +25,7 @@ public:
 	WorldDataPart(zmq::context_t* const ctx_);
 
 	// map of (chunk coordinate) -> chunk
-	std::unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
+	std::unordered_map<vmath::ivec2, std::shared_ptr<Chunk>, vecN_hash> chunk_map;
 
 	// what tick the world is at
 	// TODO: private
@@ -45,7 +45,7 @@ public:
 	void enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool front_of_queue = false);
 
 	// add chunk to chunk coords (x, z)
-	void add_chunk(const int x, const int z, Chunk* chunk);
+	void add_chunk(const int x, const int z, std::shared_ptr<Chunk> chunk);
 
 	// generate chunks if they don't exist yet
 	void gen_chunks_if_required(const vector<vmath::ivec2>& chunk_coords);
@@ -54,8 +54,8 @@ public:
 	void gen_chunks(const std::unordered_set<vmath::ivec2, vecN_hash>& to_generate);
 
 	// get chunk or nullptr (using cache) (TODO: LRU?)
-	Chunk* get_chunk(const int x, const int z);
-	Chunk* get_chunk(const vmath::ivec2& xz);
+	std::shared_ptr<Chunk> get_chunk(const int x, const int z);
+	std::shared_ptr<Chunk> get_chunk(const vmath::ivec2& xz);
 
 	// get mini or nullptr
 	std::shared_ptr<MiniChunk> get_mini(const int x, const int y, const int z);
@@ -65,7 +65,7 @@ public:
 	void gen_nearby_chunks(const vmath::vec4& position, const int& distance);
 
 	// get chunk that contains block at (x, _, z)
-	Chunk* get_chunk_containing_block(const int x, const int z);
+	std::shared_ptr<Chunk> get_chunk_containing_block(const int x, const int z);
 
 	// get minichunk that contains block at (x, y, z)
 	std::shared_ptr<MiniChunk> get_mini_containing_block(const int x, const int y, const int z);

@@ -176,7 +176,6 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	}
 }
 
-
 // thread for generating new world chunks
 void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 	// Connect to bus
