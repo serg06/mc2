@@ -1,6 +1,7 @@
 #pragma once
 
 #include "chunk.h"
+#include "player.h"
 #include "world_utils.h"
 
 #include "messaging.h"
@@ -24,12 +25,7 @@ public:
 	WorldDataPart(zmq::context_t* const ctx_);
 
 	// map of (chunk coordinate) -> chunk
-	contiguous_hashmap<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
-
-	// get_chunk cache
-	Chunk* chunk_cache[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
-	vmath::ivec2 chunk_cache_ivec2[5] = { vmath::ivec2(INT_MAX), vmath::ivec2(INT_MAX), vmath::ivec2(INT_MAX), vmath::ivec2(INT_MAX), vmath::ivec2(INT_MAX) };
-	int chunk_cache_clock_hand = 0; // clock cache
+	std::unordered_map<vmath::ivec2, Chunk*, vecN_hash> chunk_map;
 
 	// what tick the world is at
 	// TODO: private
@@ -60,9 +56,6 @@ public:
 	// get chunk or nullptr (using cache) (TODO: LRU?)
 	Chunk* get_chunk(const int x, const int z);
 	Chunk* get_chunk(const vmath::ivec2& xz);
-
-	// get chunk or nullptr (no cache)
-	Chunk* get_chunk_(const int x, const int z);
 
 	// get mini or nullptr
 	std::shared_ptr<MiniChunk> get_mini(const int x, const int y, const int z);
@@ -140,4 +133,12 @@ public:
 
 private:
 	BusNode bus;
+};
+
+// TODO: Use
+class World
+{
+	WorldDataPart data;
+	Player player;
+
 };

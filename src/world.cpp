@@ -129,14 +129,6 @@ void WorldDataPart::add_chunk(const int x, const int z, Chunk* chunk) {
 		throw "Wew";
 	}
 	chunk_map[coords] = chunk;
-
-	// invalidate that chunk in cache
-	for (int i = 0; i < 5; i++) {
-		if (chunk_cache_ivec2[i] == coords) {
-			chunk_cache[i] = nullptr;
-			chunk_cache_ivec2[i] = vmath::ivec2(std::numeric_limits<int>::max());
-		}
-	}
 }
 
 // generate chunks if they don't exist yet
@@ -182,31 +174,6 @@ void WorldDataPart::gen_chunks(const std::unordered_set<vmath::ivec2, vecN_hash>
 
 // get chunk or nullptr (using cache) (TODO: LRU?)
 Chunk* WorldDataPart::get_chunk(const int x, const int z) {
-	const vmath::ivec2 coords = { x, z };
-
-	// if in cache, return
-	for (int i = 0; i < 5; i++) {
-		// start at chunk_cache_clock_hand and search backwards
-		if (chunk_cache_ivec2[(chunk_cache_clock_hand - i + 5) % 5] == coords) {
-			return chunk_cache[(chunk_cache_clock_hand - i + 5) % 5];
-		}
-	}
-
-	// not in cache, get normally
-	Chunk* result = get_chunk_(x, z);
-
-	// save in cache
-	chunk_cache_clock_hand = (chunk_cache_clock_hand + 1) % 5;
-	chunk_cache[chunk_cache_clock_hand] = result;
-	chunk_cache_ivec2[chunk_cache_clock_hand] = coords;
-
-	return result;
-}
-
-Chunk* WorldDataPart::get_chunk(const vmath::ivec2& xz) { return get_chunk(xz[0], xz[1]); }
-
-// get chunk or nullptr (no cache)
-Chunk* WorldDataPart::get_chunk_(const int x, const int z) {
 	const auto search = chunk_map.find({ x, z });
 
 	// if doesn't exist, return null
@@ -214,8 +181,10 @@ Chunk* WorldDataPart::get_chunk_(const int x, const int z) {
 		return nullptr;
 	}
 
-	return *search;
+	return search->second;
 }
+
+Chunk* WorldDataPart::get_chunk(const vmath::ivec2& xz) { return get_chunk(xz[0], xz[1]); }
 
 // get mini or nullptr
 std::shared_ptr<MiniChunk> WorldDataPart::get_mini(const int x, const int y, const int z) {
@@ -226,7 +195,7 @@ std::shared_ptr<MiniChunk> WorldDataPart::get_mini(const int x, const int y, con
 		return nullptr;
 	}
 
-	Chunk* chunk = *search;
+	Chunk* chunk = search->second;
 	return chunk->get_mini_with_y_level((y / 16) * 16); // TODO: Just y % 16?
 }
 
