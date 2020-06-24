@@ -445,7 +445,7 @@ void App::render(float time)
 	last_render_time = time;
 	fps = (1 - 5 * dt) * fps + 5;
 
-	const auto direction = world->player.staring_direction();
+	const auto direction = get_player().staring_direction();
 
 	/* TRANSFORMATION MATRICES */
 
@@ -455,8 +455,8 @@ void App::render(float time)
 
 	// Create World->View matrix
 	const mat4 world_view_matrix =
-		rotate_pitch_yaw(world->player.pitch, world->player.yaw) *
-		translate(-world->player.coords[0], -world->player.coords[1], -world->player.coords[2]); // move relative to you
+		rotate_pitch_yaw(get_player().pitch, get_player().yaw) *
+		translate(-get_player().coords[0], -get_player().coords[1], -get_player().coords[2]); // move relative to you
 
 	// Combine them into Model->View matrix
 	const mat4 model_view_matrix = world_view_matrix * model_world_matrix;
@@ -478,9 +478,7 @@ void App::render(float time)
 	glClearBufferfv(GL_DEPTH, 0, &one);
 
 	// check if in water
-	const BlockType face_block = world->data.get_type(vec2ivec(world->player.coords + vec4(0, CAMERA_HEIGHT, 0, 0)));
-	world->player.in_water = face_block == BlockType::StillWater || face_block == BlockType::FlowingWater;
-	const GLuint in_water_gluint = static_cast<GLuint>(world->player.in_water);
+	const GLuint in_water_gluint = static_cast<GLuint>(get_player().in_water);
 
 	// Update transformation buffer with matrices
 	glNamedBufferSubData(glInfo.trans_uni_buf, 0, sizeof(model_view_matrix), model_view_matrix);
@@ -493,7 +491,7 @@ void App::render(float time)
 
 	// Draw ALL our chunks!
 	world_render->handle_messages();
-	world_render->render(&glInfo, &windowInfo, planes, world->player.staring_at);
+	world_render->render(&glInfo, &windowInfo, planes, get_player().staring_at);
 
 	// display debug info
 	if (show_debug_info) {
@@ -532,24 +530,24 @@ void App::render_debug_info(float dt)
 	debugInfo.reserve(500);
 
 	char lineBuf[256];
-	const auto direction = world->player.staring_direction();
+	const auto direction = get_player().staring_direction();
 
-	sprintf(lineBuf, "FPS: %-4.1f (%d ms) (%d distance)\n", fps, static_cast<int>(dt * 1000), world->player.render_distance);
+	sprintf(lineBuf, "FPS: %-4.1f (%d ms) (%d distance)\n", fps, static_cast<int>(dt * 1000), get_player().render_distance);
 	debugInfo += lineBuf;
 
-	sprintf(lineBuf, "Position: (%6.1f, %6.1f, %6.1f)\n", world->player.coords[0], world->player.coords[1], world->player.coords[2]);
+	sprintf(lineBuf, "Position: (%6.1f, %6.1f, %6.1f)\n", get_player().coords[0], get_player().coords[1], get_player().coords[2]);
 	debugInfo += lineBuf;
 
 	sprintf(lineBuf, "Facing:   (%6.1f, %6.1f, %6.1f)\n", direction[0], direction[1], direction[2]);
 	debugInfo += lineBuf;
 
-	sprintf(lineBuf, "Looking at block: (%d, %d, %d)\n", world->player.staring_at[0], world->player.staring_at[1], world->player.staring_at[2]);
+	sprintf(lineBuf, "Looking at block: (%d, %d, %d)\n", get_player().staring_at[0], get_player().staring_at[1], get_player().staring_at[2]);
 	debugInfo += lineBuf;
 
-	sprintf(lineBuf, "Face in water: %s\n", world->player.in_water ? "true" : "false");
+	sprintf(lineBuf, "Face in water: %s\n", get_player().in_water ? "true" : "false");
 	debugInfo += lineBuf;
 
-	sprintf(lineBuf, "Held block: %d (%s)\n", static_cast<int>(world->player.held_block), world->player.held_block.side_texture().c_str());
+	sprintf(lineBuf, "Held block: %d (%s)\n", static_cast<int>(get_player().held_block), get_player().held_block.side_texture().c_str());
 	debugInfo += lineBuf;
 
 	// Start the Dear ImGui frame
@@ -628,13 +626,18 @@ void App::render_main_menu()
 
 void App::update_player_actions()
 {
-	world->player.actions.forwards = held_keys[GLFW_KEY_W];
-	world->player.actions.backwards = held_keys[GLFW_KEY_S];
-	world->player.actions.left = held_keys[GLFW_KEY_A];
-	world->player.actions.right = held_keys[GLFW_KEY_D];
-	world->player.actions.jumping = held_keys[GLFW_KEY_SPACE];
-	world->player.actions.shifting = held_keys[GLFW_KEY_LEFT_SHIFT];
+	get_player().actions.forwards = held_keys[GLFW_KEY_W];
+	get_player().actions.backwards = held_keys[GLFW_KEY_S];
+	get_player().actions.left = held_keys[GLFW_KEY_A];
+	get_player().actions.right = held_keys[GLFW_KEY_D];
+	get_player().actions.jumping = held_keys[GLFW_KEY_SPACE];
+	get_player().actions.shifting = held_keys[GLFW_KEY_LEFT_SHIFT];
 	// TODO: Mining
+}
+
+Player& App::get_player()
+{
+	return world->player;
 }
 
 void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -650,7 +653,7 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 
 		// N = toggle noclip
 		if (key == GLFW_KEY_N) {
-			world->player.noclip = !world->player.noclip;
+			get_player().noclip = !get_player().noclip;
 		}
 
 		// P = cycle poylgon mode
@@ -743,14 +746,14 @@ void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
 		// + = increase render distance
 		if (key == GLFW_KEY_KP_ADD || key == GLFW_KEY_EQUAL) {
-			world->player.render_distance++;
-			world->player.should_check_for_nearby_chunks = true;
+			get_player().render_distance++;
+			get_player().should_check_for_nearby_chunks = true;
 		}
 
 		// - = decrease render distance
 		if (key == GLFW_KEY_KP_SUBTRACT || key == GLFW_KEY_MINUS) {
-			if (world->player.render_distance > 0) {
-				world->player.render_distance--;
+			if (get_player().render_distance > 0) {
+				get_player().render_distance--;
 			}
 		}
 	}
@@ -772,14 +775,14 @@ void App::onMouseMove(GLFWwindow* window, double x, double y)
 		double delta_y = y - last_mouse_y;
 
 		// update pitch/yaw
-		world->player.yaw += static_cast<float>(windowInfo.mouseX_Sensitivity * delta_x);
-		world->player.pitch += static_cast<float>(windowInfo.mouseY_Sensitivity * delta_y);
+		get_player().yaw += static_cast<float>(windowInfo.mouseX_Sensitivity * delta_x);
+		get_player().pitch += static_cast<float>(windowInfo.mouseY_Sensitivity * delta_y);
 		
 		// wrap yaw
-		world->player.yaw = posmod(world->player.yaw, 360.0f);
+		get_player().yaw = posmod(get_player().yaw, 360.0f);
 
 		// cap pitch
-		world->player.pitch = clamp(world->player.pitch, -90.0f, 90.0f);
+		get_player().pitch = clamp(get_player().pitch, -90.0f, 90.0f);
 
 		// update old values
 		last_mouse_x = x;
@@ -851,27 +854,27 @@ void App::onMouseButton(int button, int action) {
 		// left click
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 			// if staring at valid block
-			if (world->player.staring_at[1] >= 0) {
-				world->data.destroy_block(world->player.staring_at);
+			if (get_player().staring_at[1] >= 0) {
+				world->data.destroy_block(get_player().staring_at);
 			}
 		}
 
 		// right click
 		if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
 			// if staring at valid block
-			if (world->player.staring_at[1] >= 0) {
+			if (get_player().staring_at[1] >= 0) {
 				// position we wanna place block at
-				ivec3 desired_position = world->player.staring_at + world->player.staring_at_face;
+				ivec3 desired_position = get_player().staring_at + get_player().staring_at_face;
 
 				// check if we're in the way
-				vector<ivec4> intersecting_blocks = get_intersecting_blocks(world->player.coords);
+				vector<ivec4> intersecting_blocks = get_intersecting_blocks(get_player().coords);
 				auto result = find_if(begin(intersecting_blocks), end(intersecting_blocks), [desired_position](const auto& ipos) {
 					return desired_position == ivec3(ipos[0], ipos[1], ipos[2]);
 					});
 
 				// if we're not in the way, place it
 				if (result == end(intersecting_blocks)) {
-					world->data.add_block(desired_position, world->player.held_block);
+					world->data.add_block(desired_position, get_player().held_block);
 				}
 			}
 		}
@@ -887,7 +890,7 @@ void App::onMouseWheel(double scroll_direction) {
 
 		// increment/decrement block type
 		int scroll_offset = scroll_direction > 0 ? 1 : -1;
-		world->player.held_block = BlockType(static_cast<int>(world->player.held_block) + scroll_offset);
+		get_player().held_block = BlockType(static_cast<int>(get_player().held_block) + scroll_offset);
 	}
 }
 

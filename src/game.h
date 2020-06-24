@@ -100,6 +100,7 @@ public:
 
 	// funcs
 	void update_player_actions();
+	Player& get_player();
 
 	/* GAME STATE PART */
 

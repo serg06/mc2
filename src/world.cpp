@@ -823,6 +823,10 @@ void World::update_world(float time) {
 	// update player movement
 	update_player_movement(dt);
 
+	// keep track of if it's in water or not
+	const BlockType face_block = data.get_type(vec2ivec(player.coords + vmath::vec4(0, CAMERA_HEIGHT, 0, 0)));
+	player.in_water = face_block == BlockType::StillWater || face_block == BlockType::FlowingWater;
+
 	// update last chunk coords
 	const auto chunk_coords = get_chunk_coords((int)floorf(player.coords[0]), (int)floorf(player.coords[2]));
 	if (chunk_coords != player.chunk_coords) {
