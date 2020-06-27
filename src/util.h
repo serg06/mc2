@@ -136,8 +136,8 @@ inline void hash_combine(std::size_t& seed, const T& v)
 	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-// check if sphere is inside frustrum planes
-static inline bool sphere_in_frustrum(const vmath::vec3 &pos, const float radius, const vmath::vec4(&frustum_planes)[6]) {
+// check if sphere is inside frustum planes
+static inline bool sphere_in_frustum(const vmath::vec3 &pos, const float radius, const vmath::vec4(&frustum_planes)[6]) {
 	bool res = true;
 	for (auto &plane : frustum_planes) {
 		if (plane[0] * pos[0] + plane[1] * pos[1] + plane[2] * pos[2] + plane[3] <= -radius) {

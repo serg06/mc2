@@ -15,7 +15,7 @@ constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
 
 // check if a mini is visible in a frustum
 bool mini_in_frustum(const MiniRender* mini, const vmath::vec4(&planes)[6]) {
-	return sphere_in_frustrum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
+	return sphere_in_frustum(mini->center_coords_v3(), FRUSTUM_MINI_RADIUS_ALLOWANCE, planes);
 }
 
 WorldRenderPart::WorldRenderPart(std::shared_ptr<zmq::context_t> ctx_) : bus(ctx_)
