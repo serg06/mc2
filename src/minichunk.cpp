@@ -1,16 +1,16 @@
 #include "minichunk.h"
 
-#pragma once
+// Renderer part
 
-#include "block.h"
-#include "chunkdata.h"
-#include "minichunkmesh.h"
-#include "render.h"
+// Data part
+
+// Both
 #include "util.h"
 #include "vmath.h"
 
+// Shrug
+#include <algorithm>
 #include <cassert>
-#include <algorithm> // std::find
 #include <memory>
 #include <vector>
 
