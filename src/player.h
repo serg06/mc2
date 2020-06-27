@@ -36,7 +36,7 @@ public:
 
 	// Both. Update in world then reflect in renderer
 	vmath::vec4 coords = { 8.0f, 73.0f, 8.0f, 1.0f };
-	vmath::ivec2 chunk_coords = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
+	vmath::ivec2 chunk_coords = { (std::numeric_limits<int>::max)(), (std::numeric_limits<int>::max)() };
 	vmath::ivec3 staring_at = { 0, -1, 0 }; // the block you're staring at (invalid by default)
 	vmath::ivec3 staring_at_face; // the face you're staring at on the block you're staring at
 

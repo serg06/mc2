@@ -70,7 +70,7 @@ void SenderThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 	// send int every second
 	int i = 0;
 	bool stop = false;
-	std::chrono::time_point<std::chrono::high_resolution_clock> last_send_time = std::numeric_limits<std::chrono::time_point<std::chrono::high_resolution_clock>>::max();
+	std::chrono::time_point<std::chrono::high_resolution_clock> last_send_time = (std::numeric_limits<std::chrono::time_point<std::chrono::high_resolution_clock>>::max)();
 	while (!stop)
 	{
 		// read in all messages and check for exit message
