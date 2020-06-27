@@ -1,8 +1,8 @@
 #include "contiguous_hashmap.h"
-#include "util.h"
-#include "vmath.h"
 
-#include <type_traits>
+#include "util.h"
+
+#include "vmath.h"
 
 void test()
 {
