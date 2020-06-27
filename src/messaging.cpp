@@ -1,12 +1,11 @@
-#include <future>
-#include <iostream>
-#include <string>
-
 #include "messaging.h"
 
 #include "zmq_addon.hpp"
 
-#include <Windows.h>
+#include <future>
+#include <sstream>
+#include <string>
+
 
 namespace msg
 {
@@ -15,7 +14,7 @@ namespace msg
 		// Not actually that random!
 		static std::atomic_uint64_t extra(0);
 		std::string suffix = std::to_string(extra.fetch_add(1)); // TODO: better memory order
-		std::stringstream out;
+		std::ostringstream out;
 		out << "inproc://unique-" << suffix;
 		return out.str();
 	}

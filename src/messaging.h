@@ -1,12 +1,11 @@
 #pragma once
 
+#include "zmq.hpp"
+
 #include <functional>
 #include <future>
-#include <iostream>
 #include <string>
 
-#include "util.h"
-#include "zmq_addon.hpp"
 
 namespace addr
 {

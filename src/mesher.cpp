@@ -14,7 +14,7 @@
 #include "examples/imgui_impl_opengl3.h"
 #include "examples/imgui_impl_glfw.h"
 #include "imgui.h"
-#include "zmq.hpp"
+#include "zmq_addon.hpp"
 
 #include <algorithm>
 #include <cassert>

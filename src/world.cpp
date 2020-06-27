@@ -711,20 +711,10 @@ void WorldDataPart::handle_messages()
 			ENQUEUE(chunk->coords + vmath::ivec2(0, -1));
 #undef ENQUEUE
 		}
-#ifdef _DEBUG
-		else if (message[0].to_string_view() == msg::TEST)
-		{
-			std::stringstream s;
-			s << "WorldData: " << msg::multi_to_str(message) << "\n";
-			OutputDebugString(s.str().c_str());
-		}
 		else
 		{
-			std::stringstream s;
-			s << "WorldData: Unknown msg [" << message[0].to_string_view() << "]" << "\n";
-			OutputDebugString(s.str().c_str());
+			assert(false && "unknown message");
 		}
-#endif // _DEBUG
 
 		message.clear();
 		ret = zmq::recv_multipart(bus.out, std::back_inserter(message), zmq::recv_flags::dontwait);

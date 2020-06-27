@@ -2,6 +2,10 @@
 #include "mesher.h"
 #include "messaging.h"
 
+#ifdef _DEBUG
+#include "zmq_addon.hpp"
+#endif // _DEBUG
+
 #include <memory>
 
 void MessageBus(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready)
@@ -28,7 +32,7 @@ void MessageBus(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready)
 }
 
 #ifdef _DEBUG
-void ListenerThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
+void ListenerThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready)
 {
 	// connect to bus
 	BusNode bus(ctx);
@@ -45,7 +49,7 @@ void ListenerThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 		auto ret = zmq::recv_multipart(bus.out, std::back_inserter(message));
 		assert(ret);
 		std::stringstream out;
-		out << "Listener: " << msg::multi_to_str(message) << "\n";
+		out << "Listener: " << message[0].to_string_view() << "\n";
 		OutputDebugString(out.str().c_str());
 		if (message[0].to_string_view() == msg::EXIT)
 		{
@@ -54,7 +58,7 @@ void ListenerThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 	}
 }
 
-void SenderThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
+void SenderThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready)
 {
 	// connect to bus
 	BusNode bus(ctx);
@@ -122,10 +126,10 @@ int main()
 
 #ifdef _DEBUG
 	// launch listener
-	auto listener_thread = msg::launch_thread_wait_until_ready(&ctx, ListenerThread);
+	auto listener_thread = msg::launch_thread_wait_until_ready(ctx, ListenerThread);
 
 	// launch sender
-	auto sender_thread = msg::launch_thread_wait_until_ready(&ctx, SenderThread);
+	auto sender_thread = msg::launch_thread_wait_until_ready(ctx, SenderThread);
 #endif // _DEBUG
 
 	// Run game!

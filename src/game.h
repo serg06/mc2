@@ -33,22 +33,8 @@ public:
 	std::shared_ptr<zmq::context_t> ctx;
 	BusNode bus;
 
-	App(std::shared_ptr<zmq::context_t> ctx_) : ctx(ctx_), bus(ctx_)
-	{
-		std::fill(held_keys, held_keys + (sizeof(held_keys) / sizeof(held_keys[0])), false);
-		bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-	}
-
-	~App()
-	{
-		// Send exit message
-		std::vector<zmq::const_buffer> message({
-			zmq::buffer(msg::EXIT)
-			});
-
-		auto ret = zmq::send_multipart(bus.in, message, zmq::send_flags::dontwait);
-		assert(ret);
-	}
+	App(std::shared_ptr<zmq::context_t> ctx_);
+	~App();
 
 	/* INPUTS */
 

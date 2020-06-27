@@ -14,7 +14,7 @@
 #include "examples/imgui_impl_opengl3.h"
 #include "examples/imgui_impl_glfw.h"
 #include "imgui.h"
-#include "zmq.hpp"
+#include "zmq_addon.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -117,20 +117,10 @@ void ChunkGenThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_rea
 					request_queue.swap(pq2);
 				}
 			}
-#ifdef _DEBUG
-			else if (msg[0].to_string_view() == msg::TEST)
-			{
-				std::stringstream s;
-				s << "ChunkGen: " << msg::multi_to_str(msg) << "\n";
-				OutputDebugString(s.str().c_str());
-			}
 			else
 			{
-				std::stringstream s;
-				s << "ChunkGen: Unknown msg [" << msg[0].to_string_view() << "]" << "\n";
-				OutputDebugString(s.str().c_str());
+				assert(false && "unknown message");
 			}
-#endif // _DEBUG
 
 			msg.clear();
 			ret = zmq::recv_multipart(bus.out, std::back_inserter(msg), zmq::recv_flags::dontwait);
@@ -173,6 +163,23 @@ void ChunkGenThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_rea
 			std::this_thread::sleep_for(std::chrono::microseconds(1));
 		}
 	}
+}
+
+App::App(std::shared_ptr<zmq::context_t> ctx_) : ctx(ctx_), bus(ctx_)
+{
+	std::fill(held_keys, held_keys + (sizeof(held_keys) / sizeof(held_keys[0])), false);
+	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+}
+
+App::~App()
+{
+	// Send exit message
+	std::vector<zmq::const_buffer> message({
+		zmq::buffer(msg::EXIT)
+		});
+
+	auto ret = zmq::send_multipart(bus.in, message, zmq::send_flags::dontwait);
+	assert(ret);
 }
 
 void App::run()
