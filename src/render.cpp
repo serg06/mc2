@@ -1,6 +1,7 @@
+#include "render.h"
+
 #include "block.h"
 #include "fbo.h"
-#include "render.h"
 #include "shapes.h"
 #include "util.h"
 

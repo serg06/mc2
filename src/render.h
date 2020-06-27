@@ -1,16 +1,16 @@
 #pragma once
 
 #include "fbo.h"
+
 #include "GL/gl3w.h"
 #include "glfw/glfw3.h"
-#include "util.h"
 #include "vmath.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
-constexpr int TRANSFORM_BUFFER_COORDS_OFFSET = (2 * sizeof(vmath::mat4));
-// max chars displayed on screen horizontally
+constexpr int TRANSFORMATION_BUFFER_COORDS_OFFSET = (2 * sizeof(vmath::mat4));
 constexpr int MAX_CHARS_HORIZONTAL = 48;
 
 constexpr GLfloat color_black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
