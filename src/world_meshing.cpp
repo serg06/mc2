@@ -1,5 +1,12 @@
 #include "world_meshing.h"
 
+#include "render.h"
+
+#include "vmath.h"
+#include "zmq.hpp"
+
+#include <vector>
+
 // Private functions
 std::vector<Quad3D> quads_2d_3d(const std::vector<Quad2D>& quads2d, const int layers_idx, const int layer_no, const vmath::ivec3& face);
 void gen_layer_generalized(const std::shared_ptr<MiniChunk> mini, const std::shared_ptr<MiniChunk> face_mini, const int layers_idx, const int layer_no, const vmath::ivec3 face, BlockType(&result)[16][16]);
@@ -37,13 +44,13 @@ bool check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 
 	// none are air, so only check outside blocks
 	for (int miniY = 0; miniY < MINICHUNK_HEIGHT; miniY++) {
-		for (int miniZ = 0; miniZ < CHUNK_DEPTH; miniZ++) {
-			for (int miniX = 0; miniX < CHUNK_WIDTH; miniX++) {
+		for (int miniZ = 0; miniZ < MINICHUNK_DEPTH; miniZ++) {
+			for (int miniX = 0; miniX < MINICHUNK_WIDTH; miniX++) {
 				const auto& mini_coords = req->data->self->get_coords();
-				const vmath::ivec3 coords = { mini_coords[0] * CHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * CHUNK_DEPTH + miniZ };
+				const vmath::ivec3 coords = { mini_coords[0] * MINICHUNK_WIDTH + miniX, mini_coords[1] + miniY,  mini_coords[2] * MINICHUNK_DEPTH + miniZ };
 
 				// if along east wall, check east
-				if (miniX == CHUNK_WIDTH - 1) {
+				if (miniX == MINICHUNK_WIDTH - 1) {
 					if (req->data->east && req->data->east->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
 				}
 				// if along west wall, check west
@@ -56,7 +63,7 @@ bool check_if_covered(std::shared_ptr<MeshGenRequest> req) {
 					if (req->data->north && req->data->north->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
 				}
 				// if along south wall, check south
-				if (miniZ == CHUNK_DEPTH - 1) {
+				if (miniZ == MINICHUNK_DEPTH - 1) {
 					if (req->data->south && req->data->south->get_block(get_mini_relative_coords(coords)).is_translucent()) return false;
 				}
 
