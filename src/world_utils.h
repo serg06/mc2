@@ -1,13 +1,10 @@
 #pragma once
 
 #include "chunk.h"
+
 #include "vmath.h"
-#include "zmq.hpp"
 
 #include <functional>
-#include <queue>
-#include <unordered_map>
-#include <unordered_set>
 
 // Rendering part
 #include "minichunkmesh.h"
