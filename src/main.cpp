@@ -1,4 +1,5 @@
 #include "game.h"
+#include "mesher.h"
 #include "messaging.h"
 
 #include "GL/gl3w.h"
@@ -119,7 +120,7 @@ int main()
 	msg_bus_control.connect(addr::MSG_BUS_CONTROL);
 
 	// launch mesh gen threads
-	auto mesh_gen_thread = msg::launch_thread_wait_until_ready(ctx, MeshingThread);
+	auto mesh_gen_thread = msg::launch_thread_wait_until_ready(ctx, MeshingThread2);
 
 	// launch chunk gen threads
 	auto chunk_gen_thread = msg::launch_thread_wait_until_ready(ctx, ChunkGenThread);
