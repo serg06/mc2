@@ -76,81 +76,8 @@ namespace msg
 	static const std::string TERMINATE = "TERMINATE";
 	// zmq_proxy_steerable messages END
 
-	// Convert multipart msg to string
-	inline std::string multi_to_str(const std::vector<zmq::message_t>& resp)
-	{
-		if (resp[0].to_string_view() == "TEST")
-		{
-			int i = 0;
-			i++;
-		}
-		std::stringstream s;
-		s << "[" << resp[0].to_string_view() << "]: [";
-		for (int i = 1; i < resp.size(); i++)
-		{
-			std::string_view sv = resp[i].to_string_view();
-			bool printable = true;
-			for (auto c : sv)
-			{
-				if (c < 32 || c > 126)
-				{
-					printable = false;
-				}
-			}
-			if (printable)
-			{
-				s << sv;
-			}
-			else
-			{
-				s << "<binary data>";
-			}
-			if (i != resp.size() - 1)
-			{
-				s << ", ";
-			}
-		}
-		s << "]";
-		return s.str();
-	}
-
-	inline std::string gen_unique_addr()
-	{
-		// Not actually that random!
-		static std::atomic_uint64_t extra(0);
-		std::string suffix = std::to_string(extra.fetch_add(1)); // TODO: better memory order
-		std::stringstream out;
-		out << "inproc://unique-" << suffix;
-		return out.str();
-	}
-
-	inline std::future<void> launch_thread_wait_until_ready(std::shared_ptr<zmq::context_t> ctx, notifier_thread thread)
-	{
-		// Listen to bus start
-		std::string unique_addr = gen_unique_addr();
-		zmq::socket_t pull(*ctx, zmq::socket_type::pull);
-		pull.bind(unique_addr);
-
-		on_ready_fn on_complete = [&]() {
-			zmq::socket_t push(*ctx, zmq::socket_type::push);
-			push.connect(unique_addr);
-			push.send(zmq::buffer(msg::READY));
-		};
-
-		// Launch
-		std::future<void> result = std::async(std::launch::async, thread, ctx, on_complete);
-
-		// Wait for response
-		std::vector<zmq::message_t> recv_msgs;
-		auto ret = zmq::recv_multipart(pull, std::back_inserter(recv_msgs));
-		assert(ret);
-		assert(recv_msgs[0].to_string_view() == msg::READY);
-
-		// Done
-		return result;
-	}
-
-	//std::future<void> run_message_bus(zmq::context_t& ctx);
+	std::string gen_unique_addr();
+	std::future<void> launch_thread_wait_until_ready(std::shared_ptr<zmq::context_t> ctx, notifier_thread thread);
 }
 
 class BusNode
