@@ -1,14 +1,8 @@
 #pragma once
 
 #include "block.h"
-#include "chunkdata.h"
 #include "minichunk.h"
-#include "render.h"
-#include "util.h"
 
-#include <cassert>
-#include <cstdint>
-#include <cstdio> 
 #include <memory>
 
 constexpr int CHUNK_WIDTH = 16;

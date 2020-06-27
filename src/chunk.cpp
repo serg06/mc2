@@ -1,12 +1,11 @@
 #include "chunk.h"
+
 #include "chunkdata.h"
-#include "FastNoise.h"
 #include "util.h"
 
+#include "FastNoise.h"
+
 #include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <initializer_list>
 
 constexpr int WATER_HEIGHT = 64;
 
