@@ -738,7 +738,7 @@ void App::onMouseButton(int button, int action) {
 				ivec3 desired_position = get_player().staring_at + get_player().staring_at_face;
 
 				// check if we're in the way
-				vector<ivec4> intersecting_blocks = get_intersecting_blocks(get_player().coords);
+				vector<ivec4> intersecting_blocks = get_player_intersecting_blocks(get_player().coords);
 				auto result = find_if(begin(intersecting_blocks), end(intersecting_blocks), [desired_position](const auto& ipos) {
 					return desired_position == ivec3(ipos[0], ipos[1], ipos[2]);
 					});

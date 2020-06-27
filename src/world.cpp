@@ -968,7 +968,7 @@ vmath::vec4 World::prevent_collisions(const vmath::vec4& position_change) {
 	// TODO: prioritize removing velocity that won't change our position when snapping.
 
 	// Get all blocks we might be intersecting with
-	auto blocks = get_intersecting_blocks(player.coords + position_change);
+	auto blocks = get_player_intersecting_blocks(player.coords + position_change);
 
 	// if all blocks are non-solid, we done
 	if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = data.get_type(block_coords); return block.is_nonsolid(); })) {
@@ -987,7 +987,7 @@ vmath::vec4 World::prevent_collisions(const vmath::vec4& position_change) {
 	for (int i = 0; i < 3; i++) {
 		vmath::vec4 position_change_fixed = position_change;
 		position_change_fixed[indices[i]] = 0.0f;
-		blocks = get_intersecting_blocks(player.coords + position_change_fixed);
+		blocks = get_player_intersecting_blocks(player.coords + position_change_fixed);
 
 		// if all blocks are non-solid, we done
 		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = data.get_type(block_coords); return block.is_nonsolid(); })) {
@@ -1012,7 +1012,7 @@ vmath::vec4 World::prevent_collisions(const vmath::vec4& position_change) {
 		vmath::vec4 position_change_fixed = position_change;
 		position_change_fixed[pair_indices[i][0]] = 0.0f;
 		position_change_fixed[pair_indices[i][1]] = 0.0f;
-		blocks = get_intersecting_blocks(player.coords + position_change_fixed);
+		blocks = get_player_intersecting_blocks(player.coords + position_change_fixed);
 
 		// if all blocks are air, we done
 		if (all_of(begin(blocks), end(blocks), [this](const auto& block_coords) { auto block = data.get_type(block_coords); return block.is_nonsolid(); })) {
