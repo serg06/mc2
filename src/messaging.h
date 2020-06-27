@@ -18,7 +18,7 @@ namespace addr
 namespace msg
 {
 	using on_ready_fn = std::function<void()>;
-	using notifier_thread = std::function<void(zmq::context_t*, on_ready_fn)>;
+	using notifier_thread = std::function<void(std::shared_ptr<zmq::context_t>, on_ready_fn)>;
 
 	// TODO: Shorten all messages since ZMQ uses prefix matching? Or even just use ints!
 
@@ -124,7 +124,7 @@ namespace msg
 		return out.str();
 	}
 
-	inline std::future<void> launch_thread_wait_until_ready(zmq::context_t* const ctx, notifier_thread thread)
+	inline std::future<void> launch_thread_wait_until_ready(std::shared_ptr<zmq::context_t> ctx, notifier_thread thread)
 	{
 		// Listen to bus start
 		std::string unique_addr = gen_unique_addr();
@@ -156,11 +156,11 @@ namespace msg
 class BusNode
 {
 public:
-	BusNode(zmq::context_t* const ctx_);
+	BusNode(std::shared_ptr<zmq::context_t> ctx_);
 
 	zmq::socket_t in;
 	zmq::socket_t out;
 
 private:
-	zmq::context_t* const ctx;
+	std::shared_ptr<zmq::context_t> ctx;
 };

@@ -8,6 +8,7 @@
 #include "vmath.h"
 #include "zmq.hpp"
 
+#include <memory>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
@@ -22,7 +23,7 @@ using namespace std;
 class WorldDataPart
 {
 public:
-	WorldDataPart(zmq::context_t* const ctx_);
+	WorldDataPart(std::shared_ptr<zmq::context_t> ctx_);
 
 	// map of (chunk coordinate) -> chunk
 	std::unordered_map<vmath::ivec2, std::shared_ptr<Chunk>, vecN_hash> chunk_map;
@@ -138,7 +139,7 @@ private:
 class World
 {
 public:
-	World(zmq::context_t* const ctx_);
+	World(std::shared_ptr<zmq::context_t> ctx_);
 
 	void update_world(float time);
 	void update_player_movement(const float dt);

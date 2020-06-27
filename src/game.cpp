@@ -32,7 +32,7 @@
 using namespace std;
 using namespace vmath;
 
-void run_game(zmq::context_t* const ctx)
+void run_game(std::shared_ptr<zmq::context_t> ctx)
 {
 	glfwSetErrorCallback(glfw_onError);
 	App app(ctx);
@@ -40,7 +40,7 @@ void run_game(zmq::context_t* const ctx)
 }
 
 // thread for generating new chunk meshes
-void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
+void MeshingThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready) {
 	// Connect to bus
 	BusNode bus(ctx);
 #ifdef _DEBUG
@@ -177,7 +177,7 @@ void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
 }
 
 // thread for generating new world chunks
-void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready) {
+void ChunkGenThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready) {
 	// Connect to bus
 	BusNode bus(ctx);
 #ifdef _DEBUG

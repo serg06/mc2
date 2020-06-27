@@ -9,7 +9,7 @@
 #include <Windows.h>
 
 // TODO: Add operator>> and operator<< ? Or maybe add them to zmq.hpp (and submit a PR)?
-BusNode::BusNode(zmq::context_t* const ctx_) : ctx(ctx_), in(*ctx_, zmq::socket_type::pub), out(*ctx_, zmq::socket_type::sub) {
+BusNode::BusNode(std::shared_ptr<zmq::context_t> ctx_) : ctx(ctx_), in(*ctx_, zmq::socket_type::pub), out(*ctx_, zmq::socket_type::sub) {
 	in.connect(addr::MSG_BUS_IN);
 	out.connect(addr::MSG_BUS_OUT);
 

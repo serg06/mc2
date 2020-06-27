@@ -5,9 +5,10 @@
 #include "GL/glcorearb.h"
 #include "GLFW/glfw3.h"
 
+#include <memory>
 #include <Windows.h>
 
-void MessageBus(zmq::context_t* ctx, msg::on_ready_fn on_ready)
+void MessageBus(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready)
 {
 	// create pub/sub
 	zmq::socket_t publisher(*ctx, zmq::socket_type::pub);
@@ -110,18 +111,18 @@ void SenderThread(zmq::context_t* ctx, msg::on_ready_fn on_ready)
 int main()
 {
 	// Create ZMQ messaging context
-	zmq::context_t ctx(0);
+	std::shared_ptr<zmq::context_t> ctx = std::make_shared<zmq::context_t>(0);
 
 	// launch message bus
-	auto msg_bus_thread = msg::launch_thread_wait_until_ready(&ctx, MessageBus);
-	zmq::socket_t msg_bus_control(ctx, zmq::socket_type::pair);
+	auto msg_bus_thread = msg::launch_thread_wait_until_ready(ctx, MessageBus);
+	zmq::socket_t msg_bus_control(*ctx, zmq::socket_type::pair);
 	msg_bus_control.connect(addr::MSG_BUS_CONTROL);
 
 	// launch mesh gen threads
-	auto mesh_gen_thread = msg::launch_thread_wait_until_ready(&ctx, MeshingThread);
+	auto mesh_gen_thread = msg::launch_thread_wait_until_ready(ctx, MeshingThread);
 
 	// launch chunk gen threads
-	auto chunk_gen_thread = msg::launch_thread_wait_until_ready(&ctx, ChunkGenThread);
+	auto chunk_gen_thread = msg::launch_thread_wait_until_ready(ctx, ChunkGenThread);
 
 #ifdef _DEBUG
 	// launch listener
@@ -133,7 +134,7 @@ int main()
 
 	// Run game!
 	// TODO: Run on separate thread and join all threads? Or maybe do that inside of run_game()?
-	run_game(&ctx);
+	run_game(ctx);
 
 	// Debug
 	mesh_gen_thread.wait();

@@ -11,7 +11,7 @@
 class WorldRenderPart
 {
 public:
-	WorldRenderPart(zmq::context_t* const ctx_);
+	WorldRenderPart(std::shared_ptr<zmq::context_t> ctx_);
 
 	std::unordered_map<vmath::ivec3, std::shared_ptr<MiniRender>, vecN_hash> mesh_map;
 

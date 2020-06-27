@@ -24,17 +24,17 @@
 
 constexpr int NUM_MESH_GEN_THREADS = 1;
 
-void run_game(zmq::context_t* const ctx);
-void MeshingThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready);
-void ChunkGenThread(zmq::context_t* const ctx, msg::on_ready_fn on_ready);
+void run_game(std::shared_ptr<zmq::context_t> ctx);
+void MeshingThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready);
+void ChunkGenThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready);
 
 class App {
 public:
 	// zmq
-	zmq::context_t* const ctx;
+	std::shared_ptr<zmq::context_t> ctx;
 	BusNode bus;
 
-	App(zmq::context_t* const ctx_) : ctx(ctx_), bus(ctx_)
+	App(std::shared_ptr<zmq::context_t> ctx_) : ctx(ctx_), bus(ctx_)
 	{
 		std::fill(held_keys, held_keys + (sizeof(held_keys) / sizeof(held_keys[0])), false);
 		bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);

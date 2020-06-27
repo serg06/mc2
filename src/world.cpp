@@ -30,7 +30,7 @@
 // radius from center of minichunk that must be included in view frustum
 constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
 
-WorldDataPart::WorldDataPart(zmq::context_t* const ctx_) : bus(ctx_)
+WorldDataPart::WorldDataPart(std::shared_ptr<zmq::context_t> ctx_) : bus(ctx_)
 {
 #ifdef _DEBUG
 	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
@@ -795,7 +795,7 @@ constexpr  float liquid_level_to_height(int liquid_level) {
 }
 */
 
-World::World(zmq::context_t* const ctx_) : data(ctx_), last_update_time(0), bus(ctx_)
+World::World(std::shared_ptr<zmq::context_t> ctx_) : data(ctx_), last_update_time(0), bus(ctx_)
 {
 	// TODO: Move bus out of WorldDataPart
 #ifdef _DEBUG

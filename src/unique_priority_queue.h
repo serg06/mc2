@@ -109,45 +109,6 @@ public:
 		return base_class::c.end();
 	}
 
-
-//	// for debugging
-//	void print_inorder()
-//	{
-//#ifdef _DEBUG
-//		std::stringstream s;
-//		s << "[";
-//		for (auto iter = list.begin(); iter != list.end(); ++iter)
-//		{
-//			s << iter->second;
-//			if (std::next(iter) != list.end())
-//			{
-//				s << ", ";
-//			}
-//		}
-//		s << "]\n";
-//		OutputDebugString(s.str().c_str());
-//#endif // _DEBUG
-//	}
-//
-//	// for debugging
-//	void print_with_keys()
-//	{
-//#ifdef _DEBUG
-//		std::stringstream s;
-//		s << "[";
-//		for (auto iter = map.begin(); iter != map.end(); ++iter)
-//		{
-//			s << "(" << iter->first << ", " << (*(iter->second)).second << ")";
-//			if (std::next(iter) != map.end())
-//			{
-//				s << ", ";
-//			}
-//		}
-//		s << "]\n";
-//		OutputDebugString(s.str().c_str());
-//#endif // _DEBUG
-//	}
-
 private:
 	// A set so that they're unique
 	std::unordered_set<Key, Hash, KeyEqual> set;

@@ -31,7 +31,7 @@
 // radius from center of minichunk that must be included in view frustum
 constexpr float FRUSTUM_MINI_RADIUS_ALLOWANCE = 28.0f;
 
-WorldRenderPart::WorldRenderPart(zmq::context_t* const ctx_) : bus(ctx_)
+WorldRenderPart::WorldRenderPart(std::shared_ptr<zmq::context_t> ctx_) : bus(ctx_)
 {
 #ifdef _DEBUG
 	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
