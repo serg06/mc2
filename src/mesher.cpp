@@ -17,7 +17,7 @@
 #include "zmq.hpp"
 
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 #include <chrono>
 #include <cmath>
 #include <future>

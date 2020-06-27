@@ -15,7 +15,7 @@
 #include "vmath.h"
 #include "zmq.hpp"
 
-#include <assert.h>
+#include <cassert>
 #include <memory>
 #include <string>
 #include <tuple>

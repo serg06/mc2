@@ -3,11 +3,10 @@
 #include "FastNoise.h"
 #include "util.h"
 
-#include <assert.h>
+#include <cassert>
+#include <cstdio>
 #include <cstdlib>
 #include <initializer_list>
-#include <stdio.h>
-#include <stdlib.h>
 
 constexpr int WATER_HEIGHT = 64;
 

@@ -7,8 +7,8 @@
 #include "util.h"
 #include "vmath.h"
 
-#include <assert.h>
 #include <algorithm> // std::find
+#include <cassert>
 #include <memory>
 #include <vector>
 

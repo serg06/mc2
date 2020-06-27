@@ -6,10 +6,10 @@
 #include "render.h"
 #include "util.h"
 
-#include <assert.h>
+#include <cassert>
 #include <cstdint>
+#include <cstdio> 
 #include <memory>
-#include <stdio.h> 
 
 constexpr int CHUNK_WIDTH = 16;
 constexpr int CHUNK_HEIGHT = 256;

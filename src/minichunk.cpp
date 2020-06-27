@@ -9,7 +9,7 @@
 #include "util.h"
 #include "vmath.h"
 
-#include <assert.h>
+#include <cassert>
 #include <algorithm> // std::find
 #include <memory>
 #include <vector>

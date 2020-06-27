@@ -12,7 +12,7 @@
 #include "vmath.h"
 #include "zmq_addon.hpp"
 
-#include <assert.h>
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
