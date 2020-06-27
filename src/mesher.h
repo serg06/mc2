@@ -40,8 +40,8 @@ public:
 	void run(msg::on_ready_fn on_ready);
 
 private:
-	bool read_msg(std::vector<zmq::message_t>& msg);
-	void handle_all_messages(bool& stop);
+	bool read_msg(bool wait, std::vector<zmq::message_t>& msg);
+	void handle_all_messages(bool wait_for_first, bool& stop);
 	void on_msg(const std::vector<zmq::message_t>& msg, bool& stop);
 	bool handle_queued_request();
 	void on_mesh_gen_request(MeshGenRequest* req);

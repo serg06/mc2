@@ -119,7 +119,9 @@ void ChunkGenThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_rea
 			}
 			else
 			{
-				assert(false && "unknown message");
+#ifndef _DEBUG
+				WindowsException("unknown message");
+#endif // _DEBUG
 			}
 
 			msg.clear();

@@ -57,27 +57,24 @@ void Mesher::run(msg::on_ready_fn on_ready) {
 	bool stop = false;
 	while (!stop)
 	{
-		handle_all_messages(stop);
+		// If no queued requests, wait for a message to come in
+		bool wait_for_first = request_queue.size() == 0;
+		handle_all_messages(wait_for_first, stop);
 		if (stop) break;
 
-		// Handle a queued request
-		bool handled = handle_queued_request();
-
-		// None ready, sleep
-		if (!handled)
-		{
-			std::this_thread::sleep_for(std::chrono::microseconds(1));
-		}
+		// Handle a queued request if exists
+		handle_queued_request();
 	}
 }
 
-void Mesher::handle_all_messages(bool& stop)
+void Mesher::handle_all_messages(bool wait_for_first, bool& stop)
 {
-	// read multipart message
 	std::vector<zmq::message_t> msg;
-	while (read_msg(msg))
+	bool wait = wait_for_first;
+	while (read_msg(wait, msg))
 	{
 		on_msg(msg, stop);
+		wait = false;
 		if (stop) break;
 	}
 }
@@ -104,14 +101,17 @@ void Mesher::on_msg(const std::vector<zmq::message_t>& msg, bool& stop)
 	}
 	else
 	{
-		assert(false && "unknown message");
+#ifndef _DEBUG
+		WindowsException("unknown message");
+#endif // _DEBUG
 	}
 }
 
-bool Mesher::read_msg(std::vector<zmq::message_t>& msg)
+bool Mesher::read_msg(bool wait, std::vector<zmq::message_t>& msg)
 {
 	msg.clear();
-	auto ret = zmq::recv_multipart(bus.out, std::back_inserter(msg), zmq::recv_flags::dontwait);
+	auto flags = wait ? zmq::recv_flags::none : zmq::recv_flags::dontwait;
+	auto ret = zmq::recv_multipart(bus.out, std::back_inserter(msg), flags);
 	return ret > 0;
 }
 

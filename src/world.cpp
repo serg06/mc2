@@ -713,7 +713,9 @@ void WorldDataPart::handle_messages()
 		}
 		else
 		{
-			assert(false && "unknown message");
+#ifndef _DEBUG
+			WindowsException("unknown message");
+#endif // _DEBUG
 		}
 
 		message.clear();
