@@ -167,7 +167,6 @@ void ChunkGenThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_rea
 
 App::App(std::shared_ptr<zmq::context_t> ctx_) : ctx(ctx_), bus(ctx_)
 {
-	std::fill(held_keys, held_keys + (sizeof(held_keys) / sizeof(held_keys[0])), false);
 	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 }
 
@@ -246,7 +245,7 @@ void App::run()
 void App::startup()
 {
 	// set vars
-	memset(held_keys, false, sizeof(held_keys));
+	std::fill(held_keys.begin(), held_keys.end(), false);
 	glfwGetCursorPos(window, &last_mouse_x, &last_mouse_y); // reset mouse position
 	world = std::make_unique<World>(ctx);
 	world_render = std::make_unique<WorldRenderPart>(ctx);

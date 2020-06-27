@@ -43,7 +43,7 @@ public:
 	double last_mouse_y = 0;
 
 	// key inputs
-	bool held_keys[GLFW_KEY_LAST + 1];
+	std::array<bool, GLFW_KEY_LAST + 1> held_keys;
 
 	// redirected GLFW/GL callbacks
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
