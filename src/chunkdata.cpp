@@ -2,10 +2,10 @@
 
 #include "block.h"
 #include "util.h"
+
 #include "vmath.h"
 
 #include <cassert>
-#include <iterator>
 
 
 /* Metadata */

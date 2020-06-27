@@ -2,9 +2,8 @@
 
 #include "block.h"
 #include "util.h"
-#include "vmath.h"
 
-#include <iterator>
+#include "vmath.h"
 
 // Chunk size
 constexpr int BLOCK_MIN_HEIGHT = 0;
