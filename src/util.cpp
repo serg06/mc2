@@ -1,5 +1,7 @@
 #include "util.h"
 
+#include "GL/gl3w.h"
+
 #include <cassert>
 #include <fstream>
 #include <functional>

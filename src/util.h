@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GL/gl3w.h"
+#include "GL/glcorearb.h"
 #include "vmath.h"
 
 #include <atomic>
