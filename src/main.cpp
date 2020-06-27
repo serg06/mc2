@@ -2,12 +2,7 @@
 #include "mesher.h"
 #include "messaging.h"
 
-#include "GL/gl3w.h"
-#include "GL/glcorearb.h"
-#include "GLFW/glfw3.h"
-
 #include <memory>
-#include <Windows.h>
 
 void MessageBus(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready)
 {
