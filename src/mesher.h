@@ -1,33 +1,13 @@
 #pragma once
 
-#include "chunk.h"
-#include "chunkdata.h"
 #include "messaging.h"
-#include "player.h"
-#include "render.h"
-#include "util.h"
-#include "world.h"
-#include "world_meshing.h"
-#include "world_render.h"
+#include "unique_priority_queue.h"
+#include "world_utils.h"
 
-#include "GL/gl3w.h"
-#include "GLFW/glfw3.h"
 #include "vmath.h"
 #include "zmq.hpp"
 
-#include "unique_priority_queue.h"
-
-#include <algorithm>
-#include <cassert>
-#include <chrono>
-#include <cmath>
-#include <future>
 #include <memory>
-#include <numeric>
-#include <string>
-#include <tuple>
-#include <unordered_map>
-#include <utility>
 
 void MeshingThread2(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready);
 

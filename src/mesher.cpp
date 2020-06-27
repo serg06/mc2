@@ -1,29 +1,11 @@
 #include "mesher.h"
 
-#include "chunk.h"
-#include "chunkdata.h"
-#include "messaging.h"
-#include "render.h"
-#include "shapes.h"
-#include "unique_priority_queue.h"
-#include "unique_queue.h"
-#include "util.h"
 #include "world_meshing.h"
-#include "world_render.h"
 
-#include "examples/imgui_impl_opengl3.h"
-#include "examples/imgui_impl_glfw.h"
-#include "imgui.h"
 #include "zmq_addon.hpp"
 
-#include <algorithm>
 #include <cassert>
-#include <chrono>
-#include <cmath>
-#include <future>
-#include <memory>
-#include <numeric>
-#include <string>
+
 
 using namespace vmath;
 using namespace std;
