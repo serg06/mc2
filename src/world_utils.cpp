@@ -156,6 +156,38 @@ bool operator==(const Quad2D& lhs, const Quad2D& rhs) {
 		((lc1 == rc1 && lc2 == rc2) || (lc2 == rc1 && lc1 == rc2));
 }
 
+///////////////////////////////
+
+MeshGenResult::MeshGenResult(const vmath::ivec3& coords_, bool invisible_, std::unique_ptr<MiniChunkMesh>&& mesh_, std::unique_ptr<MiniChunkMesh>&& water_mesh_)
+	: coords(coords_), invisible(invisible_), mesh(std::move(mesh_)), water_mesh(std::move(water_mesh_))
+{
+}
+
+MeshGenResult::MeshGenResult(MeshGenResult&& other) noexcept
+{
+	if (this != &other)
+	{
+		coords = other.coords;
+		invisible = other.invisible;
+		mesh = std::move(other.mesh);
+		water_mesh = std::move(other.water_mesh);
+	}
+}
+
+MeshGenResult& MeshGenResult::operator=(MeshGenResult&& other)
+{
+	if (this != &other)
+	{
+		coords = other.coords;
+		invisible = other.invisible;
+		mesh = std::move(other.mesh);
+		water_mesh = std::move(other.water_mesh);
+	}
+	return *this;
+}
+
+///////////////////////////////
+
 // get chunk-coordinates of chunk containing the block at (x, _, z)
 vmath::ivec2 get_chunk_coords(const int x, const int z) {
 	return get_chunk_coords(static_cast<float>(x), static_cast<float>(z));

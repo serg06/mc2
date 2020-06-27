@@ -16,7 +16,7 @@
 struct Quad2D {
 	BlockType block;
 	vmath::ivec2 corners[2];
-	uint8_t lighting = 0; // TODO: max instead?
+	uint8_t lighting = 0;
 	Metadata metadata = 0;
 };
 
@@ -25,34 +25,12 @@ bool operator==(const Quad2D& lhs, const Quad2D& rhs);
 struct MeshGenResult
 {
 	MeshGenResult(const vmath::ivec3& coords_, bool invisible_, const std::unique_ptr<MiniChunkMesh>& mesh_, const std::unique_ptr<MiniChunkMesh>& water_mesh_) = delete;
-	MeshGenResult(const vmath::ivec3& coords_, bool invisible_, std::unique_ptr<MiniChunkMesh>&& mesh_, std::unique_ptr<MiniChunkMesh>&& water_mesh_)
-		: coords(coords_), invisible(invisible_), mesh(std::move(mesh_)), water_mesh(std::move(water_mesh_))
-	{
-	}
+	MeshGenResult(const vmath::ivec3& coords_, bool invisible_, std::unique_ptr<MiniChunkMesh>&& mesh_, std::unique_ptr<MiniChunkMesh>&& water_mesh_);
 	MeshGenResult(const MeshGenResult& other) = delete;
-	MeshGenResult(MeshGenResult&& other) noexcept
-	{
-		if (this != &other)
-		{
-			coords = other.coords;
-			invisible = other.invisible;
-			mesh = std::move(other.mesh);
-			water_mesh = std::move(other.water_mesh);
-		}
-	}
+	MeshGenResult(MeshGenResult&& other) noexcept;
 
 	MeshGenResult& operator=(const MeshGenResult&& other) = delete;
-	MeshGenResult& operator=(MeshGenResult&& other)
-	{
-		if (this != &other)
-		{
-			coords = other.coords;
-			invisible = other.invisible;
-			mesh = std::move(other.mesh);
-			water_mesh = std::move(other.water_mesh);
-		}
-		return *this;
-	}
+	MeshGenResult& operator=(MeshGenResult&& other);
 
 	vmath::ivec3 coords;
 	bool invisible;
