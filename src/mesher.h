@@ -1,13 +1,15 @@
 #pragma once
 
 #include "messaging.h"
-#include "unique_priority_queue.h"
 #include "world_utils.h"
 
 #include "vmath.h"
 #include "zmq.hpp"
 
 #include <memory>
+#include <queue>
+#include <unordered_map>
+#include <vector>
 
 void MeshingThread2(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready);
 
@@ -84,7 +86,7 @@ private:
 	void handle_all_messages(bool wait_for_first, bool& stop);
 	void on_msg(const std::vector<zmq::message_t>& msg, bool& stop);
 	bool handle_queued_request();
-	void on_mesh_gen_request(MeshGenRequest* req);
+	void on_mesh_gen_request(std::shared_ptr<MeshGenRequest> req);
 	void update_player_coords(const vmath::ivec2& new_cords);
 
 private:
@@ -96,5 +98,5 @@ private:
 
 	// Keep queue of incoming requests (based on distance to player)
 	std::priority_queue<pq_entry, std::vector<pq_entry>, std::greater<pq_entry>> pq;
-	std::unordered_map<vmath::ivec3, MeshGenRequest*, vecN_hash> reqs;
+	std::unordered_map<vmath::ivec3, std::shared_ptr<MeshGenRequest>, vecN_hash> reqs;
 };

@@ -72,8 +72,9 @@ void Mesher::on_msg(const std::vector<zmq::message_t>& msg, bool& stop)
 		// Enqueue any meshing requests
 		// TODO: Just enqueue coords, then later deal them to workers
 
-		MeshGenRequest* req = *(msg[1].data<MeshGenRequest*>());
-		assert(req);
+		MeshGenRequest* req_ = *(msg[1].data<MeshGenRequest*>());
+		assert(req_);
+		std::shared_ptr<MeshGenRequest> req(req_);
 		on_mesh_gen_request(req);
 	}
 	else if (msg[0].to_string_view() == msg::EVENT_PLAYER_MOVED_CHUNKS)
@@ -106,10 +107,8 @@ bool Mesher::handle_queued_request()
 		pq.pop();
 		auto search = reqs.find(coords);
 		assert(search != reqs.end());
-		MeshGenRequest* req_ = search->second;
+		std::shared_ptr<MeshGenRequest> req = search->second;
 		reqs.erase(search);
-
-		std::shared_ptr<MeshGenRequest> req(req_);
 
 		// generate a mesh if possible
 		MeshGenResult* mesh = gen_minichunk_mesh_from_req(req);
@@ -130,7 +129,7 @@ bool Mesher::handle_queued_request()
 	return false;
 }
 
-void Mesher::on_mesh_gen_request(MeshGenRequest* req)
+void Mesher::on_mesh_gen_request(std::shared_ptr<MeshGenRequest> req)
 {
 	vmath::ivec2 chunk_coords = { req->coords[0], req->coords[2] };
 	float priority = vmath::distance(chunk_coords, player_coords);
