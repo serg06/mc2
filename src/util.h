@@ -48,6 +48,76 @@ static constexpr vmath::ivec3 IWEST = vmath::ivec3(-1, 0, 0);
 static constexpr vmath::ivec3 IUP = vmath::ivec3(0, 1, 0);
 static constexpr vmath::ivec3 IDOWN = vmath::ivec3(0, -1, 0);
 
+void print_arr(const GLfloat*, int, int);
+GLuint link_program(GLuint);
+GLuint compile_shaders(const std::vector<std::tuple<std::string, GLenum>>& shader_fnames);
+
+// Create rotation matrix given pitch and yaw
+vmath::mat4 rotate_pitch_yaw(float pitch, float yaw);
+
+// extract planes from projection matrix
+void extract_planes_from_projmat(const vmath::mat4& proj_mat, const vmath::mat4& mv_mat, vmath::vec4(&planes)[6]);
+
+// check if sphere is inside frustum planes
+bool sphere_in_frustum(const vmath::vec3& pos, const float radius, const vmath::vec4(&frustum_planes)[6]);
+
+void WindowsException(const char* description);
+
+// generate all points in a circle a center
+// TODO: cache
+// TODO: return std::array using -> to specify return type?
+std::vector<vmath::ivec2> gen_circle(const int radius, const vmath::ivec2 center = { 0, 0 });
+
+std::vector<vmath::ivec2> gen_diamond(const int radius, const vmath::ivec2 center = { 0, 0 });
+
+// extract a piece of a texture atlas
+// assuming uniform atlas -- i.e. every texture is the same size
+//
+// atlas_width		:	number of textures stored horizontally
+// atlas_height		:	number of textures stored vertically
+// tex_width		:	width  of each texture in pixels
+// tex_height		:	height of each texture in pixels
+// idx				:	index of texture piece in atlas
+void extract_from_atlas(float* atlas, unsigned atlas_width, unsigned atlas_height, unsigned components, unsigned tex_width, unsigned tex_height, unsigned idx, float* result);
+
+// TODO: do this by starting from center and going out horizontally then vertically, like in that stackoverflow post
+// TODO: maybe don't inline?
+class CircleGenerator {
+private:
+	const int radius;
+
+public:
+	// define iterator class in here which inherits from std::iterator
+	class iterator : public std::iterator<
+		std::input_iterator_tag,	// iterator_category
+		vmath::ivec2,				// value_type
+		int,						// difference_type
+		const vmath::ivec2*,		// pointer
+		vmath::ivec2				// reference
+	> {
+
+	public:
+		explicit iterator(const int radius, const int x, const int y);
+		iterator& operator++();
+		iterator operator++(int);
+		bool operator==(iterator other) const;
+		bool operator!=(iterator other) const;
+		reference operator*() const;
+
+	private:
+		bool is_end() const;
+		float distance_to_center() const;
+
+	private:
+		vmath::ivec2 xy;
+		const int radius;
+	};
+
+	inline CircleGenerator(const int radius);
+	inline iterator begin() const;
+	inline iterator end() const;
+};
+
 // simple pair hash function
 struct pair_hash
 {
@@ -77,22 +147,10 @@ struct vecN_hash
 	}
 };
 
-
 // math sign function
 template <typename T>
 constexpr int sgn(const T val) {
 	return (T(0) < val) - (val < T(0));
-}
-
-void print_arr(const GLfloat*, int, int);
-GLuint compile_shaders(const std::vector<std::tuple<std::string, GLenum>>& shader_fnames);
-GLuint link_program(GLuint);
-
-// Create rotation matrix given pitch and yaw
-inline vmath::mat4 rotate_pitch_yaw(float pitch, float yaw) {
-	return
-		rotate(pitch, vmath::vec3(1.0f, 0.0f, 0.0f)) * // rotate pitch around X
-		rotate(yaw, vmath::vec3(0.0f, 1.0f, 0.0f));    // rotate yaw   around Y
 }
 
 template <const int len>
@@ -136,160 +194,6 @@ inline void hash_combine(std::size_t& seed, const T& v)
 	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-// check if sphere is inside frustum planes
-static inline bool sphere_in_frustum(const vmath::vec3 &pos, const float radius, const vmath::vec4(&frustum_planes)[6]) {
-	bool res = true;
-	for (auto &plane : frustum_planes) {
-		if (plane[0] * pos[0] + plane[1] * pos[1] + plane[2] * pos[2] + plane[3] <= -radius) {
-			res = false;
-		}
-	}
-
-	return res;
-}
-
-// extract planes from projection matrix
-static inline void extract_planes_from_projmat(const vmath::mat4 &proj_mat, const vmath::mat4 &mv_mat, vmath::vec4(&planes)[6])
-{
-	const vmath::mat4 &mat = (proj_mat * mv_mat).transpose();
-
-	planes[0] = mat[3] + mat[0];
-	planes[1] = mat[3] - mat[0];
-	planes[2] = mat[3] + mat[1];
-	planes[3] = mat[3] - mat[1];
-	planes[4] = mat[3] + mat[2];
-	planes[5] = mat[3] - mat[2];
-}
-
-static inline void WindowsException(const char *description) {
-	MessageBox(NULL, description, "Thrown exception", MB_OK);
-}
-
-// TODO: do this by starting from center and going out horizontally then vertically, like in that stackoverflow post
-// TODO: maybe don't inline?
-class CircleGenerator {
-private:
-	const int radius;
-
-public:
-	// define iterator class in here which inherits from std::iterator
-	class iterator : public std::iterator<
-		std::input_iterator_tag,	// iterator_category
-		vmath::ivec2,				// value_type
-		int,						// difference_type
-		const vmath::ivec2*,		// pointer
-		vmath::ivec2				// reference
-	> {
-
-		vmath::ivec2 xy;
-		const int radius;
-
-	private:
-		inline bool is_end() const {
-			return xy[0] == -radius && xy[1] == radius + 1;
-		}
-
-		inline float distance_to_center() const {
-			const auto &x = xy[0];
-			const auto &y = xy[1];
-
-			return std::sqrt(x * x + y * y);
-		}
-
-	public:
-
-		// construct iterator
-		inline explicit iterator(const int radius, const int x, const int y) : radius(radius), xy({ x, y }) {
-			// if we start out of range, start by moving in range
-			if (distance_to_center() > radius) {
-				(*this)++;
-			}
-		}
-
-		// increment iterator
-		inline iterator& operator++() {
-			while (!is_end()) {
-				auto &x = xy[0];
-				auto &y = xy[1];
-
-				// if reach the end of row, go back to start
-				if (x == radius) {
-					x = -radius;
-					y++;
-				}
-				// continue down row
-				else {
-					x++;
-				}
-
-				if (distance_to_center() <= radius) {
-					return *this;
-				}
-			}
-
-
-			return *this;
-		}
-
-		// don't really get it but okay
-		inline iterator operator++(int) {
-			iterator retval = *this;
-			++(*this);
-			return retval;
-		}
-
-		// comparison operator
-		inline bool operator==(iterator other) const {
-			return xy == other.xy;
-		}
-
-		inline bool operator!=(iterator other) const { return !(*this == other); }
-
-		// value
-		inline reference operator*() const { return xy; }
-	};
-
-	inline CircleGenerator(const int radius) : radius(radius) {}
-
-	inline iterator begin() const {
-		// start at top-left corner
-		return iterator(radius, -radius, -radius);
-	}
-
-	inline iterator end() const {
-		// end just past bottom-left corner
-		// requires that we increment x then y
-		return iterator(radius, -radius, radius + 1);
-	}
-};
-
-// generate all points in a circle a center
-// TODO: cache
-// TODO: return std::array using -> to specify return type?
-static inline std::vector<vmath::ivec2> gen_circle(const int radius, const vmath::ivec2 center = { 0, 0 }) {
-	std::vector<vmath::ivec2> result;
-	result.reserve(4 * radius * radius + 4 * radius + 1); // always makes <= (2r+1)^2 = 4r^2 + 4r + 1 elements
-
-	CircleGenerator cg(radius);
-	for (auto iter = cg.begin(); iter != cg.end(); ++iter) {
-		result.push_back(*iter + center);
-	}
-
-	return result;
-}
-
-static inline std::vector<vmath::ivec2> gen_diamond(const int radius, const vmath::ivec2 center = { 0, 0 }) {
-	std::vector<vmath::ivec2> result(2 * radius * radius + 2 * radius + 1); // always makes 2r^2 + 2r + 1 elements
-
-	int total_idx = 0;
-	for (int i = -radius; i <= radius; i++) {
-		for (int j = -(radius - abs(i)); j <= radius - abs(i); j++) {
-			result[total_idx++] = center + vmath::ivec2(i, j);
-		}
-	}
-	return result;
-}
-
 template <typename T>
 static inline std::vector<int> argsort(const int size, const T* data) {
 	// initialize original indices
@@ -318,29 +222,6 @@ static constexpr inline T pown(T x, unsigned p) {
 	}
 
 	return result;
-}
-
-// extract a piece of a texture atlas
-// assuming uniform atlas -- i.e. every texture is the same size
-//
-// atlas_width		:	number of textures stored horizontally
-// atlas_height		:	number of textures stored vertically
-// tex_width		:	width  of each texture in pixels
-// tex_height		:	height of each texture in pixels
-// idx				:	index of texture piece in atlas
-static constexpr inline void extract_from_atlas(float* atlas, unsigned atlas_width, unsigned atlas_height, unsigned components, unsigned tex_width, unsigned tex_height, unsigned idx, float* result) {
-	// coordinates of top-left texture texel in the atlas
-	unsigned start_x = (idx % atlas_width) * tex_width;
-	unsigned start_y = (idx / atlas_width) * tex_height;
-
-	// boom baby!
-	for (int y = 0; y < tex_height; y++) {
-		for (int x = 0; x < tex_width; x++) {
-			for (int i = 0; i < components; i++) {
-				result[(y * tex_width + x) * components + i] = atlas[((start_x + x) + (start_y + y) * (atlas_width * tex_width)) * components + i];
-			}
-		}
-	}
 }
 
 // In C++, -1 % 16 == -1. Want it to be 15 instead.
