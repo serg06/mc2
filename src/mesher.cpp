@@ -40,7 +40,7 @@ void Mesher::run(msg::on_ready_fn on_ready) {
 	while (!stop)
 	{
 		// If no queued requests, wait for a message to come in
-		bool wait_for_first = request_queue.size() == 0;
+		bool wait_for_first = pq.size() == 0;
 		handle_all_messages(wait_for_first, stop);
 		if (stop) break;
 
@@ -99,12 +99,15 @@ bool Mesher::read_msg(bool wait, std::vector<zmq::message_t>& msg)
 
 bool Mesher::handle_queued_request()
 {
-	if (request_queue.size())
+	if (pq.size())
 	{
 		// handle one
-		MeshGenRequest* req_ = request_queue.top().second.second;
-		assert(req_);
-		request_queue.pop();
+		vmath::ivec3 coords = pq.top().coords;
+		pq.pop();
+		auto search = reqs.find(coords);
+		assert(search != reqs.end());
+		MeshGenRequest* req_ = search->second;
+		reqs.erase(search);
 
 		std::shared_ptr<MeshGenRequest> req(req_);
 
@@ -131,8 +134,16 @@ void Mesher::on_mesh_gen_request(MeshGenRequest* req)
 {
 	vmath::ivec2 chunk_coords = { req->coords[0], req->coords[2] };
 	float priority = vmath::distance(chunk_coords, player_coords);
-	val_T v = { req->coords, { priority, req } };
-	request_queue.push(v);
+	auto search = reqs.find(req->coords);
+	if (search != reqs.end())
+	{
+		search->second = req;
+	}
+	else
+	{
+		pq.emplace(priority, req->coords);
+		reqs[req->coords] = req;
+	}
 }
 
 void Mesher::update_player_coords(const vmath::ivec2& new_coords)
@@ -141,18 +152,8 @@ void Mesher::update_player_coords(const vmath::ivec2& new_coords)
 	{
 		player_coords = new_coords;
 
-		// Adjust priority queue priorities
-		// TODO: Speed this up by making a vector of values and passing that to priority_queue's constructor
-		decltype(request_queue) pq2;
-		for (const val_T& v : request_queue)
-		{
-			std::remove_cv_t<std::remove_reference_t<decltype(v)>> v2 = v;
-			auto& coords = v2.first;
-			vmath::ivec2 chunk_coords = { coords[0], coords[2] };
-			auto& priority = v2.second.first;
-			priority = vmath::distance(chunk_coords, player_coords);
-			pq2.push(v2);
-		}
-		request_queue.swap(pq2);
+		// Adjust priority queue priorities:
+		std::function<void(pq_entry&)> adjust = [&](pq_entry& e) { e.priority = vmath::distance(vmath::ivec2(e.coords[0], e.coords[2]), player_coords); };
+		update_pq_priorities(pq, adjust);
 	}
 }
