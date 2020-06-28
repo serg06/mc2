@@ -1,3 +1,4 @@
+#include "chunker.h"
 #include "game.h"
 #include "mesher.h"
 #include "messaging.h"
@@ -122,7 +123,7 @@ int main()
 	auto mesh_gen_thread = msg::launch_thread_wait_until_ready(ctx, MeshingThread2);
 
 	// launch chunk gen threads
-	auto chunk_gen_thread = msg::launch_thread_wait_until_ready(ctx, ChunkGenThread);
+	auto chunk_gen_thread = msg::launch_thread_wait_until_ready(ctx, ChunkGenThread2);
 
 #ifdef _DEBUG
 	// launch listener

@@ -7,10 +7,12 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
 #include <numeric>
+#include <queue>
 #include <random>
 #include <string>
 #include <tuple>
@@ -390,3 +392,43 @@ public:
 		return get_interval(end) - get_interval(start);
 	}
 };
+
+template<
+	class T,
+	class Container = std::vector<T>,
+	class Compare = std::less<typename Container::value_type>
+>
+class priority_queue_hacker : public std::priority_queue<T, Container, Compare>
+{
+public:
+	Container& get_c()
+	{
+		return c;
+	}
+
+	Compare& get_comp()
+	{
+		return comp;
+	}
+};
+
+template<class T, class Container, class Compare>
+void update_pq_priorities(std::priority_queue<T, Container, Compare>& pq, std::function<void(T&)>& update)
+{
+	// Get container
+	priority_queue_hacker<T, Container, Compare> hacker;
+	hacker.swap(pq);
+	Container& c = hacker.get_c();
+
+	// Update priorities
+	for (auto& entry : c)
+	{
+		update(entry);
+	}
+
+	// Fix heap
+	std::make_heap(c.begin(), c.end(), hacker.get_comp());
+
+	// Stick it back in
+	pq.swap(hacker);
+}
