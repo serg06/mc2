@@ -83,9 +83,6 @@ void App::run()
 	// Start up app
 	startup();
 
-	// Spawn mesh generation threads
-	vector<std::future<void>> chunk_gen_futures;
-
 	// run until user presses ESC or tries to close window
 	last_render_time = static_cast<float>(glfwGetTime()); // updated in render()
 	while ((glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window))) {
@@ -100,13 +97,6 @@ void App::run()
 
 		// poll window system for events
 		glfwPollEvents();
-	}
-
-	// Stop all other threads
-	// TODO: Have app run on separate thread, keep sending EXIT until they all exit.
-	for (auto& fut : chunk_gen_futures) {
-		fut.wait_for(std::chrono::seconds(1));
-		OutputDebugString("Still waiting...\n");
 	}
 
 	// Send exit message
