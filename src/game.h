@@ -2,7 +2,6 @@
 
 #include "chunk.h"
 #include "chunkdata.h"
-#include "game.h"
 #include "messaging.h"
 #include "player.h"
 #include "render.h"
@@ -23,16 +22,18 @@
 #include <unordered_map>
 #include <utility>
 
+constexpr int NUM_MESH_GEN_THREADS = 1;
+
 void run_game(std::shared_ptr<zmq::context_t> ctx);
 
-class App {
+class Game {
 public:
 	// zmq
 	std::shared_ptr<zmq::context_t> ctx;
 	BusNode bus;
 
-	App(std::shared_ptr<zmq::context_t> ctx_);
-	~App();
+	Game(std::shared_ptr<zmq::context_t> ctx_, std::shared_ptr<GLFWwindow> window_, std::shared_ptr<GlfwInfo> windowInfo_, std::shared_ptr<OpenGLInfo> glInfo_);
+	~Game();
 
 	/* INPUTS */
 
@@ -40,13 +41,15 @@ public:
 	double last_mouse_x = 0;
 	double last_mouse_y = 0;
 
+	// key inputs
+	std::array<bool, GLFW_KEY_LAST + 1> held_keys;
+
 	// redirected GLFW/GL callbacks
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void onMouseMove(GLFWwindow* window, double x, double y);
 	void onResize(GLFWwindow* window, int width, int height);
 	void onMouseButton(int button, int action);
 	void onMouseWheel(double scroll_direction);
-	void onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message);
 
 	/* RENDER PART */
 	std::shared_ptr<GLFWwindow> window;
@@ -55,27 +58,43 @@ public:
 	std::shared_ptr<GlfwInfo> windowInfo;
 	std::shared_ptr<OpenGLInfo> glInfo;
 
+	// misc
+	float last_render_time = 0;
+
+	// funcs
+	void run_loop();
+	void render(float time);
+	void render_debug_info(float dt);
+	void render_main_menu();
+
+	bool show_debug_info = false;
+	bool should_fix_tjunctions = true;
+	double fps = 0;
 	bool capture_mouse = true;
+
+	// misc
+	std::unique_ptr<WorldRenderPart> world_render;
+
+	/* WORLD PART */
+
+	// misc
+	std::unique_ptr<World> world;
+
+	// funcs
+	void update_player_actions();
+	Player& get_player();
 
 	/* GAME STATE PART */
 
 	// funcs
-	void run();
+	bool running = false;
 	void startup();
 	void shutdown();
 
-	// World
-	std::shared_ptr<Game> game;
+	inline void set_min_render_distance(int min_render_distance) {
+		if (min_render_distance > world->player.render_distance) {
+			world->player.should_check_for_nearby_chunks = true;
+		}
+		world->player.render_distance = min_render_distance;
+	}
 };
-
-namespace {
-	// global GLFW/GL callback functions
-	void glfw_onError(int error, const char* description);
-	void glfw_onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
-	void glfw_onMouseMove(GLFWwindow* window, double x, double y);
-	void glfw_onResize(GLFWwindow* window, int width, int height);
-	void glfw_onMouseButton(GLFWwindow* window, int button, int action, int mods);
-	void glfw_onMouseWheel(GLFWwindow* window, double xoffset, double yoffset);
-
-	void APIENTRY gl_onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam);
-}
