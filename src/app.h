@@ -25,7 +25,6 @@
 constexpr int NUM_MESH_GEN_THREADS = 1;
 
 void run_game(std::shared_ptr<zmq::context_t> ctx);
-void ChunkGenThread(std::shared_ptr<zmq::context_t> ctx, msg::on_ready_fn on_ready);
 
 class App {
 public:
