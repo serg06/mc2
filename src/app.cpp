@@ -54,11 +54,15 @@ App::~App()
 
 bool App::draw_main_menu()
 {
+	// Clear background
+	glClearBufferfv(GL_COLOR, 0, color_black);
+
 	// Create window in center of screen
 	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2 };
 	ImVec2 window_pos_pivot = { 0.5f, 0.5f };
 	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-	if (ImGui::Begin("Main menu", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing))
+	auto flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse;
+	if (ImGui::Begin("Main menu", nullptr, flags))
 	{
 		// Draw buttons
 		if (ImGui::Button("Single Player"))
