@@ -273,3 +273,26 @@ CircleGenerator::iterator CircleGenerator::end() const {
 	// requires that we increment x then y
 	return iterator(radius, -radius, radius + 1);
 }
+
+// For ImGui
+ImVec2 max_btn_size(std::vector<std::string>& btnTexts)
+{
+	if (btnTexts.empty())
+		return { 0, 0 };
+
+	// Calculate button sizes
+	std::vector<float> widths(btnTexts.size());
+	std::vector<float> heights(btnTexts.size());
+	for (int i = 0; i < btnTexts.size(); i++)
+	{
+		widths[i] = ImGui::CalcTextSize(btnTexts[i].c_str()).x +
+			ImGui::GetStyle().FramePadding.x * 2.0f; // or ItemInnerSpacing.x?
+		heights[i] = ImGui::CalcTextSize(btnTexts[i].c_str()).y +
+			ImGui::GetStyle().FramePadding.y * 2.0f; // or ItemInnerSpacing.x?
+	}
+
+	// Return max
+	auto maxWidth = std::max_element(widths.begin(), widths.end());
+	auto maxHeight = std::max_element(heights.begin(), heights.end());
+	return { *maxWidth, *maxHeight };
+}

@@ -58,7 +58,16 @@ bool App::draw_main_menu()
 	glClearBufferfv(GL_COLOR, 0, color_black);
 
 	// Setup style
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
+	int styleVars = 0;
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f }); styleVars++;
+	ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, { 0.5f, 0.5f }); styleVars++;
+
+	// Calculate button width
+	std::string spText = "Single Player";
+	std::string optText = "Options";
+	std::string qgText = "Quit Game";
+	std::vector<std::string> btnTexts = { spText, optText, qgText };
+	ImVec2 maxBtnSize = max_btn_size(btnTexts);
 
 	// Create window in center of screen
 	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2 };
@@ -68,14 +77,14 @@ bool App::draw_main_menu()
 	if (ImGui::Begin("Main menu", nullptr, flags))
 	{
 		// Draw buttons
-		if (ImGui::Button("Single Player"))
+		if (ImGui::Button(spText.c_str(), maxBtnSize))
 		{
 			on_start_game();
 		}
-		if (ImGui::Button("Options"))
+		if (ImGui::Button(optText.c_str(), maxBtnSize))
 		{
 		}
-		if (ImGui::Button("Quit Game"))
+		if (ImGui::Button(qgText.c_str(), maxBtnSize))
 		{
 			on_quit_game();
 		}
@@ -83,7 +92,7 @@ bool App::draw_main_menu()
 	ImGui::End();
 
 	// Clean up style
-	ImGui::PopStyleVar();
+	ImGui::PopStyleVar(styleVars);
 
 	return true;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GL/glcorearb.h"
+#include "imgui.h"
 #include "vmath.h"
 
 #include <atomic>
@@ -17,6 +18,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+
 
 static constexpr vmath::vec4 NORTH_0 = vmath::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 static constexpr vmath::vec4 NORTH_1 = vmath::vec4(0.0f, 0.0f, -1.0f, 1.0f);
@@ -124,7 +126,7 @@ public:
 struct pair_hash
 {
 	template <class T1, class T2>
-	std::size_t operator() (const std::pair<T1, T2> &pair) const
+	std::size_t operator() (const std::pair<T1, T2>& pair) const
 	{
 		std::size_t seed = 0;
 		hash_combine(seed, pair.first);
@@ -165,7 +167,7 @@ inline vmath::vecN<int, len> vec2ivec(const vmath::vecN<float, len>& v) {
 }
 
 template <typename T, const int len>
-static inline bool in_range(const vmath::vecN<T, len> &vec, const vmath::vecN<T, len> &min, const vmath::vecN<T, len> &max) {
+static inline bool in_range(const vmath::vecN<T, len>& vec, const vmath::vecN<T, len>& min, const vmath::vecN<T, len>& max) {
 	for (int i = 0; i < len; i++) {
 		if (vec[i] < min[i] || vec[i] > max[i]) {
 			return false;
@@ -228,7 +230,7 @@ static constexpr inline T pown(T x, unsigned p) {
 
 // In C++, -1 % 16 == -1. Want it to be 15 instead.
 template<typename T>
-static constexpr T posmod(const T &x, const T &m) {
+static constexpr T posmod(const T& x, const T& m) {
 	if constexpr (std::is_integral_v<T>)
 	{
 		return ((x % m) + m) % m;
@@ -432,3 +434,6 @@ void update_pq_priorities(std::priority_queue<T, Container, Compare>& pq, std::f
 	// Stick it back in
 	pq.swap(hacker);
 }
+
+// For ImGui
+ImVec2 max_btn_size(std::vector<std::string>& btnTexts);
