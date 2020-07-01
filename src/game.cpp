@@ -86,6 +86,9 @@ void Game::render_esc_menu(bool& quit)
 	// Clear background
 	glClearBufferfv(GL_COLOR, 0, color_black);
 
+	// Setup style
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
+
 	// Create window in center of screen
 	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2 };
 	ImVec2 window_pos_pivot = { 0.5f, 0.5f };
@@ -101,9 +104,8 @@ void Game::render_esc_menu(bool& quit)
 	}
 	ImGui::End();
 
-	// Rendering
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	// Clean up style
+	ImGui::PopStyleVar();
 }
 
 void Game::render(float time)
