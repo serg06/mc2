@@ -62,9 +62,10 @@ public:
 	float last_render_time = 0;
 
 	// funcs
-	void render_frame();
+	void render_frame(bool& quit);
 	void render(float time);
 	void render_debug_info(float dt);
+	void render_esc_menu(bool& quit);
 
 	bool show_debug_info = false;
 	bool should_fix_tjunctions = true;
@@ -73,6 +74,12 @@ public:
 
 	// misc
 	std::unique_ptr<WorldRenderPart> world_render;
+	enum class GameState
+	{
+		InGame,
+		InEscMenu
+	};
+	GameState state = GameState::InGame;
 
 	/* WORLD PART */
 

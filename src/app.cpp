@@ -84,7 +84,10 @@ bool App::draw_main_menu()
 
 void App::draw_game()
 {
-	game->render_frame();
+	bool quitting;
+	game->render_frame(quitting);
+	if (quitting)
+		state = AppState::Quitting;
 }
 
 void App::on_start_game()
@@ -145,7 +148,7 @@ void App::run()
 	startup();
 
 	// run until user presses ESC or tries to close window
-	while (state != AppState::Quitting && (glfwGetKey(window.get(), GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window.get()))) {
+	while (state != AppState::Quitting && (!glfwWindowShouldClose(window.get()))) {
 		// Dear ImGui frame setup
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -164,6 +167,7 @@ void App::run()
 		glfwSwapBuffers(window.get());
 		glfwPollEvents();
 	}
+	state = AppState::Quitting;
 
 	// Send exit message
 	bus.in.send(zmq::buffer(msg::EXIT));
@@ -198,6 +202,7 @@ void App::setup_imgui()
 	//ImGui::SetCurrentContext(main_menu_ctx.get());
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->AddFontFromFileTTF("font/minecraft.otf", 7.0f * 4);
+	ImGui::StyleColorsDark();
 
 	// Init [current context?]
 	ImGui_ImplOpenGL3_Init();

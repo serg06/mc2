@@ -62,13 +62,47 @@ void Game::shutdown()
 	running = false;
 }
 
-void Game::render_frame()
+void Game::render_frame(bool& quit)
 {
-	// run rendering function
 	float time = static_cast<float>(glfwGetTime());
-	update_player_actions();
-	world->update_world(time);
-	render(time);
+	switch (state)
+	{
+	case GameState::InGame:
+		update_player_actions();
+		world->update_world(time);
+		render(time);
+		break;
+	case GameState::InEscMenu:
+		render_esc_menu(quit);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+}
+
+void Game::render_esc_menu(bool& quit)
+{
+	// Clear background
+	glClearBufferfv(GL_COLOR, 0, color_black);
+
+	// Create window in center of screen
+	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2 };
+	ImVec2 window_pos_pivot = { 0.5f, 0.5f };
+	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+	if (ImGui::Begin("Main menu", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing))
+	{
+		// Draw buttons
+		if (ImGui::Button("Quit Game"))
+		{
+			quit = true;
+		}
+	}
+	ImGui::End();
+
+	// Rendering
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void Game::render(float time)
@@ -321,6 +355,27 @@ void Game::onKey(GLFWwindow* window, int key, int scancode, int action, int mods
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			capture_mouse = !capture_mouse;
 		}
+
+		// ESC = toggle ESC menu
+		if (key == GLFW_KEY_ESCAPE)
+		{
+			switch (state)
+			{
+			case GameState::InGame:
+				state = GameState::InEscMenu;
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+				glfwSwapInterval(1); // vsync on
+				break;
+			case GameState::InEscMenu:
+				state = GameState::InGame;
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+				glfwSwapInterval(0); // vsync off
+				break;
+			default:
+				assert(false);
+				break;
+			}
+		}
 	}
 
 	// handle optionally-repeatable key presses
@@ -347,7 +402,7 @@ void Game::onKey(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void Game::onMouseMove(GLFWwindow* window, double x, double y)
 {
-	if (capture_mouse)
+	if (capture_mouse && state == GameState::InGame)
 	{
 		// bonus of using deltas for yaw/pitch:
 		// - can cap easily -- if we cap without deltas, and we move 3000x past the cap, we'll have to move 3000x back before mouse moves!
