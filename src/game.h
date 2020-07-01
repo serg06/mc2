@@ -62,10 +62,9 @@ public:
 	float last_render_time = 0;
 
 	// funcs
-	void run_loop();
+	void render_frame();
 	void render(float time);
 	void render_debug_info(float dt);
-	void render_main_menu();
 
 	bool show_debug_info = false;
 	bool should_fix_tjunctions = true;

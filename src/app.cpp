@@ -24,10 +24,6 @@
 #include <numeric>
 #include <string>
 
-// 1. TODO: Apply C++11 features
-// 2. TODO: Apply C++14 features
-// 3. TODO: Apply C++17 features
-
 using namespace std;
 using namespace vmath;
 
@@ -54,6 +50,67 @@ App::~App()
 
 	auto ret = zmq::send_multipart(bus.in, message, zmq::send_flags::dontwait);
 	assert(ret);
+}
+
+bool App::draw_main_menu()
+{
+	// Create window in center of screen
+	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2 };
+	ImVec2 window_pos_pivot = { 0.5f, 0.5f };
+	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+	if (ImGui::Begin("Main menu", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing))
+	{
+		// Draw buttons
+		if (ImGui::Button("Single Player"))
+		{
+			on_start_game();
+		}
+		if (ImGui::Button("Options"))
+		{
+		}
+		if (ImGui::Button("Quit Game"))
+		{
+			on_quit_game();
+		}
+	}
+	ImGui::End();
+
+	// Rendering
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+	return true;
+}
+
+void App::draw_game()
+{
+	game->render_frame();
+}
+
+void App::on_start_game()
+{
+	state = AppState::InGame;
+	game = std::make_shared<Game>(ctx, window, windowInfo, glInfo);
+	game->startup();
+	glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSwapInterval(0); // disable vsync
+}
+
+void App::on_quit_game()
+{
+	state = AppState::Quitting;
+	if (game)
+	{
+		game->shutdown();
+		game.reset();
+	}
+}
+
+void App::on_enter_main_menu()
+{
+	state = AppState::InMainMenu;
+	glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSwapInterval(1); // enable vsync
 }
 
 void App::run()
@@ -88,11 +145,25 @@ void App::run()
 	startup();
 
 	// run until user presses ESC or tries to close window
-	game->startup();
-	while ((glfwGetKey(window.get(), GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window.get()))) {
-		game->run_loop();
+	while (state != AppState::Quitting && (glfwGetKey(window.get(), GLFW_KEY_ESCAPE) == GLFW_RELEASE) && (!glfwWindowShouldClose(window.get()))) {
+		// Dear ImGui frame setup
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// Draw a frame to default framebuffer
+		draw_frame();
+
+		// Render ImGui output to default framebuffer
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		// Swap buffers
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glfwSwapBuffers(window.get());
+		glfwPollEvents();
 	}
-	game->shutdown();
 
 	// Send exit message
 	bus.in.send(zmq::buffer(msg::EXIT));
@@ -100,59 +171,54 @@ void App::run()
 	shutdown();
 }
 
+void App::draw_frame()
+{
+	switch (state)
+	{
+	case AppState::InGame:
+		draw_game();
+		break;
+	case AppState::InMainMenu:
+		draw_main_menu();
+		break;
+	default:
+		assert(false);
+		break;
+	}
+}
+
+void App::setup_imgui()
+{
+	// One-time init
+	IMGUI_CHECKVERSION();
+
+	// Create context
+	ImGui::CreateContext();
+	//main_menu_ctx.reset();
+	//ImGui::SetCurrentContext(main_menu_ctx.get());
+	ImGuiIO& io = ImGui::GetIO();
+	io.Fonts->AddFontFromFileTTF("font/minecraft.otf", 7.0f * 4);
+
+	// Init [current context?]
+	ImGui_ImplOpenGL3_Init();
+	ImGui_ImplGlfw_InitForOpenGL(window.get(), true);
+}
+
 void App::startup()
 {
 	// prepare opengl
 	setup_opengl(windowInfo.get(), glInfo.get());
 
-	/* IMGUI */
+	// prepare imgui
+	setup_imgui();
 
-	// Setup Dear ImGui context
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
-	ImGuiStyle& style = ImGui::GetStyle();
-	ImVec4* colors = style.Colors;
-	colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.94f);
-	//style.Colors[ImGuiCol_PopupBg] = ImVec4(1, 0, 0, 0.94f);
-	//style.Colors[ImGuiCol_FrameBg] = ImVec4(1, 0, 0, 0.54f);
-	colors[ImGuiCol_Border] = ImVec4(0, 0, 0, 0);
-	style.WindowRounding = 0.0f;
-	//style.ChildRounding = 0.0f;
-	//style.FrameRounding = 0.0f;
-	//style.GrabRounding = 0.0f;
-	//style.PopupRounding = 0.0f;
-	//style.ScrollbarRounding = 0.0f;
-	//ImGui::StyleColorsClassic();
-
-	colors[ImGuiCol_Button] = ImVec4(111/255.0f, 111/255.0f, 111/255.0f, 1);
-
-	// TODO: instead of this, write custom button renderer that changes border on highlight (like MC)
-	//   (Need to override ButtonBehaviour or something?)
-	if constexpr (true)
-	{
-		colors[ImGuiCol_ButtonHovered] = ImVec4(131 / 255.0f, 131 / 255.0f, 131 / 255.0f, 1);
-		colors[ImGuiCol_ButtonActive] = ImVec4(151 / 255.0f, 151 / 255.0f, 151 / 255.0f, 1);
-	}
-
-	// Load Fonts
-	io.Fonts->AddFontFromFileTTF("font/minecraft.otf", 7.0f * 4);
-
-	// Setup Platform/Renderer bindings
-	ImGui_ImplOpenGL3_Init();
-	ImGui_ImplGlfw_InitForOpenGL(window.get(), true);
-
-	// Game
-	game = std::make_shared<Game>(ctx, window, windowInfo, glInfo);
+	// Enter main menu
+	on_enter_main_menu();
 }
 
 void App::shutdown()
 {
+	// TODO: OpenGL shutdown? GLFW shutdown?
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 }
@@ -160,17 +226,16 @@ void App::shutdown()
 void App::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	// ignore unknown keys
-	if (key == GLFW_KEY_UNKNOWN) {
+	if (key == GLFW_KEY_UNKNOWN)
 		return;
-	}
 
-	if (game->running)
+	if (game && game->running)
 		game->onKey(window, key, scancode, action, mods);
 }
 
 void App::onMouseMove(GLFWwindow* window, double x, double y)
 {
-	if (game->running)
+	if (game && game->running)
 		game->onMouseMove(window, x, y);
 }
 
@@ -189,13 +254,13 @@ void App::onResize(GLFWwindow* window, int width, int height)
 
 void App::onMouseButton(int button, int action)
 {
-	if (game->running)
+	if (game && game->running)
 		game->onMouseButton(button, action);
 }
 
 void App::onMouseWheel(double scroll_direction)
 {
-	if (game->running)
+	if (game && game->running)
 		game->onMouseWheel(scroll_direction);
 }
 

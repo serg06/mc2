@@ -36,10 +36,6 @@ public:
 
 	/* INPUTS */
 
-	// mouse inputs
-	double last_mouse_x = 0;
-	double last_mouse_y = 0;
-
 	// redirected GLFW/GL callbacks
 	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void onMouseMove(GLFWwindow* window, double x, double y);
@@ -50,6 +46,22 @@ public:
 
 	/* RENDER PART */
 	std::shared_ptr<GLFWwindow> window;
+	
+	void draw_game();
+	void on_start_game();
+	void on_quit_game();
+	void on_enter_main_menu();
+	void setup_imgui();
+
+	enum class AppState
+	{
+		InMainMenu,
+		InGame,
+		Quitting
+	};
+	AppState state = AppState::InMainMenu;
+	bool draw_main_menu();
+	void draw_frame();
 
 	// settings
 	std::shared_ptr<GlfwInfo> windowInfo;

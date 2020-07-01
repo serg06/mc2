@@ -24,10 +24,6 @@
 #include <numeric>
 #include <string>
 
-// 1. TODO: Apply C++11 features
-// 2. TODO: Apply C++14 features
-// 3. TODO: Apply C++17 features
-
 using namespace std;
 using namespace vmath;
 
@@ -66,19 +62,13 @@ void Game::shutdown()
 	running = false;
 }
 
-void Game::run_loop()
+void Game::render_frame()
 {
 	// run rendering function
 	float time = static_cast<float>(glfwGetTime());
 	update_player_actions();
 	world->update_world(time);
 	render(time);
-
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-	glfwSwapBuffers(window.get());
-
-	// poll window system for events
-	glfwPollEvents();
 }
 
 void Game::render(float time)
@@ -141,11 +131,6 @@ void Game::render(float time)
 	world_render->handle_messages();
 	world_render->render(glInfo.get(), windowInfo.get(), planes, get_player().staring_at);
 
-	// display debug info
-	if (show_debug_info) {
-		render_debug_info(dt);
-	}
-
 	// get polygon mode
 	GLint polygon_mode;
 	glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
@@ -158,6 +143,10 @@ void Game::render(float time)
 		// FBO: COPY TO DEFAULT FRAMEBUFFER
 		glBlitNamedFramebuffer(glInfo->fbo_out.get_fbo(), 0, 0, 0, windowInfo->width, windowInfo->height, 0, 0, windowInfo->width, windowInfo->height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	}
+
+	// display debug info
+	if (show_debug_info)
+		render_debug_info(dt);
 
 	// make sure rendering didn't take too long
 	const auto end_of_fn = std::chrono::high_resolution_clock::now();
@@ -198,11 +187,6 @@ void Game::render_debug_info(float dt)
 	sprintf(lineBuf, "Held block: %d (%s)\n", static_cast<int>(get_player().held_block), get_player().held_block.side_texture().c_str());
 	debugInfo += lineBuf;
 
-	// Start the Dear ImGui frame
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
 	// Show debug info
 	const float DISTANCE = 10.0f;
 	static int corner = 0;
@@ -219,57 +203,6 @@ void Game::render_debug_info(float dt)
 		ImGui::Text(debugInfo.c_str());
 	}
 	ImGui::End();
-
-	// Rendering
-	ImGui::Render();
-	int display_w, display_h;
-	glfwGetFramebufferSize(window.get(), &display_w, &display_h);
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-
-void Game::render_main_menu()
-{
-	// Start the Dear ImGui frame
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
-	// Create window in center of screen
-	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x/2, ImGui::GetIO().DisplaySize.y/2 };
-	ImVec2 window_pos_pivot = {0.5f, 0.5f};
-	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-	if (ImGui::Begin("Main menu", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing))
-	{
-		// Calculate button sizes/spacing
-		float xSpacing = ImGui::GetStyle().ItemSpacing.x + 10.0f;
-		float bottomButtonWidth = 140;
-		float topButtonWidth = 2 * bottomButtonWidth + xSpacing;
-		float buttonHeight = 44;
-
-#ifdef _DEBUG
-		float minBottomButtonWidth = ImGui::CalcTextSize("Options\nQuit Game").x + ImGui::GetStyle().ItemInnerSpacing.x * 2;
-		float minTopButtonWidth = ImGui::CalcTextSize("Single Player").x + ImGui::GetStyle().ItemInnerSpacing.x * 2;
-		float minButtonHeight = ImGui::CalcTextSize("Single Player").y + ImGui::GetStyle().ItemInnerSpacing.y * 2;
-		assert(bottomButtonWidth >= minBottomButtonWidth);
-		assert(topButtonWidth >= minTopButtonWidth);
-		assert(buttonHeight >= minButtonHeight);
-#endif
-
-		// Draw buttons
-		ImGui::Button("Single Player", { topButtonWidth, buttonHeight });
-		ImGui::Dummy(ImVec2(0.0f, 16.0f));
-		ImGui::Button("Options", { bottomButtonWidth, buttonHeight });
-		ImGui::SameLine(0, xSpacing);
-		ImGui::Button("Quit Game", { bottomButtonWidth, buttonHeight });
-	}
-	ImGui::End();
-
-	// Rendering
-	ImGui::Render();
-	int display_w, display_h;
-	glfwGetFramebufferSize(window.get(), &display_w, &display_h);
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void Game::update_player_actions()
