@@ -6,7 +6,7 @@ This is a Minecraft-like game created from scratch using C++ and OpenGL.
 
 ## Running
 
-You can download and run the [latest release](https://github.com/serg06/mc2/releases), or you can [compile it yourself](INSTRUCTIONS.md).
+You can download and run the [latest release](https://github.com/serg06/mc2/releases), or you can [compile it yourself](INSTRUCTIONS.md). (Requirements: Requires Windows 10, OpenGL 4.6+, and if you run an older version (before v0.2.3-alpha), [VC++ 2019 Runtime](https://support.microsoft.com/en-ca/help/2977003/the-latest-supported-visual-c-downloads)).
 
 ## But why?
 
