@@ -728,6 +728,10 @@ void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in) {
 
 // draw menu background to currently bound framebuffer
 void draw_menubckgnd(OpenGLInfo* glInfo) {
+	// clear with black (so we can draw background darker)
+	GLint drawFboId; glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFboId);
+	glClearBufferfv(GL_COLOR, drawFboId, color_black);
+
 	// bind program
 	glBindVertexArray(glInfo->vao_empty);
 	glUseProgram(glInfo->menubckgnd_program);
@@ -735,11 +739,14 @@ void draw_menubckgnd(OpenGLInfo* glInfo) {
 	// save properties before we overwrite them
 	GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
 	GLint blend = glIsEnabled(GL_BLEND);
+	GLint src_alpha, dst_alpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, &src_alpha); glGetIntegerv(GL_BLEND_DST_ALPHA, &dst_alpha);
 	GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
 
 	// set properties
 	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
+	glEnable(GL_BLEND);
+	glBlendColor(0, 0, 0, 0.25f);
+	glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// run program!
@@ -748,5 +755,6 @@ void draw_menubckgnd(OpenGLInfo* glInfo) {
 	// restore original properties
 	if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
 	if (blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+	glBlendFunc(src_alpha, dst_alpha);
 	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 }
