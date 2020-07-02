@@ -1,69 +1,23 @@
-# (In-progress): A Minecraft-like game using C++ and OpenGL.
+## (In-progress): A Minecraft-like game using C++ and OpenGL.
 
-This is a from-scratch creation of a Minecraft-like game, using C++ and OpenGL. (Learning both from *OpenGL Superbible*.)
+This is a Minecraft-like game created from scratch using C++ and OpenGL.
 
-Progress **video** (January 6, 2020):
+[![Youtube](https://img.youtube.com/vi/DtxxP2QCIko/0.jpg)](https://www.youtube.com/watch?v=DtxxP2QCIko)
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/DtxxP2QCIko/0.jpg)](https://www.youtube.com/watch?v=DtxxP2QCIko)
+Try out the
 
-## Wanna try it out?
+## Running
 
-Download the latest [release](https://github.com/serg06/mc2/releases) (Requires Windows 10, OpenGL 4.6+, and [VC++ 2019 Runtime](https://support.microsoft.com/en-ca/help/2977003/the-latest-supported-visual-c-downloads))
+You can download and run the [latest release](https://github.com/serg06/mc2/releases), or you can [compile it yourself](INSTRUCTIONS.md).
 
-Or [compile it yourself](INSTRUCTIONS.md).
+## But why?
 
-## Current features:
+At its core, Minecraft is a very simple game. A world made of blocks, a couple low-poly entities, and textures which would've been considered low-res 20 years ago. So why does it run *so* poorly?
 
-- Infinite world generation, world is split into 16x256x16 chunks, chunks are split into 16x16x16 mini-chunks. One mini-chunk is rendered per draw call.
+This started out as a project to learn C++ and OpenGL, but after seeing how fast my implementation ran, my goal has changed: I'm going to show Mojang how to make an efficient version of Minecraft - one that can work on the slowest PCs, and eventually, in the browser.
 
-- Culling: Mini-chunks are culled out when they're surrounded by blocks on all sides. They're also not drawn when outside the frustum (frustum culling.)
+## Upcoming features (Updated July 1, 2020):
 
-- Movement: Smooth player movement (only flying atm.)
-
-- Collisions: Custom super fast collision algorithm which utilizes the fact that voxels are all cubes. (Will need changing if non-cube blocks are added.)
-
-- Block textures: Some blocks now have textures.
-
-- Block destruction (left-click.)
-
-- Block highlighting.
-
-- Greedy meshing: Nearby blocks of the same type are grouped into rectangles and drawn with a single draw call.
-
-## Some planned features:
-
-- Optimal data organization and OpenGL calls for super high FPS.
-
-- Newest OpenGL features/commands.
-
-- Offloading as much work as possible to the GPU, while also minimizing draw calls.
-
-- Excellent object-oriented C++ code and project structure.
-
-- Automatic world generation.
-	- Lakes/mountains/hills/trees
-	- Different biomes.
-	- Custom structures.
-
-- Algorithm for deterministic world generation; that is, given a seed and a chunk coordinate, I can determine exactly what structure/biome/etc will be in that chunk.
-
-- Automatic chunk offloading to keep RAM and VRAM from filling up.
-
-- Perfectly smooth mob/block collision, including sliding along walls when walking diagonally. (In the future I might add support for non-cube world blocks (like slabs or window panes in Minecraft.)
-
-- Orgasmic look and feel: prioritizing stuff like mouse latency, intuitive movement, low frame-time.
-
-- Data chunking for easy map storage and drawing.
-	- Super efficient map storage, including smart algorithms to fit the job; no more 2GB save files like in Minecraft.
-
-- Skybox and butts.
-
-- Settings on settings on settings. Enough settings to allow even the slowest PC to run at a reasonable framerate.
-
-- Making sure to exclude all the issues that Minecraft has.
-
-## Reasoning behind this project:
-
-At its core, Minecraft is a simple game. The world data is structured, the animations are simple, and collisions are un-complex. The result? Minecraft is a game that can be created *from scratch*. I can make this game and call it mine.
-
-I have a lot of simple yet excellent game concepts in my head; after this project, I'll finally know enough to be able to bring them to life. 
+- Cave generation with Perlin Worms
+- Implementing more UI (like inventory)
+- Learning to parse Minecraft's assets directly (their json files, their model info, etc) so that I don't have to make manual shaders/logic for everything
