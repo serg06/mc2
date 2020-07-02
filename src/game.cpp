@@ -83,8 +83,8 @@ void Game::render_frame(bool& quit)
 
 void Game::render_esc_menu(bool& quit)
 {
-	// Clear background
-	glClearBufferfv(GL_COLOR, 0, color_black);
+	// Draw iconic menu background
+	draw_menubckgnd(glInfo.get());
 
 	// Setup style
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
@@ -93,6 +93,7 @@ void Game::render_esc_menu(bool& quit)
 	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2 };
 	ImVec2 window_pos_pivot = { 0.5f, 0.5f };
 	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+	ImGui::SetNextWindowBgAlpha(0.8f);
 	auto flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse;
 	if (ImGui::Begin("Main menu", nullptr, flags))
 	{
@@ -234,8 +235,8 @@ void Game::render_debug_info(float dt)
 		ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
 		ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
 	}
-	ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background
-	if (ImGui::Begin("Debug info", nullptr, (corner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+	auto flags = (corner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground;
+	if (ImGui::Begin("Debug info", nullptr, flags))
 	{
 		ImGui::Text(debugInfo.c_str());
 	}

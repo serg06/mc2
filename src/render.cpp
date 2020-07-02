@@ -113,6 +113,18 @@ namespace {
 		glInfo->fbo_merging_program = compile_shaders(shader_fnames);
 	}
 
+	void setup_menubckgnd_program(OpenGLInfo* glInfo) {
+		// list of shaders to create program with
+		std::vector <std::tuple<std::string, GLenum>> shader_fnames = {
+			{ "shaders/noop.vs.glsl", GL_VERTEX_SHADER },
+			{ "shaders/full_screen_quad.gs.glsl", GL_GEOMETRY_SHADER },
+			{ "shaders/render_bckgnd.fs.glsl", GL_FRAGMENT_SHADER },
+		};
+
+		// create program
+		glInfo->menubckgnd_program = compile_shaders(shader_fnames);
+	}
+
 	void setup_opengl_vao_quad(OpenGLInfo* glInfo) {
 		// vao: create VAO for Quads, so we can tell OpenGL how to use it when it's bound
 		glCreateVertexArrays(1, &glInfo->vao_quad);
@@ -203,18 +215,21 @@ namespace {
 
 		// load in texture from disk
 		int tex_width, tex_height, tex_components;
-		unsigned char *imgdata = stbi_load(fname, &tex_width, &tex_height, &tex_components, 0);
+		unsigned char *imgdata = stbi_load(fname, &tex_width, &tex_height, &tex_components, TEXTURE_COMPONENTS);
 
 		// make sure it's correct dimensions
-		if (tex_height != height || tex_width != width || tex_components != TEXTURE_COMPONENTS) {
+		if (tex_height != height || tex_width != width) {
 			char buf[256];
 			sprintf(buf, "Error: File '%s' has unexpected dimensions!\n", fname);
 			WindowsException(buf);
 			exit(-1);
 		}
 
+		if (tex_components != TEXTURE_COMPONENTS)
+			OutputDebugString("Warning: pointlessly using too much data\n");
+
 		// write result as floats
-		std::copy(imgdata, imgdata + height * width*tex_components, result);
+		std::copy(imgdata, imgdata + height * width * TEXTURE_COMPONENTS, result);
 
 		// free
 		stbi_image_free(imgdata);
@@ -428,7 +443,7 @@ namespace {
 		// texture arrays
 		const auto tex_arrays = { glInfo->top_textures, glInfo->side_textures, glInfo->bottom_textures };
 
-		// allocate space (32-bit float RGBA 16x16) (TODO: GL_RGBA8 instead.)
+		// allocate space
 		for (auto tex_arr : tex_arrays) {
 			glTextureStorage3D(tex_arr, BLOCKS_NUM_MIPMAPS + 1, GL_RGBA8, 16, 16, MAX_BLOCK_TYPES);
 		}
@@ -534,65 +549,39 @@ namespace {
 		glBindTextureUnit(glInfo->bottom_textures_tunit, glInfo->bottom_textures);
 	}
 
-	void setup_font_textures(OpenGLInfo* glInfo) {
-		// the font atlas that comes with Minecraft
-		// technically we only need 8*8*1 elements, or even less, since we don't need 4 frickin floats to say either 1 or 0, but eh, not like we're struggling for space.
-		float *atlas = new float[8 * 8 * MAX_CHARS * 4];
+	void setup_gui_textures(OpenGLInfo* glInfo)
+	{
+		unsigned char data[(16 * 16) * 4];
 
-		// create textures
-		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &glInfo->font_textures);
+		// create texture
+		glCreateTextures(GL_TEXTURE_2D, 1, &glInfo->bckgnd_texture);
 
-		// allocate space (32-bit float RGBA 16x16) (TODO: Use a smaller datatype. Hell, could even use a fucking bitmap. (As in 1 bit per pixel.))
-		glTextureStorage3D(glInfo->font_textures, 1, GL_RGBA32F, 8, 8, MAX_CHARS);
+		// allocate space
+		glTextureStorage2D(glInfo->bckgnd_texture, BLOCKS_NUM_MIPMAPS + 1, GL_RGBA8, 16, 16);
 
-		// fill all with red for debugging
-		float* red = new float[8 * 8 * MAX_CHARS * 4];
-		for (int i = 0; i < 8 * 8 * MAX_BLOCK_TYPES; i++) {
-			((vec4*)red)[i] = { 1.0f, 0.0f, 0.0f, 1.0f };
-		}
+		// load texture from disk
+		load_texture_data("./textures/gui/background.png", 16, 16, data);
 
-		glTextureSubImage3D(glInfo->font_textures,
-			0,							// Level 0
-			0, 0, 0,					// Offset 0, 0, 0
-			8, 8, MAX_BLOCK_TYPES,		// 8 x 8 x MAX_CHARS texels, replace entire image
+		// load texture to GPU
+		glTextureSubImage2D(
+			glInfo->bckgnd_texture,
+			0,							// mipmap level
+			0, 0,						// Offset 0, 0
+			16, 16,						// width x height
 			GL_RGBA,					// Four channel data
-			GL_FLOAT,					// Floating point data
-			red);
+			GL_UNSIGNED_BYTE,
+			data);						// Pointer to data
+		
+		// wrap texture
+		glTextureParameteri(glInfo->bckgnd_texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTextureParameteri(glInfo->bckgnd_texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-		delete[] red;
+		// filter texture
+		glTextureParameteri(glInfo->bckgnd_texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTextureParameteri(glInfo->bckgnd_texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		// load in textures
-		// 16x16 atlas of 8x8 characters
-		load_texture_data("font/default.png", 16 * 8, 16 * 8, atlas);
-
-		// enough space for one character from the atlas
-		float char_tex[8 * 8 * 4];
-
-		// for each character
-		for (int i = 0; i < MAX_CHARS; i++) {
-			// extract texture
-			extract_from_atlas(atlas, 16, 16, 4, 8, 8, i, char_tex);
-
-			// write it into our 2D texture array
-			glTextureSubImage3D(glInfo->font_textures,
-				0,			// Level 0
-				0, 0, i,	// Offset 0, 0, char ascii code
-				8, 8, 1,	// 8 x 8 x 1 texels, replace one texture
-				GL_RGBA,	// Four channel data
-				GL_FLOAT,	// Floating point data
-				char_tex);		// Pointer to data
-		}
-
-		// clamp texture to edge, in case float inaccuracy tries to screw with us
-		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		// filter
-		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTextureParameteri(glInfo->font_textures, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-		// bind them!
-		glBindTextureUnit(glInfo->font_textures_tunit, glInfo->font_textures);
+		// bind texture
+		glBindTextureUnit(glInfo->bckgnd_texture_tunit, glInfo->bckgnd_texture);
 	}
 
 	void setup_fbos(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
@@ -618,6 +607,7 @@ void setup_opengl(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
 	setup_game_rendering_program(glInfo);
 	setup_tjunction_fixing_program(glInfo);
 	setup_fbo_merging_program(glInfo);
+	setup_menubckgnd_program(glInfo);
 
 	// setup VAOs
 	setup_opengl_vao_empty(glInfo);
@@ -634,7 +624,7 @@ void setup_opengl(GlfwInfo* windowInfo, OpenGLInfo* glInfo) {
 
 	// set up textures
 	setup_block_textures(glInfo);
-	setup_font_textures(glInfo);
+	setup_gui_textures(glInfo);
 }
 
 // fix the tjunctions in DEPTH/COLOR0 of fbo
@@ -733,5 +723,30 @@ void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in) {
 	if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
 	if (blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
 	glBlendFunc(src_alpha, dst_alpha);
+	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
+}
+
+// draw menu background to currently bound framebuffer
+void draw_menubckgnd(OpenGLInfo* glInfo) {
+	// bind program
+	glBindVertexArray(glInfo->vao_empty);
+	glUseProgram(glInfo->menubckgnd_program);
+
+	// save properties before we overwrite them
+	GLint depth_test = glIsEnabled(GL_DEPTH_TEST);
+	GLint blend = glIsEnabled(GL_BLEND);
+	GLint polygon_mode; glGetIntegerv(GL_POLYGON_MODE, &polygon_mode);
+
+	// set properties
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	// run program!
+	glDrawArrays(GL_POINTS, 0, 1);
+
+	// restore original properties
+	if (depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+	if (blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
 	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 }

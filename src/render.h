@@ -42,6 +42,7 @@ struct OpenGLInfo {
 	GLuint game_rendering_program = 0;
 	GLuint tjunction_fixing_program = 0;
 	GLuint fbo_merging_program = 0;
+	GLuint menubckgnd_program = 0;
 
 	// VAOs
 	GLuint vao_empty = 0, vao_cube = 0, vao_quad = 0;
@@ -64,7 +65,7 @@ struct OpenGLInfo {
 	GLuint top_textures;
 	GLuint side_textures;
 	GLuint bottom_textures;
-	GLuint font_textures;
+	GLuint bckgnd_texture;
 
 	// texture units to bind to (like binding points but for textures)
 	// TODO: make sure I stay within limits - maybe re-use old binding points
@@ -72,13 +73,13 @@ struct OpenGLInfo {
 	GLuint side_textures_tunit = 1;
 	GLuint bottom_textures_tunit = 2;
 
-	GLuint font_textures_tunit = 3;
-
 	GLuint tjunc_color_in_tunit = 4;
 	GLuint tjunc_depth_in_tunit = 5;
 
 	GLuint merger_color_in_tunit = 6;
 	GLuint merger_depth_in_tunit = 7;
+
+	GLuint bckgnd_texture_tunit = 8;
 
 	// QUAD VAO binding points
 	const GLuint vert_buf_bidx = 0; // vertex buffer's binding-point index
@@ -123,4 +124,5 @@ void setup_glfw(GlfwInfo*, GLFWwindow**);
 void setup_opengl(GlfwInfo*, OpenGLInfo*);
 void fix_tjunctions(OpenGLInfo* glInfo, GlfwInfo *windowInfo, GLuint fbo_out, FBO& fbo_in);
 void merge_fbos(OpenGLInfo* glInfo, GLuint fbo_out, FBO& fbo_in);
+void draw_menubckgnd(OpenGLInfo* glInfo);
 void opengl_on_resize(OpenGLInfo& glInfo, int width, int height);

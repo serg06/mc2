@@ -54,8 +54,8 @@ App::~App()
 
 bool App::draw_main_menu()
 {
-	// Clear background
-	glClearBufferfv(GL_COLOR, 0, color_black);
+	// Draw iconic menu background
+	draw_menubckgnd(glInfo.get());
 
 	// Setup style
 	int styleVars = 0;
@@ -73,6 +73,7 @@ bool App::draw_main_menu()
 	ImVec2 window_pos = { ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2 };
 	ImVec2 window_pos_pivot = { 0.5f, 0.5f };
 	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+	ImGui::SetNextWindowBgAlpha(0.8f);
 	auto flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse;
 	if (ImGui::Begin("Main menu", nullptr, flags))
 	{
@@ -99,7 +100,7 @@ bool App::draw_main_menu()
 
 void App::draw_game()
 {
-	bool quitting;
+	bool quitting = false;
 	game->render_frame(quitting);
 	if (quitting)
 		state = AppState::Quitting;
@@ -168,6 +169,9 @@ void App::run()
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+
+		// Just in case
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 		// Draw a frame to default framebuffer
 		draw_frame();
