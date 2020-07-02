@@ -20,7 +20,6 @@ namespace msg
 	using notifier_thread = std::function<void(std::shared_ptr<zmq::context_t>, on_ready_fn)>;
 
 	// TODO: Shorten all messages since ZMQ uses prefix matching? Or even just use ints!
-
 #ifdef _DEBUG
 	static const std::string TEST = "TEST";
 #endif

@@ -101,17 +101,6 @@ void WorldDataPart::enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool
 
 	auto ret = zmq::send_multipart(bus.in, message, zmq::send_flags::dontwait);
 	assert(ret);
-
-#ifdef _DEBUG
-	std::stringstream out;
-	out << "Enqueue coords " << vec2str(req->coords) << "\n";
-	OutputDebugString(out.str().c_str());
-#endif //_DEBUG
-
-#ifdef SLEEPS
-	// Just in case
-	std::this_thread::sleep_for(std::chrono::microseconds(1));
-#endif // SLEEPS
 }
 
 // add chunk to chunk coords (x, z)
@@ -667,12 +656,6 @@ void WorldDataPart::handle_messages()
 			// Extract result
 			ChunkGenResponse* response_ = *message[1].data<ChunkGenResponse*>();
 			std::unique_ptr<ChunkGenResponse> response(response_);
-
-#ifdef _DEBUG
-			std::stringstream out;
-			out << "WorldData: Received chunk for " << vec2str(response->coords) << "\n";
-			OutputDebugString(out.str().c_str());
-#endif // _DEBUG
 
 			// Get the chunk
 			std::shared_ptr<Chunk> chunk = std::move(response->chunk);

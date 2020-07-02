@@ -198,12 +198,6 @@ void Chunk::generate() {
 	// create chunk
 	init_minichunks();
 
-#ifdef _DEBUG
-	if (coords == vmath::ivec2(0, 0)) {
-		OutputDebugString("Warning: Generating chunk for {0, 0}.\n");
-	}
-#endif
-
 	// create chunk data array
 	std::fill(__chunk_tmp_storage.begin(), __chunk_tmp_storage.end(), BlockType::Air);
 
@@ -281,8 +275,4 @@ void Chunk::generate() {
 	}
 
 	set_blocks(&__chunk_tmp_storage[0]);
-
-#ifdef _DEBUG
-	OutputDebugString("");
-#endif
 }
