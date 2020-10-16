@@ -10,7 +10,9 @@ set(OTHER_LIBS gl3w FastNoise glfw libzmq-static imgui)
 # hyper-optimize Release build (so should stick to RelWithDebInfo when debugging)
 set(MSVC_COMPILER_FLAGS_RELEASE /MT /Oi /Ot /GL) # static linking, speed
 set(MSVC_LINKER_FLAGS_RELEASE /LTCG) # speed
-set(MSVC_COMPILER_FLAGS /Zc:__cplusplus) # temporary workaround since zmq.hpp doesn't include `vcruntime.h` before checking _HAS_CXX17
+set(MSVC_COMPILER_FLAGS
+	/Zc:__cplusplus  # temporary workaround since zmq.hpp doesn't include `vcruntime.h` before checking _HAS_CXX17
+	/MP)
 
 set(ALL_LIBS ${HEADER_ONLY_LIBS} ${OTHER_LIBS})
 
