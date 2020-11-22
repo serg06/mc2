@@ -133,7 +133,7 @@ void Chunker::on_chunk_gen_request(std::shared_ptr<ChunkGenRequest> req)
 	if (!reqs.contains(req->coords))
 	{
 		float priority = vmath::distance(req->coords, player_coords);
-		pq.emplace(priority, req->coords);
+		pq.emplace(static_cast<int>(priority), req->coords);
 		reqs.insert(req->coords);
 	}
 }
