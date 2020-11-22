@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GL/glcorearb.h"
+#include "GLFW/glfw3.h"
 #include "imgui.h"
 #include "vmath.h"
 
@@ -434,6 +435,15 @@ void update_pq_priorities(std::priority_queue<T, Container, Compare>& pq, std::f
 	// Stick it back in
 	pq.swap(hacker);
 }
+
+// Destructor for GLFWwindow, allows you to use GLFWwindow* with a smart pointer.
+// TODO: Just write an object-oriented wrapper class for GLFWwindow that handles this.
+struct DestroyGlfwWin
+{
+	void operator()(GLFWwindow* ptr) {
+		glfwDestroyWindow(ptr);
+	}
+};
 
 // For ImGui
 ImVec2 max_btn_size(std::vector<std::string>& btnTexts);

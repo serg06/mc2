@@ -137,7 +137,7 @@ void App::run()
 	// create glfw window
 	GLFWwindow* tmp;
 	setup_glfw(windowInfo.get(), &tmp);
-	window.reset(tmp);
+	window.reset(tmp, DestroyGlfwWin());
 
 	// point window to app for glfw callbacks
 	glfwSetWindowUserPointer(window.get(), this);
