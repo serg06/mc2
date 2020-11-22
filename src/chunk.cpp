@@ -110,7 +110,7 @@ void Chunk::set_mini_with_y_level(const int y, std::shared_ptr<MiniChunk> mini) 
 
 // get block at these coordinates
 BlockType Chunk::get_block(const int& x, const int& y, const int& z) {
-	return get_mini_with_y_level(y) == nullptr ? BlockType::Air : get_mini_with_y_level(y)->get_block(x, y % MINICHUNK_HEIGHT, z);
+	return get_mini_with_y_level(y) == nullptr ? BlockType(BlockType::Air) : get_mini_with_y_level(y)->get_block(x, y % MINICHUNK_HEIGHT, z);
 }
 
 BlockType Chunk::get_block(const vmath::ivec3& xyz) { return get_block(xyz[0], xyz[1], xyz[2]); }

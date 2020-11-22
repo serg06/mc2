@@ -122,6 +122,14 @@ public:
 	inline iterator end() const;
 };
 
+// boost::hash_combine
+template <class T>
+inline void hash_combine(std::size_t& seed, const T& v)
+{
+	std::hash<T> hasher;
+	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
 // simple pair hash function
 struct pair_hash
 {
@@ -188,14 +196,6 @@ inline std::string vec2str(vmath::vecN<T, len> vec) {
 	}
 	out << ")";
 	return out.str();
-}
-
-// boost::hash_combine
-template <class T>
-inline void hash_combine(std::size_t& seed, const T& v)
-{
-	std::hash<T> hasher;
-	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 template <typename T>
@@ -405,12 +405,12 @@ class priority_queue_hacker : public std::priority_queue<T, Container, Compare>
 public:
 	Container& get_c()
 	{
-		return c;
+		return this->c;
 	}
 
 	Compare& get_comp()
 	{
-		return comp;
+		return this->comp;
 	}
 };
 

@@ -190,7 +190,7 @@ void gen_layer(const std::shared_ptr<MeshGenRequest> req, const int layers_idx, 
 		face_mini = mini;
 	}
 	else {
-		const auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? face * 16 : face);
+		const auto face_mini_coords = mini->get_coords() + (layers_idx == 1 ? vmath::ivec3(face * 16) : face);
 
 #define SET_COORDS(ATTR)\
 			if (face_mini == nullptr && req->data->ATTR && req->data->ATTR->get_coords() == face_mini_coords)\
