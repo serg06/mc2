@@ -30,6 +30,7 @@ using namespace vmath;
 Game::Game(std::shared_ptr<zmq::context_t> ctx_, std::shared_ptr<GLFWwindow> window_, std::shared_ptr<GlfwInfo> windowInfo_, std::shared_ptr<OpenGLInfo> glInfo_)
 	: ctx(ctx_), bus(ctx_), window(window_), windowInfo(windowInfo_), glInfo(glInfo_)
 {
+	std::fill(held_keys.begin(), held_keys.end(), false);
 	bus.out.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 }
 
