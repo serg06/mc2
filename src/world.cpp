@@ -85,8 +85,8 @@ void WorldDataPart::enqueue_mesh_gen(std::shared_ptr<MiniChunk> mini, const bool
 			req->data->ATTR = minip_;\
 		}
 
-	ADD(up, IUP);
-	ADD(down, IDOWN);
+	ADD(up, IUP * 16);
+	ADD(down, IDOWN * 16);
 	ADD(east, IEAST);
 	ADD(west, IWEST);
 	ADD(north, INORTH);
