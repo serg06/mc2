@@ -12,10 +12,12 @@ You can download and run the [latest release](https://github.com/serg06/mc2/rele
 
 At its core, Minecraft is a very simple game. A world made of blocks, a couple low-poly entities, and textures which would've been considered low-res 20 years ago. So why does it run *so* poorly?
 
-This started out as a project to learn C++ and OpenGL, but after seeing how fast my implementation ran, my goal has changed: I'm going to show Mojang how to make an efficient version of Minecraft - one that can work on the slowest PCs, and eventually, in the browser.
+This started out as a project to learn C++ and OpenGL, but after achieving that, my goal has changed: I want to create a version of Minecraft that's so efficient and smooth, it can run better in the browser than it does on the desktop.
 
-## Upcoming features (Updated July 1, 2020):
+## Next features to implement:
 
-- Cave generation with Perlin Worms
-- Implementing more UI (like inventory)
-- Learning to parse Minecraft's assets directly (their json files, their model info, etc) so that I don't have to make manual shaders/logic for everything
+- Cave generation
+- Inventory
+- Setting up models/textures by reading Minecraft's json/png files directly
+- Rendering water height properly (each corner gets a water height depending on the 4 surrounding blocks, then each square's top texture is generated from the 4 corner heights)
+- Entities using an entity-component system library
