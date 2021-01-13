@@ -9,6 +9,7 @@
 #include "util.h"
 #include "world_meshing.h"
 #include "world_render.h"
+#include "world_utils.h"
 
 #include "examples/imgui_impl_opengl3.h"
 #include "examples/imgui_impl_glfw.h"
@@ -212,6 +213,10 @@ void Game::render_debug_info(float dt)
 	debugInfo += lineBuf;
 
 	sprintf(lineBuf, "Position: (%6.1f, %6.1f, %6.1f)\n", get_player().coords[0], get_player().coords[1], get_player().coords[2]);
+	debugInfo += lineBuf;
+
+	vmath::ivec3 miniCoords = get_mini_coords(get_player().coords[0], get_player().coords[1], get_player().coords[2]);
+	sprintf(lineBuf, "Chunk:   (%6d, %6d, %6d)\n", miniCoords[0], miniCoords[1], miniCoords[2]);
 	debugInfo += lineBuf;
 
 	sprintf(lineBuf, "Facing:   (%6.1f, %6.1f, %6.1f)\n", direction[0], direction[1], direction[2]);
