@@ -12,7 +12,7 @@ You can download and run the [latest release](https://github.com/serg06/mc2/rele
 
 At its core, Minecraft is a very simple game. A world made of blocks, a couple low-poly entities, and textures which would've been considered low-res 20 years ago. So why does it run *so* poorly?
 
-This started out as a project to learn C++ and OpenGL, but after achieving that, my goal has changed: I want to create a version of Minecraft that's so efficient and smooth, it can run better in the browser than it does on the desktop.
+This started out as a project to learn C++ and OpenGL, but after achieving that, my goal has changed: I want to create a version of Minecraft that's so efficient and smooth, it can run better in the browser than Mojang's Minecraft does on the desktop.
 
 ## Next features to implement:
 
