@@ -19,5 +19,5 @@ This started out as a project to learn C++ and OpenGL, but after achieving that,
 - Cave generation
 - Inventory
 - Setting up models/textures by reading Minecraft's json/png files directly
-- Rendering water height properly (each corner gets a water height depending on the 4 surrounding blocks, then each square's top texture is generated from the 4 corner heights)
+- Rendering water height properly (each corner gets a water height depending on the 4 surrounding blocks, then each water block's top texture is generated from its 4 corner heights)
 - Entities using an entity-component system library
