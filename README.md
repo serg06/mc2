@@ -2,6 +2,8 @@
 
 This is a Minecraft-like game created from scratch using C++ and OpenGL.
 
+Video: (Click thumbnail to watch)
+
 [![Youtube](https://img.youtube.com/vi/DtxxP2QCIko/0.jpg)](https://www.youtube.com/watch?v=DtxxP2QCIko)
 
 ## Running
